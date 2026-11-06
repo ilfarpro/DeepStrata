@@ -8,6 +8,13 @@ shards, 508.4 GB, the experts as MXFP4 and the rest in BF16. The two official 2-
 The 508 GB set is for a computer with several graphics cards and a lot of RAM. It was run on four Radeon AI PRO R9700 (32 GB each) with
 251 GB of RAM. Strata does not refuse a smaller computer; it tells you what to expect first.
 
+Unsloth's UD-Q4_K_XL (501 GB) is the same model with the dense weights in Q8_0 instead of BF16: the same MXFP4 experts and the same
+n-gram table, 9 GB of dense weights instead of 17 and 298 GB of weights instead of 306. It has not been run here yet, so its quality
+is not measured against the original: `--check` and `strata launch --plan` size it from its exact file sizes, and the 508 GB set's
+measured speed is the closest guide. Its nine shards sit in the repository's `UD-Q4_K_XL/` folder and the engine packs them whole, as
+it does the Q8 set's. The name is also the name of a Qwen file of Unsloth: `strata launch --model ud-q4_k_xl` starts the Qwen file it
+always started, and DeepSeek's set is named with its family (`strata launch --family deepseek41 --model UD-Q4_K_XL`).
+
 ## Where it goes
 
 | | size | where |
@@ -99,6 +106,7 @@ engines): on an Apple M5 Max 19 to 22 tokens a second with all 7,680 experts in 
 ./setup.sh --family deepseek41 --model ISTA-DAS-2.00bpw   # 257 GB: the official 2.00 set + Engram + drafter (resumable, SHA-256 checked)
 ./setup.sh --family deepseek41 --model ISTA-DAS-2.25bpw   # 274 GB (the Engram is shared with 2.00)
 ./setup.sh --family deepseek41 --model ISTA-DAS-1.75bpw   # 239 GB, the smallest
+./setup.sh --family deepseek41 --model UD-Q4_K_XL        # Unsloth's 4-bit XL set: 501 GB, its own n-gram table (not run here yet)
 ./setup.sh --family deepseek41 --model UD-Q8_K_XL        # Unsloth's 508 GB set, for hundreds of GB of RAM or several cards
 ./setup.sh --family deepseek41 --gguf-dir DIR            # files you already have: the shards (or the folder with 2.00bpw / 2.25bpw / UD-Q8_K_XL inside); the Engram and drafter are looked for beside them
 strata launch --model ist-das-2.00bpw --plan             # where it would go on this computer, nothing changed

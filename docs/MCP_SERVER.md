@@ -17,8 +17,8 @@ scripts do. It is one Python file that uses only the standard library, so it wor
 `.venv`. It needs Python 3.10 or newer, 64-bit on Windows.
 
 It is not the same thing as [Tools from MCP servers](DETAILS.md#tools-from-mcp-servers). That feature
-(`serve/mcp.py`) lets the *Strata model* call tools from your MCP servers in its chat page. This page is the other
-direction: *your assistant* manages Strata.
+(`serve/mcp.py`) lets the *Strata model* call tools from your MCP servers when a request asks for it
+(`"strata_mcp": true`). This page is the other direction: *your assistant* manages Strata.
 
 ## Add it
 

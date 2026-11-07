@@ -3477,7 +3477,8 @@ class TemplateCaps(unittest.TestCase):
 
 
 class WebApp(unittest.TestCase):
-    """The web app (PR #22's dashboard idea, rebuilt): its page and files, and GET /metrics."""
+    """The served address itself (it was the web app, PR #22's dashboard idea): the API index at `/`, the page
+    paths that are gone (`strata ui` serves the page from the App Host now), and GET /metrics."""
 
     @classmethod
     def setUpClass(cls):
@@ -3499,21 +3500,18 @@ class WebApp(unittest.TestCase):
         except urllib.error.HTTPError as e:
             return e.code, e.headers.get("Content-Type", ""), e.read()
 
-    def test_page_and_files(self):
+    def test_root_is_the_api_index(self):
+        # the chat page moved to the App Host (`strata ui`); the address answers as a plain index
         code, ctype, body = self.get("/")
         self.assertEqual(code, 200)
-        self.assertIn("text/html", ctype)
-        self.assertIn(b"\"web/app.js\"", body)   # relative since #82 (works behind a path-prefixed proxy)
-        for path, want in (("/web/app.js", "javascript"), ("/web/app.css", "text/css"), ("/web/tokens.css", "text/css"),
-                           ("/web/components.css", "text/css"), ("/web/sprite.svg", "image/svg+xml")):
-            with self.subTest(path=path):
-                code, ctype, _ = self.get(path)
-                self.assertEqual(code, 200)
-                self.assertIn(want, ctype)
+        self.assertIn("text/plain", ctype)
+        self.assertIn(b"/v1/chat/completions", body)
+        self.assertIn(b"strata ui", body)
+        self.assertNotIn(b"<html", body.lower())
 
-    def test_only_the_app_files_are_served(self):
-        for path in ("/web/..%2Fserver.py", "/web/index.html", "/web/test.py", "/fonts/..%2F..%2Fsetup.py",
-                     "/fonts/missing.woff2", "/fonts/x.ttf"):
+    def test_the_old_page_paths_are_gone(self):
+        for path in ("/web/app.js", "/web/index.html", "/web/..%2Fserver.py", "/fonts/outfit.woff2",
+                     "/fonts/..%2F..%2Fsetup.py", "/api-monitor"):
             with self.subTest(path=path):
                 self.assertEqual(self.get(path)[0], 404)
 

@@ -50,6 +50,8 @@ NETWORK_ALLOWED = {
     ("strata_control/components.py", "urlopen"): "the component fetcher: only `strata install`/UPDATE call it",
     ("strata_control/dsv41_engine.py", "urlopen"): "the DeepSeek engine's one 10-second 'is the feed reachable' check, called only by strata launch and "
                                                   "setup (test_the_deepseek_engine_check_is_reached_only_from_launch_and_setup); never while serving",
+    ("strata_cli/ui_cmd.py", "urlopen"): "`strata ui`: the App Host page it starts on this computer (its /api/health, its quit, its model-provider store) "
+                                         "and one /v1/models list of the server the person named; loopback and the named server only, nothing is downloaded",
 }
 #: Modules that import the installer on purpose, with the explicit command that reaches them.
 INSTALLER_IMPORT_ALLOWED = {

@@ -173,6 +173,8 @@ def parser() -> argparse.ArgumentParser:
     drafting_cmd.add_parser(sp)
     from strata_cli import split_cmd
     split_cmd.add_parser(sp)
+    from strata_cli import ui_cmd
+    ui_cmd.add_parser(sp)
     engine = sp.add_parser("engine", help="engine tuning and component actions")
     engine_sp = engine.add_subparsers(dest="engine_command", required=True)
     calibrate = engine_sp.add_parser("calibrate", help="measure, review and apply engine tuning")
@@ -2141,6 +2143,9 @@ def _run(a: argparse.Namespace) -> int:
             return _components_backends(a)
         if a.command == "components" and a.components_command == "engine":
             return _components_engine(a)
+        if a.command == "ui":
+            from strata_cli import ui_cmd
+            return ui_cmd.run(a)
         if a.command == "update" or (a.command == "components" and a.components_command in ("update", "rollback", "install-file", "engines", "use", "remove")):
             from strata_cli import update_cmd
             return update_cmd.run(a)

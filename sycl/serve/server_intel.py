@@ -5,7 +5,7 @@
 Every argument is serve/server.py's.  Nothing in serve/ is edited (the SYCL port keeps out of the shared files so
 upstream merges stay clean); this wrapper adds, at run time:
 
-  - the Monitor tab's GPU readings on an Intel Arc (sycl/serve/xe_telemetry.py) (also on a PC with an NVIDIA card: the engine runs on the Intel one);
+  - the Monitor's GPU readings on an Intel Arc (sycl/serve/xe_telemetry.py) (also on a PC with an NVIDIA card: the engine runs on the Intel one);
   - a model menu in the web app's header, for a host that swaps models on one GPU: the config names the RPC that
     does the swap as "model_switcher" (it takes {"mode": m} and answers {"mode", "up", "starting", "choices",
     "urls"}); the menu offers the models served on this server's port.  Without that key nothing changes;
@@ -85,7 +85,8 @@ def model_switcher(url: str, port, model, mode: str = "") -> dict:
 
 
 def install_switcher(argv):
-    """Wraps make_handler: GET/POST /switcher, the menu's script and style, and the index page that loads them."""
+    """Wraps make_handler: GET/POST /switcher. The menu's page files went with the served page; the page now comes
+    from the App Host (`strata ui`), which does not know the switcher; the JSON endpoints stay for tooling."""
     def arg(name, default=None):
         return argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else default
 
@@ -97,22 +98,12 @@ def install_switcher(argv):
     if not url:
         return
     port = arg("--port", "8080")
-    web = HERE / "web"
-    types = {".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
     make_handler = S.make_handler
 
     def make(svc):
         base = make_handler(svc)
 
         class Handler(base):
-            def _send(self, body: bytes, ctype: str):
-                self.send_response(200)
-                self.send_header("Content-Type", ctype)
-                self.send_header("Cache-Control", "no-cache")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-
             def do_GET(self):
                 path = self.path.split("?")[0].rstrip("/")
                 if path == "/switcher":
@@ -120,17 +111,8 @@ def install_switcher(argv):
                         self._json(200, model_switcher(url, port, svc.model))
                     return
                 if path.startswith("/sycl-web/"):
-                    f = web / path[len("/sycl-web/"):]
-                    if f.parent != web or f.suffix not in types or not f.is_file():
-                        self._json(404, {"error": {"message": "not found"}})
-                        return
-                    self._send(f.read_bytes(), types[f.suffix])
-                    return
-                if path == "":
-                    page = (ROOT / "serve" / "web" / "index.html").read_text(encoding="utf-8")
-                    page = page.replace("</head>", '<link rel="stylesheet" href="sycl-web/switcher.css">\n</head>', 1)
-                    page = page.replace("</body>", '<script src="sycl-web/switcher.js"></script>\n</body>', 1)
-                    self._send(page.encode("utf-8"), "text/html; charset=utf-8")
+                    # the switcher's page files are gone with the served page (strata ui now); old paths 404 cleanly
+                    self._json(404, {"error": {"message": "not found"}})
                     return
                 super().do_GET()
 

@@ -435,7 +435,7 @@ The server listens on `http://127.0.0.1:8080` (`--port` in setup, or edit the ru
 | The same for Prometheus with vLLM's metric names | `GET /metrics` with `Accept: text/plain` or `?format=prometheus` |
 | Request totals in llama-server's metric names | `GET /metrics/prometheus` |
 | The MCP servers, their state and tools ([below](#tools-from-mcp-servers)) | `GET /mcp` |
-| API request monitor ([below](#api-request-monitor)) | `GET /api-monitor`, `GET /api/requests` |
+| API request monitor ([below](#api-request-monitor)) | `GET /api/requests` |
 
 ```python
 from openai import OpenAI
@@ -463,7 +463,7 @@ print(r.choices[0].message.content)
 ### Thinking levels: none, low, medium, high
 
 The model thinks before it answers (streamed as `reasoning_content`; Anthropic: `thinking` blocks). Choose how much per request
-in the chat page, in `chat.py` (`/think low`) or over the API:
+in a chat app (the desktop app, or `strata ui` in a browser), in `chat.py` (`/think low`) or over the API:
 
 | API | How |
 | --- | --- |
@@ -483,7 +483,7 @@ applies at the next start. Network, key, MCP and program keys are not editable t
 
 | Key | Default | Effect |
 | --- | --- | --- |
-| `reasoning_effort` | model default (high) | Level for requests that name none. The engine has no such option; `--reasoning-effort` in `"args"` is moved here with a note. A request's level and the web page's shared Chat settings win. |
+| `reasoning_effort` | model default (high) | Level for requests that name none. The engine has no such option; `--reasoning-effort` in `"args"` is moved here with a note. A request's level wins. |
 | `reasoning_budget_tokens` | `0` (no budget) | Caps the thinking at N tokens: the server ends it with a short wrap-up line and `</think>` and the model answers from there. The wrap-up counts as output tokens. A request's own `reasoning_budget_tokens` (or llama.cpp's `thinking_budget_tokens`) wins. |
 | `answer_room` | on | A request with thinking on, no budget and `max_tokens` of 1,024 or more gets one: thinking is wrapped up when a quarter of the cap (at least 512 tokens) is left. Requests without `max_tokens` get three quarters of the context. `false` turns it off. Clients should not cap the reply far below what the context allows. |
 | `reasoning_close_retry` | off | Closes the thinking once and continues when a reply ended inside its thinking with no answer and no tool call (#1053). |
@@ -501,7 +501,7 @@ applies at the next start. Network, key, MCP and program keys are not editable t
 | `fit_max_tokens` | `true` | A request whose `max_tokens` runs past the context gets it shortened to the room left. `false` (or `--no-fit-max-tokens`) returns 400 instead. A prompt that leaves no room is always refused. |
 | `engine_silence_s` | `300` | Ends the engine after this many seconds without a line during a request (`0` = wait forever). While a prompt is read, each chunk may take three times the previous one's time. |
 | `parallel` | `1` | Up to N requests decoded together in batch slots ([BATCHING.md](BATCHING.md)). |
-| `api_monitor` | off | Records requests for `/api-monitor`. |
+| `api_monitor` | off | Records requests for the API request monitor (`GET /api/requests`). |
 | `lazy_load` | off | Start without loading the model. |
 | `slot_save_path` | none | Enables session files. |
 | `host`, `api_key`, `cors_origins`, `trusted_origins`, `allowed_hosts` | local only | See [Network access](#network-access). |
@@ -565,7 +565,7 @@ applies at the next start. Network, key, MCP and program keys are not editable t
   prompt, including earlier assistant turns in it, is not counted, so the numbers or a quoted earlier answer in a new task are not
   penalised. `STRATA_PENALTY_PROMPT=1` counts the last `penalty_last_n` tokens of prompt and answer together, the old window.
   This holds for the Qwen3.8 and Qwen3.6-35B-A3B engines on CUDA, HIP, Metal and SYCL.
-- Sampling defaults, in order of precedence: the request, the web page's shared Chat settings, the config's `sampling` block,
+- Sampling defaults, in order of precedence: the request, the config's `sampling` block,
   then the model card. Without a block, thinking requests get temperature 1.0, top_p 0.95, top_k 20, and non-thinking
   requests get 0.7, 0.8, 20 with presence_penalty 1.5 (Qwen3.6-35B-A3B uses presence_penalty 1.5 in both). Greedy is only for
   whoever asks: `temperature: 0` in the request or `"sampling": {"temperature": 0}` in the config. With the default adaptive
@@ -651,7 +651,8 @@ tables per token). The scaling is fixed for the whole run, because the KV cache 
 - **From the internet:** put a tunnel in front, for example `cloudflared tunnel --url http://127.0.0.1:8080`. Set a key first.
   Several keys (one per client, so one can be withdrawn): `--api-key key1,key2`, `"api_key": "key1,key2"` or
   `"api_key": ["key1", "key2"]`. `STRATA_API_KEY` sets one too. Streamed answers carry `X-Accel-Buffering: no`. When you
-  open the web page through a proxy or tunnel whose address differs, add it: `"trusted_origins": ["https://strata.example.com"]`.
+  open the address from a browser page of your own served at another address (behind that proxy or tunnel), add it:
+  `"trusted_origins": ["https://strata.example.com"]`.
 - **Browser pages (CORS):** off by default. `"cors_origins": ["https://chat.example.com"]` lets those origins call `/v1/*`;
   `["*"]` lets any page and is only sensible with an API key. It never opens `/settings`, `/unload` or the MCP tools. It
   belongs to the engine's own server; the desktop app answers browser pages on its own API address and already allows
@@ -808,62 +809,26 @@ curl -X POST "http://127.0.0.1:8080/slots/0?action=restore" -H "Content-Type: ap
   only for this feature. Exact token replay across restarts is not guaranteed: expert residency and CPU/GPU rounding can
   change later output.
 
-### The web page (Chat, Images, Monitor, About)
+### The page: `strata ui` (Chat, Monitor, About)
 
-Open the server's address in a browser. Everything in it runs from the server's own files: no CDN, no outside address. Chats,
-settings and the API key stay in the browser.
+The server's address is API-only: `http://127.0.0.1:8080/` answers a short index of the endpoints (this is where the old
+Chat, Images, Monitor and About page lived). The full interface is the App Host's - the same page the desktop app shows
+in its own window - and from a terminal you reach it with `strata ui`: it starts the App Host on this computer, opens the
+page in your browser and puts the serving model into the chat's model picker as an API model. Closing the tab keeps the
+model serving; `strata ui --stop` ends the page's host, `strata launch --stop` the model.
 
-**Chat settings** (the button next to the message box) holds the sampling and thinking settings and the switches below. Every
-switch below is **off by default**; with all of them off the page behaves as it did before.
-
-- **Render math.** Equations written as `\( ... \)`, `\[ ... \]`, `$x$` or `$$ ... $$` are drawn as formulas by KaTeX 0.19.0, which
-  ships in `serve/web/vendor/katex` (MIT; `PROVENANCE.json` there lists the package and a hash of every file). The text of a
-  message is never changed: copying, the Markdown export and the next request all carry what the model wrote. Code, prices
-  (`$5 and $10`) and a formula still being written stay text. A formula KaTeX cannot read stays as its source. A formula can only
-  draw: it cannot make a link, load a picture or run anything (`\href`, `\url`, `\includegraphics` and `\htmlClass` are shown as
-  their own names).
-- **Saved chats list.** Keeps every chat in a list on the left, with search over titles and text, rename, delete (with Undo) and
-  days as headings. The chats live in this browser's IndexedDB; a picture or file is kept by name only. Nothing goes to the server.
-  In a private window, or when the browser's storage is full, the list stays in memory and the page says so once. Turning it on
-  keeps the chat on the screen as the first one in the list; turning it off keeps that chat as the single chat.
-- **Edit and rewind messages.** Under each message: **Regenerate** (a new answer to the same question), **Edit answer** (correct its
-  text; the old thinking and tool calls go and no request is sent) and **Rewind to here**. Rewind asks what you want. On your
-  message, **Edit and send again here** hides it and the messages after it and puts it in the box; on an answer, **Continue from
-  here** hides the messages after it. **Branch from here** (needs the saved chats list) starts a new chat from the messages up to
-  that point and leaves this chat as it is; the branch keeps a name such as "Branch of ..." and links back to the original. An
-  **Undo** bar above the box brings back what was hidden, until your next question, another chat or a reload. A picture or file
-  that was only kept by name is not sent again: the page asks you to attach it again.
-- **When you send while it is answering.** *Wait* (the default): Send is off until the answer is done. *Send after*: your message
-  waits and goes when the answer is done. *Interrupt*: the answer stops where it is, what was written stays and is marked
-  interrupted, and your message goes at once; a tool that is running finishes first. Only one message waits, and **Take back**
-  returns it to the box. Stop keeps a waiting message for you to send yourself.
-
-An answer's ` ```svg ` or ` ```html ` block gets a **Preview** button. The code is drawn in a frame that is cut off from the page:
-an empty sandbox (no scripts, forms, popups or downloads, and no access to the page, its storage or the server), a policy inside
-the frame that allows no address at all, and a page header (`Content-Security-Policy: frame-src 'none'`) that keeps a link or a
-redirect in the model's HTML from loading a web page into it. An svg is shown as a picture. For an HTML page there is also a
-warning button, **Run scripts**: after you confirm, that one block runs with scripts, still with no way to the page and no network,
-until you close the preview. It can still use your CPU, and it is code the model wrote.
-
-**Load / Unload** in the header loads the model or frees the GPU (`POST /load`, `POST /unload`). It asks before unloading and is off
-while an answer is being written or an image is made.
-
-**Language.** About > Settings lists the page's languages: English (the default), German, Spanish, Japanese, Korean, Portuguese,
-Russian and Chinese. The Chat view, its settings and the header are translated; Monitor, Images and About are still English. A
-language is a file `serve/web/locales/<lang>.json`; the English text lives in the code next to its key, and
-`python tools/web_i18n.py` checks every file for the same keys and placeholders (`--write` rewrites `en.json`). `/?lang=de` shows a
-language for one visit.
-
-Tests: `serve/test_web_*.py` and `serve/test_web_*.js` (Node), and a browser run against a stand-in server with no model:
-`WEBTEST_MODULES=<folder with puppeteer-core> node tools/webtest/browser_test.mjs`. `tools/webtest/shots.mjs` takes the page's
-screenshots.
+What the old page could do now belongs to the App Host's UI (`apps/host`), which the desktop app and the installers
+ship: saved chats with search, LaTeX math (KaTeX), previews of the HTML and SVG an answer writes, its own settings and
+languages. The old page's paths (`/web/*`, `/fonts/*`, `/api-monitor`) answer 404; nothing else moved: the endpoints
+(`/v1/*`, `/metrics`, `/load`, `/unload`, `/mcp`, `/api/requests`, ...) are the same as before.
 
 ### API request monitor
 
 Off by default, because it keeps prompts and answers in memory. Turn it on with `"api_monitor": true` or
-`serve/server.py --api-monitor`; otherwise the two endpoints answer 404. `/api-monitor` shows the model state, load and unload
-controls, active and queued requests, request bodies, output, separate reasoning and response bodies, with load, queue,
-first-token and decode timings. `GET /api/requests` returns summaries and `GET /api/requests?id=<id>` one request. The
+`serve/server.py --api-monitor`; otherwise the two endpoints answer 404. `GET /api/requests` returns summaries - active
+and queued requests with load, queue, first-token and decode timings - and `GET /api/requests?id=<id>` one request with
+its bodies, output and separate reasoning and response bodies. The page that showed these at `/api-monitor` went with
+the served page (`strata ui` has its own live Monitor); the
 monitor keeps the newest 100 requests in memory until restart, 262,144 characters per field, with visible truncation flags.
 Headers are not recorded. Treat the history as sensitive when Strata is reachable from a network, and set an API key.
 
@@ -929,8 +894,8 @@ the client sent, which is why it is off by default.
 
 ## Tools from MCP servers
 
-The chat page can give the model tools from [MCP](https://modelcontextprotocol.io) servers, as LM Studio and Claude Desktop do.
-List the servers in `strata-<model>.json` under `"mcp_servers"`, the same shape as Claude Desktop's `mcpServers` block (key
+Strata can give the model tools from [MCP](https://modelcontextprotocol.io) servers, as LM Studio and Claude Desktop do.
+A request opts in with `"strata_mcp": true` (below); every other request sees the plain API. List the servers in `strata-<model>.json` under `"mcp_servers"`, the same shape as Claude Desktop's `mcpServers` block (key
 `"mcpServers"` also works when pasted as is). Merge these fields into the existing config:
 
 ```json
@@ -949,14 +914,14 @@ after a change.
 - A **program** (`command`, `args`, optional `env` and `cwd`) is started by Strata and spoken to over stdin and stdout. Node.js is
   needed for `npx` servers. An **address** (`url`, optional `headers`) uses MCP's Streamable HTTP transport (the older SSE-only
   transport is not supported). `"disabled": true` leaves an entry out.
-- Servers start with Strata. The server window says what each offers or why it did not start. The Monitor tab lists them, and
-  Chat settings has **Use tools from MCP servers** (on by default). A server that stops later is started again at its next call.
-- In the chat each call shows as a small block. The model reads the result and goes on, up to `max_rounds` rounds of calls (one round can hold several calls). At the limit
+- Servers start with Strata. The server window says what each offers or why it did not start, and `GET /mcp` lists the
+  servers with their state. A server that stops later is started again at its next call.
+- The model reads each call's result and goes on, up to `max_rounds` rounds of calls (one round can hold several calls). At the limit
   the model gets one final reply with no tools, using the results already found, so the answer is not cut off. A tool
   that fails or takes longer than `timeout_s` gives the model an `error: ...` result. Results longer than `max_result_chars` are
   cut with a note. Stop stops a running tool too.
-- Only the chat page uses them. API clients see the API exactly as before and keep their own tools. A request to
-  `/v1/chat/completions` opts in with `"strata_mcp": true`.
+- Only requests that ask for them get them: a request to `/v1/chat/completions` opts in with `"strata_mcp": true`;
+  every other request sees the API exactly as before and keeps its own tools.
 
 **Security.** MCP tools run on your PC with your user's rights, and the model decides when to call them, also because of what
 it reads (a web page or file can contain instructions). Give a filesystem server only the folders it needs, prefer read-only
@@ -1406,11 +1371,14 @@ Strata itself: [MIT](../LICENSE). The model files are not part of it; their lice
   two selector tables as Q4_0; Strata converts the checked pack on your computer (`tools/dflash2_pack.py --convert-selector`) and checks the bytes
   against the same pin.
 - Strata's tuned DFlash2 drafter (`data/dflash2-tuned/`, Apache-2.0, **modified by Strata**): a fine-tuned copy of the weights of [incoai/Qwen3.8-Flash-Next-DFlash2](https://huggingface.co/incoai/Qwen3.8-Flash-Next-DFlash2) (revision a22a1744, Apache-2.0, Inco AI); the original notices are kept, the licence text and a notice of the change are copied next to the file when it is fetched.
-- The web app's font: [Outfit](https://github.com/Outfitio/Outfit-Fonts) (SIL Open Font License 1.1, see `serve/web/fonts/OFL.txt`). Its
+- The served page's font was [Outfit](https://github.com/Outfitio/Outfit-Fonts) (SIL Open Font License 1.1); the font and its
+  licence stay in `docs/media/assets` (`OFL.txt`) for the README's figures. Its
   Monitor tab started from @code-martin's dashboard idea (PR #22).
-  Math is drawn by [KaTeX](https://katex.org) (MIT, vendored in `serve/web/vendor/katex`). The chat page's wide-window layout, svg/html preview, math, Load/Unload, saved
+  Math is drawn by [KaTeX](https://katex.org) (MIT): first in the served page, now in the App Host's UI, which the page went to
+  (`strata ui`). The chat page's wide-window layout, svg/html preview, math, Load/Unload, saved
   chats, edit and rewind came from PRs #3176 (@mnott), #1628 (@thoives), #2972 and #2974 (@CC-David-CC), #3550 (@sakuumomo), #1787 (@Scotty-Hudson) and
-  #2615 (@uppet), and the rewind choice and sending while answering from issues #3823 and #4004 (@xvcezrqpbxtpzblrt).
+  #2615 (@uppet), and the rewind choice and sending while answering from issues #3823 and #4004 (@xvcezrqpbxtpzblrt);
+  these features live in the App Host's page now.
 - The experimental speed projection's vector (`data/experimental-speed-projection/`): Qwen Community License 1.0, made from the model's
   activations (see its README).
 

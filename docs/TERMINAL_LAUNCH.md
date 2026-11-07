@@ -63,8 +63,8 @@ and test-starts it before using it.
    or Tailscale (needs it installed and connected). Also the port and an API key. Beyond this computer a key is recommended:
    Strata makes one, and `t` turns it off. Without a key the server still starts and warns that anyone who can reach the port
    can use the model and its tools; `--no-api-key` does the same without screens, and the warning is stronger on a Cloudflare tunnel.
-10. **Save as preset** and launch. Downloads show progress, then the engine starts and the monitor opens. No web page opens
-    unless you pass `--open`.
+10. **Save as preset** and launch. Downloads show progress, then the engine starts and the monitor opens. No browser page
+    opens unless you pass `--open` (`strata ui` opens the full page whenever you want it).
 
 Keys: arrows choose, Enter goes on, Esc goes back, `?` explains the screen, `q` leaves.
 
@@ -106,7 +106,7 @@ strata launch --show-key
 | `--no-tui` | No screens: serve, print the address and return. |
 | `--yes` | No questions. It never restarts a running model. |
 | `--restart` | Stop a model that is serving other choices (or holds the port), then start these. |
-| `--open` | Open the server's web page once it serves. |
+| `--open` | Open the server's address in the browser once it serves (the API index; the chat page is `strata ui`). |
 | `--plan` | Show what would happen and exit. It lists the model, context, picture setting and what would download (0 when everything is here). |
 | `--feed URL\|DIR` | The signed update feed. Default: `STRATA_UPDATE_FEED` or the project's. |
 | `--output human\|json` | Output format. |
@@ -162,7 +162,7 @@ The monitor has seven views. Press `1` to `7` or use the arrow keys.
 
 | Key | View |
 | --- | --- |
-| 1 | Overview: model state, speed, GPU load, VRAM, temperature, power, PCIe, CPU, disk, context fill, experts in VRAM, system RAM, recent requests. It reads the server's `/metrics`, like the browser Monitor. |
+| 1 | Overview: model state, speed, GPU load, VRAM, temperature, power, PCIe, CPU, disk, context fill, experts in VRAM, system RAM, recent requests. It reads the server's `/metrics`, like the Monitor on the `strata ui` page. |
 | 2 to 6 | Serving, Requests, Engine, Hardware, Logs |
 | 7 | Connect: the address, the key (hidden until `k`) and the setup for each app |
 
@@ -178,6 +178,27 @@ With two or more cards the Overview shows the busiest card's load, all cards' me
 **Windows console.** In the classic Windows 10 console the monitor switches that window's font to Cascadia Mono when it is installed
 and draws the full look. Otherwise it draws a solid-block look and shows one line suggesting Windows Terminal. Nothing is saved and
 Windows Terminal, Linux and macOS are never touched. `STRATA_GLYPHS=unicode|ascii|solid` forces a look.
+
+## The page in a browser: `strata ui`
+
+The address `strata launch` prints is the API. The full page - Chat, Monitor, Models, Settings, the one the desktop app
+shows in its window - comes from the App Host, and `strata ui` starts it for a terminal-served model: it answers on
+`http://127.0.0.1:8791`, opens that in your browser and puts the serving model into the chat's model picker as a saved
+API connection named "Strata (strata launch)" (remove it in the page's Models settings).
+
+| Flag | Meaning |
+| --- | --- |
+| `--port N` | The port the page is served on (default 8791, or `STRATA_PORT`). |
+| `--url URL` | The API address of a server that did not come from `strata launch`. |
+| `--host-dir DIR` | An App Host folder other than the one found: it needs its `server/index.mjs` and built `dist`. |
+| `--node EXE` | The Node runtime (24.12 or newer) other than the one on the PATH. |
+| `--no-browser` | Print the address instead of opening the browser. |
+| `--stop` | Stop the page's host; the model keeps serving. |
+
+Nothing is downloaded. When no built App Host is found (a source checkout builds one with
+`cd apps/host && npm ci && npm run build`; an installed Strata carries `host/`), the command says so and the desktop app
+remains the way to the page. Closing the tab keeps the host and the model serving; `strata ui --stop` ends the host, and
+the page's own "Quit Strata" does the same. Stopping the model stays `strata launch --stop`.
 
 ## Connect your apps: `strata connect`
 

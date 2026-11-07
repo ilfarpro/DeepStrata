@@ -9,7 +9,7 @@ Image generation (optional, when the config has an "images" section): POST /v1/i
 plus seed and steps) runs stable-diffusion.cpp's sd-cli for Qwen-Image-2.1-Turbo, one job at a time on the GPU the
 text engine uses (serve/images.py).
 Tools from MCP servers (serve/mcp.py, `"mcp_servers"` in the config or --mcp-config) are offered only to requests that
-ask for them with `"strata_mcp": true` - the web app does; other clients see exactly the API they always saw.
+ask for them with `"strata_mcp": true`; other clients see exactly the API they always saw.
 Images (optional, when the config has a "vision" entry): OpenAI image_url parts and Anthropic image blocks (base64
 data, http(s) URLs or local file paths) go through `strata-vision` (the model's mmproj file) and reach the engine as
 embeddings (`GENI`).  JPEG/PNG/BMP/GIF go straight in; WebP, TIFF, AVIF, ... (agents like omp send WebP) are
@@ -65,7 +65,6 @@ from serve.frontend import (THINK_END, ChatTemplate, Event, OutputParser, anthro
                             tool_choice_of, unmark_think_literals)
 from serve.mcp import McpCancelled, hub_from_config  # noqa: E402
 from serve import runconfig  # noqa: E402
-from serve.webfiles import subtree_file as web_subtree_file  # noqa: E402
 from strata_control import engine_component  # noqa: E402
 from strata_control import tls  # noqa: E402
 
@@ -504,11 +503,6 @@ class GpuBusy(RuntimeError):
     def __init__(self, message="", retry_after=None):
         super().__init__(message)
         self.retry_after = retry_after
-
-
-# The page's only CSP directive: its preview frames (srcdoc) may not load any address. Other directives are left out
-# on purpose: a frame made from srcdoc inherits the page's policy, and the opt-in "run scripts" preview needs its own inline script.
-PAGE_CSP = "frame-src 'none'"
 
 
 def unload_wait(value, default: float) -> float:
@@ -4836,7 +4830,7 @@ class Service:
         self.client_disconnect_cancels = 0
         self.draining = False
         self.active_cancels: set[threading.Event] = set()
-        # #332: the API request monitor (/api-monitor) keeps the last 100 requests' prompts and answers in memory,
+        # #332: the API request monitor (GET /api/requests) keeps the last 100 requests' prompts and answers in memory,
         # so it is off unless the config's "api_monitor" (or --api-monitor) turns it on
         self.api_monitor = False
         self.api_requests = collections.deque(maxlen=100)  # bounded I/O in memory; no headers or API keys
@@ -7831,53 +7825,9 @@ def make_handler(svc: Service):
                 self.end_headers()
                 self.wfile.write(body)
                 return
-            if path.startswith("/fonts/"):
-                # the web app's font (Outfit, OFL: serve/web/fonts); the page falls back to the system font
-                name = path[len("/fonts/"):]
-                f = ROOT / "serve" / "web" / "fonts" / name
-                if "/" in name or "\\" in name or not name.endswith(".woff2") or not f.is_file():
-                    self._json(404, {"error": {"message": "not found"}})
-                    return
-                body = f.read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", "font/woff2")
-                self.send_header("Cache-Control", "max-age=86400")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-                return
-            sub = web_subtree_file(path)
-            if path.startswith(("/web/locales/", "/web/vendor/")):
-                # the page's translations (serve/web/locales/<lang>.json) and the vendored KaTeX (serve/web/vendor):
-                # only whitelisted names and types, never a path out of those folders
-                if sub is None:
-                    self._json(404, {"error": {"message": "not found"}})
-                    return
-                body = sub[0].read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", sub[1])
-                self.send_header("Cache-Control", "no-cache")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-                return
-            if path.startswith("/web/"):
-                # the web app's own files (serve/web): styles, script, icon sprite - same origin, no CDN
-                name = path[len("/web/"):]
-                types = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
-                         ".svg": "image/svg+xml"}
-                f = ROOT / "serve" / "web" / name
-                ext = os.path.splitext(name)[1]
-                if "/" in name or "\\" in name or ext not in types or not f.is_file():
-                    self._json(404, {"error": {"message": "not found"}})
-                    return
-                body = f.read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", types[ext])
-                self.send_header("Cache-Control", "no-cache")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
+            if path.startswith(("/fonts/", "/web/")):
+                # the served page and its files are gone (they moved to the App Host, `strata ui`); old bookmarks 404 cleanly
+                self._json(404, {"error": {"message": "not found"}})
                 return
             if path == "/metrics/prometheus":
                 if self._authorized():
@@ -8096,18 +8046,19 @@ def make_handler(svc: Service):
                     self._config_get()
                 return
             if path == "/mcp":
-                # the MCP servers, their state and tools (the web app's switch and Monitor card)
+                # the MCP servers, their state and tools (for tooling and chat pages; see docs/MCP_SERVER.md)
                 if self._authorized():
                     self._json(200, svc.mcp.status() if svc.mcp else {"servers": [], "tools": 0})
                 return
-            if path == "" or (path == "/api-monitor" and svc.api_monitor):
-                body = (ROOT / "serve" / "web" / ("monitor.html" if path else "index.html")).read_bytes()
+            if path == "":
+                # the address is API-only now: the chat page moved to the App Host (strata ui opens it in a browser)
+                body = ("Strata is serving its API here; this address is not a chat page any more.\n"
+                        "  OpenAI      POST /v1/chat/completions     status: GET /v1/status\n"
+                        "  Anthropic   POST /v1/messages\n"
+                        "For Strata's full interface (Chat, Monitor, About) run:  strata ui\n"
+                        "in a terminal on this computer; it opens the page served by the Strata App Host.\n").encode()
                 self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                if not path:
-                    # the chat's svg/html preview is a sandboxed frame; this keeps it from navigating away to a web page
-                    # (a link or <meta refresh> inside a model's html), which no sandbox flag does (serve/web/preview.js)
-                    self.send_header("Content-Security-Policy", PAGE_CSP)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -9956,7 +9907,8 @@ def _main(argv=None, *, lifecycle_event=None, interrupt_exit_code: int = 0) -> i
                                   "(\"0,2\"; also \"gpu\" in the config)")
     ap.add_argument("--tokenizer", default=str(ROOT / "pack/full/tokenizer"),
                     help="pack tokenizer directory (falls back to a byte tokenizer if absent)")
-    ap.add_argument("--open", action="store_true", help="open the local page in the browser once the model is ready")
+    ap.add_argument("--open", action="store_true", help="open this server's address in the browser once the model is "
+                                                        "ready (the API index; the full chat page is served by `strata ui`)")
     ap.add_argument("--fit-max-tokens", action="store_true",
                     help="clamp max_tokens to the remaining context instead of rejecting the request "
                          "(the default; kept so older scripts keep working)")
@@ -9974,8 +9926,8 @@ def _main(argv=None, *, lifecycle_event=None, interrupt_exit_code: int = 0) -> i
                                          "the config)")
     ap.add_argument("--lazy", action="store_true", help="start the API unloaded (the engine and the vision encoder start with the first request)")
     ap.add_argument("--api-monitor", action="store_true",
-                    help="the API request monitor at /api-monitor: keeps the last 100 requests' prompts and answers in "
-                         "memory (also \"api_monitor\": true in the config; off by default)")
+                    help="the API request monitor: keeps the last 100 requests' prompts and answers in memory for "
+                         "GET /api/requests (also \"api_monitor\": true in the config; off by default)")
     ap.add_argument("--idle-unload", type=float, default=None, metavar="SECONDS",
                     help="unload the model after this many seconds without requests, so other programs (games, other "
                          "model servers) can use the VRAM; the next request loads it again (also \"idle_unload_s\" "
@@ -10334,7 +10286,7 @@ def _main(argv=None, *, lifecycle_event=None, interrupt_exit_code: int = 0) -> i
               else f"[strata] also answers to the host names {', '.join(svc.allowed_hosts)} (allowed_hosts)", flush=True)
     svc.api_monitor = a.api_monitor or cfg.get("api_monitor") is True
     if svc.api_monitor:
-        print("[strata] API request monitor on (/api-monitor): the last 100 requests' prompts and answers are kept in "
+        print("[strata] API request monitor on (GET /api/requests): the last 100 requests' prompts and answers are kept in "
               "memory" + ("" if svc.api_key else "; anyone who can reach this server can read them (no API key)"),
               flush=True)
     if svc.cors_origins:
@@ -10440,7 +10392,8 @@ def _main(argv=None, *, lifecycle_event=None, interrupt_exit_code: int = 0) -> i
     print(f"ready: http://{here}:{bound_port}/v1  (OpenAI: /v1/chat/completions, Anthropic: /v1/messages, "
           f"context {engine.max_context} tokens{', images on' if vision else ''}"
           f"{', API key required' if svc.api_key else ''})", flush=True)
-    print(f"       open http://{here}:{bound_port}/ in a browser to chat; close this window to stop the model", flush=True)
+    print(f"       API index at http://{here}:{bound_port}/   full interface: run  strata ui   "
+          f"(close this window to stop the model)", flush=True)
     if a.host not in ("127.0.0.1", "localhost", "::1"):
         # issue #26: reachable from other devices - say at which address, and what can still block it
         ips = [f"[{a.host}]"] if ":" in a.host and a.host != "::" else [] if a.host == "::" else lan_addresses()

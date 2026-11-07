@@ -84,8 +84,9 @@ strata launch
 ```
 
 Follow the screens to choose a model, context, storage folder and access settings. The monitor opens after startup.
-Use the address printed by Strata; the default local endpoint is `http://127.0.0.1:8080`.
-The Terminal opens a browser only when you add `--open`.
+Use the address printed by Strata; the default local endpoint is `http://127.0.0.1:8080`. To chat in a browser, run
+`strata ui`: it opens the full page (Chat, Monitor) served by the App Host.
+The Terminal opens a browser by itself only when you add `--open`.
 
 For a script or AI agent, inspect a plan before downloading. This example selects ISTA-DASLab Q2_0 explicitly:
 

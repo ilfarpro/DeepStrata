@@ -1,0 +1,8 @@
+  UD-Q2_K_XL/DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-00001-of-00007.gguf: header parse failed / truncated
+== UD-Q2_K_XL
+   routed-experts     191138365440 B  ( 191.1 GB)   IQ3_XXS 86.70 GB, IQ2_XXS 33.87 GB, IQ2_S 29.02 GB, IQ3_S 19.46 GB, MXFP4 16.85 GB, IQ2_XS 5.24 GB
+   embed              135875304800 B  ( 135.9 GB)   Q5_K 135.17 GB, Q8_0 0.70 GB
+   attention            5183402208 B  (   5.2 GB)   Q8_0 3.63 GB, Q6_K 1.35 GB, BF16 0.12 GB, F32 0.08 GB
+   shared-experts       1392629760 B  (   1.4 GB)   Q8_0 1.02 GB, Q6_K 0.38 GB
+   other                 939782368 B  (   0.9 GB)   Q6_K 0.54 GB, F32 0.39 GB, BF16 0.00 GB
+   engram                258211840 B  (   0.3 GB)   Q6_K 0.26 GB, F32 0.00 GB

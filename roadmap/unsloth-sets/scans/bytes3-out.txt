@@ -1,0 +1,32 @@
+  UD-Q4_K_XL/DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00001-of-00009.gguf: header parse failed / truncated
+== UD-Q4_K_XL
+   routed-experts     288777830400 B  ( 288.8 GB)   MXFP4 288.78 GB
+   embed              203461315600 B  ( 203.5 GB)   MXFP8 202.76 GB, Q8_0 0.70 GB
+   attention            5525272800 B  (   5.5 GB)   Q8_0 5.45 GB, F32 0.08 GB
+   shared-experts       1504051200 B  (   1.5 GB)   Q8_0 1.50 GB
+   other                1098860768 B  (   1.1 GB)   Q8_0 0.70 GB, F32 0.39 GB
+   engram                334397440 B  (   0.3 GB)   Q8_0 0.33 GB, F32 0.00 GB
+  UD-IQ3_XXS/DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00001-of-00007.gguf: header parse failed / truncated
+== UD-IQ3_XXS
+   routed-experts     224298270720 B  ( 224.3 GB)   MXFP4 72.19 GB, Q3_K 54.50 GB, IQ3_XXS 48.55 GB, IQ2_S 29.02 GB, IQ3_S 7.79 GB, IQ2_XXS 7.01 GB, IQ2_XS 5.24 GB
+   embed              161988081700 B  ( 162.0 GB)   Q6_K 161.28 GB, Q8_0 0.70 GB
+   attention            5582043360 B  (   5.6 GB)   Q8_0 5.38 GB, BF16 0.12 GB, F32 0.08 GB
+   shared-experts       1504051200 B  (   1.5 GB)   Q8_0 1.50 GB
+   other                1100089568 B  (   1.1 GB)   Q8_0 0.70 GB, F32 0.39 GB, BF16 0.00 GB
+   engram                258211840 B  (   0.3 GB)   Q6_K 0.26 GB, F32 0.00 GB
+  UD-IQ3_S/DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00001-of-00008.gguf: header parse failed / truncated
+== UD-IQ3_S
+   routed-experts     253353000960 B  ( 253.4 GB)   MXFP4 151.61 GB, Q3_K 50.61 GB, IQ3_XXS 34.68 GB, IQ2_S 14.51 GB, IQ3_S 1.95 GB
+   embed              161988081700 B  ( 162.0 GB)   Q6_K 161.28 GB, Q8_0 0.70 GB
+   attention            5582043360 B  (   5.6 GB)   Q8_0 5.38 GB, BF16 0.12 GB, F32 0.08 GB
+   shared-experts       1504051200 B  (   1.5 GB)   Q8_0 1.50 GB
+   other                 939782368 B  (   0.9 GB)   Q6_K 0.54 GB, F32 0.39 GB, BF16 0.00 GB
+   engram                258211840 B  (   0.3 GB)   Q6_K 0.26 GB, F32 0.00 GB
+  UD-Q3_K_XL/DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00001-of-00008.gguf: header parse failed / truncated
+== UD-Q3_K_XL
+   routed-experts     271613952000 B  ( 271.6 GB)   MXFP4 218.99 GB, IQ3_S 21.41 GB, Q3_K 15.57 GB, IQ2_S 8.71 GB, IQ3_XXS 6.94 GB
+   embed              203461315600 B  ( 203.5 GB)   MXFP8 202.76 GB, Q8_0 0.70 GB
+   attention            7125170400 B  (   7.1 GB)   Q8_0 3.63 GB, BF16 3.41 GB, F32 0.08 GB
+   shared-experts       1504051200 B  (   1.5 GB)   Q8_0 1.50 GB
+   other                1100089568 B  (   1.1 GB)   Q8_0 0.70 GB, F32 0.39 GB, BF16 0.00 GB
+   engram                258211840 B  (   0.3 GB)   Q6_K 0.26 GB, F32 0.00 GB

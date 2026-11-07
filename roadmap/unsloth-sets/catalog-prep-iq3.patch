@@ -1,0 +1,154 @@
+diff --git a/setup.py b/setup.py
+index 8d18464a..93b41e09 100644
+--- a/setup.py
++++ b/setup.py
+@@ -926,6 +926,47 @@ DSV41_UDQ4_FILES = {
+     "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00009-of-00009.gguf": (9165923392, "c21ad6105a780bc2f44eb7dd41f9b1a1efb4e8ec87618f60b733bc2652bd2ffe"),
+ }
+ DSV41_FILES.update(DSV41_UDQ4_FILES)    # (the repository's pins: REPO_PINS)
++# Unsloth's three 3-bit Dynamic quantizations of the same model (pinned 2026-11-07 from the live Hub; every file exists at the pinned commit too and its size HEAD-checked there).
++# Each carries its OWN n-gram table: UD-IQ3_XXS and UD-IQ3_S ship seven and eight shards with the table in the last one as Q6_K (161.3 GB, the MXFP8 table's 202.8 GB in 6.6-bit
++# form), UD-Q3_K_XL ships eight with its own MXFP8 table: 202,758,032,592 bytes, the Q8 set's shard-8 size but NOT its bytes - a fresh pin, nothing shared.  The routed experts are
++# a per-layer Dynamic mix: MXFP4 where Unsloth kept DeepSeek's own form, 3-bit forms (Q3_K, IQ3_XXS, IQ3_S) for most of the rest and a few layers at 2-bit (IQ2_S, IQ2_XS,
++# IQ2_XXS); the shared experts are Q8_0 and the attention F32/Q8_0 in all three.  The engine has kernels for every one of these types (src/dsv41/ds4_iq.cu) but no pack Strata
++# has shipped exercised them, so these names are opt-in, never a download default, and not run here yet.
++DSV41_UDIQ3XXS_SHARD = "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-{i:05d}-of-00007.gguf"
++DSV41_UDIQ3XXS_FILES = {
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00001-of-00007.gguf": (5780927, "0c2a2031bd93ebd60aa6a4f3912775ba3990b5f39b24c6edf9ea029d2f387a28"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00002-of-00007.gguf": (49485970112, "aa7827cc3c88958f4bc4134fab2c2d63dff1e53f947f76cbb34ce429205d551c"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00003-of-00007.gguf": (49037273088, "7e5bc7c88e2bbcdadafcf672a1959581aeb2f2b23732ffd77823a756151a4e76"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00004-of-00007.gguf": (49580635872, "a6b33c1cc73bbd2a54617f0714c5144ee8ee6d6403ceea49628633a7a2be21de"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00005-of-00007.gguf": (48448165536, "5e392a945c534eb439279bbb638e7ea47e5a1cfca620b96c3fd47da87d5923a8"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00006-of-00007.gguf": (36893972640, "e1b4a74844e637d8b15c94c30757e2359f81f287824c421e8b5b746b010e030e"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00007-of-00007.gguf": (161284798692, "9d21807ac1a40cd1635634c14135b5acca1c8b855dae228170361602c7de560b"),
++}
++DSV41_UDIQ3S_SHARD = "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-{i:05d}-of-00008.gguf"
++DSV41_UDIQ3S_FILES = {
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00001-of-00008.gguf": (5780886, "1d3027d28a1c749a5a185420640d2849849e5d42e7719df5d852572e1771de25"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00002-of-00008.gguf": (49714948320, "a5c5b3a1d56fc64e2018442170371348683a6ca31d805040946635c508698c89"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00003-of-00008.gguf": (49249617536, "0182203a6278cd29702003589b11635a8b6c58a17613270a94532a7487760092"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00004-of-00008.gguf": (49262124864, "5e1aed1952f95ada91abb3332adb8d77eff6a98281a09c246e827c6031ba0a93"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00005-of-00008.gguf": (49616016928, "69dd858b60744b9430be3b69684120d1bcb33ba4b5a740b60ddf8fc5a2875dee"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00006-of-00008.gguf": (49262122592, "962c493b4f41f2dedfb31ebbfe725d14b55d97a442f0cd14296a42ac51345ff7"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00007-of-00008.gguf": (15235610176, "c96d4a18a86dcdb3ed10e3e367bc9f3070d61a1da0144926519d2987c4e41b26"),
++    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00008-of-00008.gguf": (161284798692, "e70b4bf3ac5b26aa2addb048cff61a6be5490e99ba88cfbc29f7fb7279000141"),
++}
++DSV41_UDQ3K_SHARD = "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-{i:05d}-of-00008.gguf"
++DSV41_UDQ3K_FILES = {
++    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00001-of-00008.gguf": (5780927, "427a6be72b502c52562b1f1f7c5c764cad2a4cb3af991e9aaf02a33d958cc322"),
++    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00002-of-00008.gguf": (48856795552, "9a3500224d10ca5565f010f57154f5b1999406c9453d86e4a0903a8183503697"),
++    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00003-of-00008.gguf": (48089732928, "ba5c295631a392c7f929a14b633f6c9badc0eb1c9d719ecad92ec43efd4ddc6d"),
++    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00004-of-00008.gguf": (49795067616, "4dd4ea5d34219cd1444218352def2977dd153739853464154a3936276f31ffbb"),
++    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00005-of-00008.gguf": (49964720992, "1a733e505a723fb1a5ccc15a45547c6d42097d8830d8fa4c4d17ca7bbb580855"),
++    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00006-of-00008.gguf": (49332666816, "0592a53ddba5a57062e266116bae26e9f1a97c268acb5287c8f4be5bb1741314"),
++    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00007-of-00008.gguf": (36265841792, "e6e8dd016ffbb2820f0e6a37f4f8a531f5365fbdd009e758dda1c054453f9ffc"),
++    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00008-of-00008.gguf": (202758032592, "18ddc73eea11981cb6317c6d3c4a4e58ec71baaea2de41b071d9127bc15c2a94"),
++}
++DSV41_FILES.update(DSV41_UDIQ3XXS_FILES)    # (the repository's pins: REPO_PINS)
++DSV41_FILES.update(DSV41_UDIQ3S_FILES)
++DSV41_FILES.update(DSV41_UDQ3K_FILES)
+ # The ISTA-DAS Coder (2026-11-01; the official ISTA-DASLab repository since 2026-11-02): ISTA-DAS's coding variant of this model, "the layout of the
+ # IQ2_XXS set with half of the experts removed": 192 routed experts a layer instead of 384 (the router, the experts and the routing biases are narrower; every other tensor has the 2.00
+ # set's name, shape and type).  Five model files in the folder IQ2_XXS/ (shard 1 = the metadata, shards 2-5 = the model; the Engram would be the sixth shard of the split) plus two files at
+@@ -955,6 +996,7 @@ DSV41_ALT_NAMES = {DSV41_MMPROJ: (DSV41_CODER["mmproj"],)} if (DSV41_CODER_REPO
+ # The Coder repository's Engram file is the unpruned release's Engram under the same name (DSV41_ISTA_ENGRAM, converted: DSV41_ENGRAM_CONVERTED's SHA-256, accepted beside the pinned one
+ # by DSV41_SHA_ALSO), so it never replaces that pin: one Engram file, on the SSD, shared by every set (a copy of either file already here is used where it is).
+ DSV41_ALL_FILES = {**DSV41_FILES, **DSV41_ISTA_FILES, **DSV41_ISTA6_FILES, **DSV41_LEGACY_FILES, **DSV41_UD_FILES, **DSV41_UDQ4_FILES,
++                   **DSV41_UDIQ3XXS_FILES, **DSV41_UDIQ3S_FILES, **DSV41_UDQ3K_FILES,
+                    **{n: v for n, v in DSV41_CODER_FILES.items() if n not in (DSV41_MMPROJ, DSV41_ISTA_ENGRAM)}}
+ 
+ 
+@@ -10433,7 +10475,7 @@ def main() -> int:
+         try:                                           # DeepSeek-V4.1-Flash: a line, from the real numbers (strata_control/dsv41_fit.py)
+             from strata_control import dsv41_fit
+             cards_ok = amd_ok if hip else [g for g in found if gpu_problem(g) is None]
+-            for mname in ("IST-DAS-2.00bpw", "IST-DAS-2.25bpw", "IST-DAS-1.75bpw", "UD-Q4_K_XL", "UD-Q8_K_XL"):
++            for mname in ("IST-DAS-2.00bpw", "IST-DAS-2.25bpw", "IST-DAS-1.75bpw", "UD-IQ3_XXS", "UD-IQ3_S", "UD-Q3_K_XL", "UD-Q4_K_XL", "UD-Q8_K_XL"):
+                 ds = dsv41_fit.plan(cards_ok, ram, None, model=mname)
+                 tail = {"fits": f"fits ({ds['experts_in_vram']:,} of {ds['experts_total']:,} experts in graphics memory, the rest on the CPU)",
+                         "tight": ("runs, with the experts RAM cannot hold read from the SSD (about 5-7 tokens a second measured)"
+diff --git a/strata_control/dsv41_fit.py b/strata_control/dsv41_fit.py
+index 1ced27ee..35f357c1 100644
+--- a/strata_control/dsv41_fit.py
++++ b/strata_control/dsv41_fit.py
+@@ -544,7 +544,8 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
+     ud = UD_SETS.get(str(model or "UD-Q8_K_XL").upper(), UD_SETS["UD-Q8_K_XL"])      # Unsloth's XL sets; anything unnamed takes the UD-Q8_K_XL figures, as before
+     keep, ignored = run_cards(cards, vendor, named=named)                 # the engine takes the layers in card order
+     n = len(keep)
+-    out: dict[str, Any] = {"cards": [], "experts_total": EXPERTS, "experts_in_vram": 0, "vram_experts_gb": 0.0,
++    experts, expert_gb = ud.get("experts", EXPERTS), ud.get("expert_gb", EXPERT_GB)      # the 3-bit sets have the same 15,360 experts in smaller forms: their entry says so
++    out: dict[str, Any] = {"cards": [], "experts_total": experts, "experts_in_vram": 0, "vram_experts_gb": 0.0,
+                            "cpu_experts_gb": ud["experts_gb"], "weights_gb": _round1(ud["weights_gb"]), "experts_gb": _round1(ud["experts_gb"]),
+                            "dense_gb": _round1(ud["dense_gb"]), "engram_gb": _round1(ud["engram_gb"]), "download_gb": _round1(ud["download_gb"]),
+                            "tp": tp_for(n), "args": [], "measured": ud["measured"], "lines": [], "warnings": [],
+@@ -554,7 +555,7 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
+     out["disk_ok"] = None if disk_free_gb is None else disk_free_gb >= need_disk
+     lines, warns = out["lines"], out["warnings"]
+     lines.append(f"DeepSeek-V4.1-Flash ({ud['name']}): a {ud['download_gb']:.0f} GB download. In memory it needs {ud['weights_gb']:.0f} GB: "
+-                 f"{ud['experts_gb']:.0f} GB of experts ({EXPERTS:,} of {EXPERT_GB * 1000:.1f} MB) and {ud['dense_gb']:.0f} GB of attention "
++                 f"{ud['experts_gb']:.0f} GB of experts ({ud.get('expert_how', f'{experts:,} of {expert_gb * 1000:.1f} MB')}) and {ud['dense_gb']:.0f} GB of attention "
+                  "and other dense weights.")
+     lines.append(f"Its n-gram table ({ud['engram_gb']:.0f} GB of the download) stays on the SSD and is read a few rows for each word "
+                  "it writes: it is not counted in RAM, but a slow disk (SATA, a network drive, a USB disk) makes every word "
+@@ -575,15 +576,15 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
+         in_vram = 0
+         for c, room, (a, b), s in zip(keep, cap, ranges, share):
+             gb = min(room, vram_exp * s) if sum(cap) else 0.0
+-            ne = int(gb / EXPERT_GB)
++            ne = int(gb / expert_gb)
+             ne = min(ne, (b - a + 1) * EXPERTS_PER_LAYER)
+             in_vram += ne
+             out["cards"].append({"index": c.get("index"), "name": c.get("name"), "vram_gb": float(c.get("vram_gb") or 0),
+-                                 "layers": [a, b], "dense_gb": _round1(per_dense), "experts_gb": _round1(ne * EXPERT_GB),
++                                 "layers": [a, b], "dense_gb": _round1(per_dense), "experts_gb": _round1(ne * expert_gb),
+                                  "experts": ne})
+         out["experts_in_vram"] = in_vram
+-        out["vram_experts_gb"] = _round1(in_vram * EXPERT_GB)
+-        out["cpu_experts_gb"] = _round1(ud["experts_gb"] - in_vram * EXPERT_GB)
++        out["vram_experts_gb"] = _round1(in_vram * expert_gb)
++        out["cpu_experts_gb"] = _round1(ud["experts_gb"] - in_vram * expert_gb)
+         out["tp"] = tp_for(n)
+         out["args"] = ["--tp", str(out["tp"])] if out["tp"] > 1 else []
+         if ram_gb:
+@@ -605,19 +606,19 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
+         if n == 1:
+             c = out["cards"][0]
+             lines.append(f"One card ({c['name'] or 'card ' + str(c['index'])}, {c['vram_gb']:.0f} GB): the dense weights ({c['dense_gb']:.0f} GB) "
+-                         f"and {c['experts']:,} of the {EXPERTS:,} experts ({c['experts_gb']:.0f} GB) go in its memory, the other "
+-                         f"{EXPERTS - c['experts']:,} experts ({out['cpu_experts_gb']:.0f} GB) are computed on the CPU from RAM.")
++                         f"and {c['experts']:,} of the {experts:,} experts ({c['experts_gb']:.0f} GB) go in its memory, the other "
++                         f"{experts - c['experts']:,} experts ({out['cpu_experts_gb']:.0f} GB) are computed on the CPU from RAM.")
+         else:
+             blocks = "  |  ".join(f"card {c['index']}: layers {c['layers'][0]}-{c['layers'][1]}" for c in out["cards"])
+             lines.append(f"{n} cards, one block of layers on each ({blocks}); the engine balances the split. On each card "
+                          f"~{out['cards'][0]['dense_gb']:.1f} GB of dense weights and ~{out['cards'][0]['experts_gb']:.0f} GB of experts "
+-                         f"(about {out['cards'][0]['experts']:,}); in all {in_vram:,} of {EXPERTS:,} experts ({out['vram_experts_gb']:.0f} GB) "
+-                         f"are in graphics memory.")
++                         f"(about {out['cards'][0]['experts']:,}); in all {in_vram:,} of {experts:,} experts ({out['vram_experts_gb']:.0f} GB) "
++                         "are in graphics memory.")
+             lines.append("Two cards share each layer's matrices (--tp 2): measured about twice as fast at reading prompts as a plain "
+-                         "split of the layers." if ud["measured"] else
+-                         "Two cards share each layer's matrices (--tp 2): on the 508 GB set, which carries the same experts, this was "
+-                         "measured about twice as fast at reading prompts as a plain split of the layers.")
+-        lines.append(f"The other {EXPERTS - in_vram:,} experts ({out['cpu_experts_gb']:.0f} GB) are computed on the CPU, read in place "
++                         "split of the layers." if ud["measured"] else ud.get(
++                             "tp_alt", "Two cards share each layer's matrices (--tp 2): on the 508 GB set, which carries the same experts, this was "
++                                       "measured about twice as fast at reading prompts as a plain split of the layers."))
++        lines.append(f"The other {experts - in_vram:,} experts ({out['cpu_experts_gb']:.0f} GB) are computed on the CPU, read in place "
+                      "from the model's files: they need that much free RAM to stay cached "
+                      f"({out.get('ram_needed_gb', out['cpu_experts_gb'] + REST_RAM_GB):.0f} GB with {REST_RAM_GB:.0f} GB for the system and the engine).")
+         if out["verdict"] == "spills":
+@@ -635,9 +636,10 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
+         if ud["measured"]:
+             lines.append("Measured on " + ud["measured"] + ". Other computers are slower or faster by what their cards and RAM can hold; "
+                          "this engine has been run on AMD cards.")
+-        else:                       # UD-Q4_K_XL: exact sizes, no run of its own yet (the same experts and table run in the set that was)
+-            lines.append("This version has not been timed on a computer like this one yet; the sizes above are exact. The 508 GB set, which "
+-                         "carries the same experts and the same n-gram table, was: its speed is the closest guide.")
++        else:                       # the sets not run here: exact sizes, no timing of their own yet (their UD_SETS entry says what is closest)
++            lines.append(ud.get("untimed",
++                         "This version has not been timed on a computer like this one yet; the sizes above are exact. The 508 GB set, which "
++                         "carries the same experts and the same n-gram table, was: its speed is the closest guide."))
+     if disk_free_gb is not None and disk_free_gb < need_disk:
+         warns.append(f"The download needs about {need_disk:.0f} GB of free disk space and {disk_free_gb:.0f} GB are free where the "
+                      "files go. Use --models-dir on a bigger drive, or --gguf-dir for files you already have.")

@@ -1,0 +1,34 @@
+{
+ "UD-IQ2_XXS": [
+  [
+   "DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-00001-of-00006.gguf",
+   5780923,
+   "22ad51c224e499883c1a753ad35719af44c296bbc8bcb9c931de6bdf950fa3aa"
+  ],
+  [
+   "DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-00002-of-00006.gguf",
+   49955895008,
+   "6880d0483490504a530b72686d79c92daa46e58ca5b71763bbfa3778d8a6131a"
+  ],
+  [
+   "DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-00003-of-00006.gguf",
+   49950675200,
+   "04b3ec7947255efaf789da77557da9180e93128948644828798d07b8a6e7a60a"
+  ],
+  [
+   "DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-00004-of-00006.gguf",
+   48971469632,
+   "318762f39cd7ebf03e3d7b30feaf938fab0464a9c2d6c0e0e99fc030bbfcd820"
+  ],
+  [
+   "DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-00005-of-00006.gguf",
+   16419622240,
+   "34fa48fbe2237b1b71a4f18a04bbe10946f6b1c76b7bbff21c76da630da677b6"
+  ],
+  [
+   "DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-00006-of-00006.gguf",
+   135172021792,
+   "406103485a7a7193337adee38b7178d3b636940aaa3ca033bc91e0d3687e3031"
+  ]
+ ]
+}

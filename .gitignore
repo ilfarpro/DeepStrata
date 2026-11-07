@@ -60,6 +60,9 @@ build-vision-cuda12.bat
 .idea/
 .cursor/
 
+# macOS Finder metadata
+.DS_Store
+
 /.ccache/
 /.rocm-win/
 

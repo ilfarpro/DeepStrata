@@ -100,6 +100,39 @@ for the Coder; 0.104, 0.108, 0.202, 0.303, 0.138 for 2.00. One run per cell unle
 engines): on an Apple M5 Max 19 to 22 tokens a second with all 7,680 experts in memory (a 6,054-token needle read at 300 tokens a second), and on a Ryzen AI Max (Strix Halo, Windows, 64 GB of RAM)
 19 to 22 tokens a second with 7,734 of 8,064 experts in graphics memory.
 
+## Unsloth's five other sets (why none is offered yet)
+
+Unsloth's repository has five quantizations of this model beyond the four Strata offers: UD-IQ2_XXS (300.5 GB), UD-Q2_K_XL (334.8 GB),
+UD-IQ3_XXS (394.7 GB), UD-IQ3_S (423.6 GB) and UD-Q3_K_XL (485.1 GB) - checked on the live Hub on 2026-11-07 at the pinned commit.
+None is on the version list, and files you already have hit the same wall: read against the engine's code, the current engine cannot load
+any of the five. That is static analysis - no pack of these five has been made or run here - so "cannot load" means "the engine's own
+rules refuse the shapes these files have", not "a run failed".
+
+Two rules stand in the way:
+
+- **One layer's experts** (`src/dsv41/ds4_model.cu:2418`, in every engine since the first): gate and up must share a type, and a layer
+  either keeps all three matrices in DeepSeek's MXFP4 or keeps all three in other, low-bit types - "MXFP4 does not mix with the others".
+  Unsloth's 3-bit sets keep MXFP4 where the layer is sensitive and drop the rest to 2 and 3 bits; in several layers that leaves an MXFP4
+  `down` beside 2- or 3-bit gate and up, and the engine stops at the start with that message.
+- **The n-gram table** (`src/dsv41/ds4_model.cu:3454`): the Engram reader knows three types - MXFP8, Q6_K and IQ4_NL, which is what the
+  offered sets carry - and stops at the start, naming the type, before any token is read. The two 2-bit sets carry the table as Q5_K.
+
+| set | download | routed experts | n-gram table | what stops it |
+|---|---:|---|---|---|
+| UD-IQ2_XXS | 300.5 GB | 156.9 GB: IQ1_S, IQ2_XXS/XS/S, IQ3_XXS, one layer's down Q2_K - all types the engine takes | Q5_K, 135.2 GB | the table's type only |
+| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers with an MXFP4 down | Q5_K, 135.2 GB | both rules |
+| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
+| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
+| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers with an MXFP4 down | MXFP8, 202.8 GB | the experts rule |
+
+The experts columns are read from the shards' tensor headers; the sums cross-check with the pinned file sizes to under 0.1 GB. The smaller
+sets would be worth having on a smaller computer: UD-IQ2_XXS wants about 165 GB of weights against the offered sets' 298 to 306, and its
+experts - the part that wants RAM - are 157 GB against 289. Quality is not measured and not claimed for any of the five.
+
+Two engine features would open them, and each is big enough to agree in an issue first: the Engram reader taking Q5_K opens UD-IQ2_XXS,
+and letting a layer keep an MXFP4 down while gate and up stay low-bit opens the other four (UD-Q2_K_XL needs both). The offered sets and
+every default path stay as they are either way; the file lists and the layer-by-layer findings are in the issues.
+
 ## Install
 
 ```

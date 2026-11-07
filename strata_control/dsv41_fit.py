@@ -51,6 +51,22 @@ SMALLEST_CARD_GB = 8.0                # a card under this adds little: the dense
 MEASURED = ("4 x Radeon AI PRO R9700 (32 GB) with 251 GB of RAM: prompts of 3,000 tokens read at 143-181 tokens a second, answers "
             "at 25-31 tokens a second (--tp 2); one answer at a time")
 
+# Unsloth's XL sets (nine shards, the n-gram table in shard 8, packed whole: setup.py recipe "ud").  UD-Q8_K_XL is the one that
+# was run (MEASURED above).  UD-Q4_K_XL (pinned 2026-11-06, setup.py DSV41_UDQ4_FILES) carries the same 15,360 MXFP4 experts and its
+# own MXFP8 Engram; its dense weights are Q8_0 instead of BF16: 9.2 GB in the files, 298 GB of weights, 500.7 GB to download.
+# Its dense-on-card figure applies the Q8 run's rule (the dense bytes minus the ~1.3 GB embedding that stays on the CPU): derived
+# from the pinned sizes, not timed on this set yet, so its plan says it has not been timed.
+UD_Q4_DOWNLOAD_BYTES = 500_707_576_573
+UD_Q4_ENGRAM_BYTES = 202_758_032_592                    # shard 8, the same bytes as the Q8 set's shard 8
+UD_SETS = {
+    "UD-Q8_K_XL": {"name": "UD-Q8_K_XL", "weights_gb": WEIGHTS_GB, "experts_gb": EXPERTS_GB, "dense_gb": DENSE_GB, "dense_on_gpu_gb": DENSE_ON_GPU_GB,
+                   "engram_gb": ENGRAM_GB, "download_gb": DOWNLOAD_GB, "measured": MEASURED},
+    "UD-Q4_K_XL": {"name": "UD-Q4_K_XL", "weights_gb": (UD_Q4_DOWNLOAD_BYTES - UD_Q4_ENGRAM_BYTES) / GB, "experts_gb": EXPERTS_GB,
+                   "dense_gb": (UD_Q4_DOWNLOAD_BYTES - UD_Q4_ENGRAM_BYTES) / GB - EXPERTS_GB,      # 9.2
+                   "dense_on_gpu_gb": round((UD_Q4_DOWNLOAD_BYTES - UD_Q4_ENGRAM_BYTES) / GB - EXPERTS_GB - 1.3, 1),  # 7.9 (derived, see above)
+                   "engram_gb": UD_Q4_ENGRAM_BYTES / GB, "download_gb": UD_Q4_DOWNLOAD_BYTES / GB, "measured": ""},
+}
+
 
 # The two official ISTA-DAS sets (ISTA-DASLab/DeepSeek-V4.1-Flash-1017-GSQ-RCO-GGUF, setup.py DSV41_ISTA_FILES): 4 shards each (the experts as IQ1_M / IQ2 / IQ3 types, the
 # dense weights Q8_0 / Q5_K), plus ONE Engram (110.6 GB, IQ4_NL, shared by both sets, stays on the SSD) and the DSpark drafter (8.0 GB).
@@ -508,7 +524,8 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
          vendor: str | None = None, model: str | None = None, named: bool = False) -> dict[str, Any]:
     """Where the model goes on this computer.  `cards`: the graphics cards ({"index", "name", "vram_gb", ...}, as gpu_fit takes them),
     `ram_gb` the RAM, `disk_free_gb` the free space where the files go (None: not checked).  `model`: an official ISTA-DAS set
-    (ISTA_SETS: "IST-DAS-2.00bpw" / "IST-DAS-2.25bpw" / "IST-DAS-1.75bpw") gets its own numbers; None or "UD-Q8_K_XL" is Unsloth's 508 GB set.
+    (ISTA_SETS: "IST-DAS-2.00bpw" / "IST-DAS-2.25bpw" / "IST-DAS-1.75bpw") gets its own numbers; an Unsloth XL set name
+    ("UD-Q8_K_XL", "UD-Q4_K_XL") gets that set's figures (UD_SETS); None or an unknown name is Unsloth's 508 GB UD-Q8_K_XL set, as before.
 
     Keys: cards (per card: index, name, vram_gb, layers, dense_gb, experts_gb, experts), experts_in_vram, experts_total, vram_experts_gb,
     cpu_experts_gb, ram_needed_gb, spill_gb, spare_ram_gb, verdict (fits / tight / spills / unknown / no_card), tp, args,
@@ -524,21 +541,22 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
         if card is not None:
             return _plan_uma(variant_key(model), model, card, ram_gb, disk_free_gb, context)
         return _plan_ista(variant_key(model), cards, ram_gb, disk_free_gb, context, vendor, named)
+    ud = UD_SETS.get(str(model or "UD-Q8_K_XL").upper(), UD_SETS["UD-Q8_K_XL"])      # Unsloth's XL sets; anything unnamed takes the UD-Q8_K_XL figures, as before
     keep, ignored = run_cards(cards, vendor, named=named)                 # the engine takes the layers in card order
     n = len(keep)
     out: dict[str, Any] = {"cards": [], "experts_total": EXPERTS, "experts_in_vram": 0, "vram_experts_gb": 0.0,
-                           "cpu_experts_gb": EXPERTS_GB, "weights_gb": _round1(WEIGHTS_GB), "experts_gb": _round1(EXPERTS_GB),
-                           "dense_gb": _round1(DENSE_GB), "engram_gb": _round1(ENGRAM_GB), "download_gb": _round1(DOWNLOAD_GB),
-                           "tp": tp_for(n), "args": [], "measured": MEASURED, "lines": [], "warnings": [],
+                           "cpu_experts_gb": ud["experts_gb"], "weights_gb": _round1(ud["weights_gb"]), "experts_gb": _round1(ud["experts_gb"]),
+                           "dense_gb": _round1(ud["dense_gb"]), "engram_gb": _round1(ud["engram_gb"]), "download_gb": _round1(ud["download_gb"]),
+                           "tp": tp_for(n), "args": [], "measured": ud["measured"], "lines": [], "warnings": [],
                            "ram_gb": ram_gb, "context": context}
-    need_disk = DOWNLOAD_GB + DISK_HEADROOM_GB
+    need_disk = ud["download_gb"] + DISK_HEADROOM_GB
     out["disk_need_gb"] = _round1(need_disk)
     out["disk_ok"] = None if disk_free_gb is None else disk_free_gb >= need_disk
     lines, warns = out["lines"], out["warnings"]
-    lines.append(f"DeepSeek-V4.1-Flash (UD-Q8_K_XL): a {DOWNLOAD_GB:.0f} GB download. In memory it needs {WEIGHTS_GB:.0f} GB: "
-                 f"{EXPERTS_GB:.0f} GB of experts ({EXPERTS:,} of {EXPERT_GB * 1000:.1f} MB) and {DENSE_GB:.0f} GB of attention "
+    lines.append(f"DeepSeek-V4.1-Flash ({ud['name']}): a {ud['download_gb']:.0f} GB download. In memory it needs {ud['weights_gb']:.0f} GB: "
+                 f"{ud['experts_gb']:.0f} GB of experts ({EXPERTS:,} of {EXPERT_GB * 1000:.1f} MB) and {ud['dense_gb']:.0f} GB of attention "
                  "and other dense weights.")
-    lines.append(f"Its n-gram table ({ENGRAM_GB:.0f} GB of the download) stays on the SSD and is read a few rows for each word "
+    lines.append(f"Its n-gram table ({ud['engram_gb']:.0f} GB of the download) stays on the SSD and is read a few rows for each word "
                  "it writes: it is not counted in RAM, but a slow disk (SATA, a network drive, a USB disk) makes every word "
                  "slower. Use an NVMe drive for the model files.")
     if n == 0:
@@ -546,12 +564,12 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
         warns.append("No graphics card Strata can use was found: this model needs one or more cards (it was run on AMD Radeon "
                      "AI PRO R9700 cards).")
     else:
-        per_dense = DENSE_ON_GPU_GB / n
+        per_dense = ud["dense_on_gpu_gb"] / n
         cap = []
         for c in keep:
             room = _cap_gb(float(c.get("vram_gb") or 0)) - per_dense - RESERVE_GB
             cap.append(max(0.0, room))
-        vram_exp = min(EXPERTS_GB, sum(cap))
+        vram_exp = min(ud["experts_gb"], sum(cap))
         share = [x / sum(cap) if sum(cap) else 1.0 / n for x in cap]
         ranges = split_layers([float(c.get("vram_gb") or 0) for c in keep])
         in_vram = 0
@@ -565,7 +583,7 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
                                  "experts": ne})
         out["experts_in_vram"] = in_vram
         out["vram_experts_gb"] = _round1(in_vram * EXPERT_GB)
-        out["cpu_experts_gb"] = _round1(EXPERTS_GB - in_vram * EXPERT_GB)
+        out["cpu_experts_gb"] = _round1(ud["experts_gb"] - in_vram * EXPERT_GB)
         out["tp"] = tp_for(n)
         out["args"] = ["--tp", str(out["tp"])] if out["tp"] > 1 else []
         if ram_gb:
@@ -596,7 +614,9 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
                          f"(about {out['cards'][0]['experts']:,}); in all {in_vram:,} of {EXPERTS:,} experts ({out['vram_experts_gb']:.0f} GB) "
                          f"are in graphics memory.")
             lines.append("Two cards share each layer's matrices (--tp 2): measured about twice as fast at reading prompts as a plain "
-                         "split of the layers.")
+                         "split of the layers." if ud["measured"] else
+                         "Two cards share each layer's matrices (--tp 2): on the 508 GB set, which carries the same experts, this was "
+                         "measured about twice as fast at reading prompts as a plain split of the layers.")
         lines.append(f"The other {EXPERTS - in_vram:,} experts ({out['cpu_experts_gb']:.0f} GB) are computed on the CPU, read in place "
                      "from the model's files: they need that much free RAM to stay cached "
                      f"({out.get('ram_needed_gb', out['cpu_experts_gb'] + REST_RAM_GB):.0f} GB with {REST_RAM_GB:.0f} GB for the system and the engine).")
@@ -612,8 +632,12 @@ def plan(cards: list[dict] | None, ram_gb: float | None, disk_free_gb: float | N
             lines.append("The cards are not the same size: the layers are shared in proportion to their memory.")
         if ignored:
             lines.append("Not used: " + "; ".join(f"{c.get('name') or 'a card'} ({c.get('why_ignored')})" for c in ignored) + ".")
-        lines.append("Measured on " + MEASURED + ". Other computers are slower or faster by what their cards and RAM can hold; "
-                     "this engine has been run on AMD cards.")
+        if ud["measured"]:
+            lines.append("Measured on " + ud["measured"] + ". Other computers are slower or faster by what their cards and RAM can hold; "
+                         "this engine has been run on AMD cards.")
+        else:                       # UD-Q4_K_XL: exact sizes, no run of its own yet (the same experts and table run in the set that was)
+            lines.append("This version has not been timed on a computer like this one yet; the sizes above are exact. The 508 GB set, which "
+                         "carries the same experts and the same n-gram table, was: its speed is the closest guide.")
     if disk_free_gb is not None and disk_free_gb < need_disk:
         warns.append(f"The download needs about {need_disk:.0f} GB of free disk space and {disk_free_gb:.0f} GB are free where the "
                      "files go. Use --models-dir on a bigger drive, or --gguf-dir for files you already have.")

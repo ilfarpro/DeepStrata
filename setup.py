@@ -910,6 +910,22 @@ DSV41_UD_FILES = {
     "DeepSeek-V4.1-Flash-1017-UD-IQ1_S-00005-of-00005.gguf": (110595290592, "771805301e695d72d268151dfc43043581ba904298574aa879d4349cbe67b020"),
 }
 DSV41_FILES.update(DSV41_UD_FILES)      # (the repository's pins: REPO_PINS)
+# Unsloth's UD-Q4_K_XL (pinned 2026-11-06 from the live Hub, and the same nine files tools/dsv41/download_gguf.json has since the October revision, byte for byte): the UD-Q8_K_XL
+# layout with a smaller body.  Nine shards, its own MXFP8 Engram in shard 8 (the same bytes as the Q8 set's shard 8); the experts are the MXFP4 every set of this model carries
+# (15,360 of 18.8 MB, 288.8 GB), the dense weights Q8_0 instead of BF16: 298 GB of weights, 500.7 GB all in all.  Opt-in model name, not the download default; not run here yet.
+DSV41_UDQ4_SHARD = "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-{i:05d}-of-00009.gguf"
+DSV41_UDQ4_FILES = {
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00001-of-00009.gguf": (5780589, "cc15d470afcb030558bbc4d8e2ccd840182e2e95de1a95198138efe63a5fd99f"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00002-of-00009.gguf": (48129640000, "17df217d8fc26a39f21ea40805dc6ab788c7ce8623a59a95c431051df7eafc94"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00003-of-00009.gguf": (48129640000, "0c8065f620a049cb437024c54ff12c314c94603a1cc683f5191be4689d6d6d3b"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00004-of-00009.gguf": (48129640000, "3bd8b2ebf8f51d8708a73ae0895f8d4acc7e4c983ba4e89d038492b203cc89ac"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00005-of-00009.gguf": (48129640000, "929054a6bbf3701765779b58c37988b6c6284a3b8413901858b59c0e95f37cc3"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00006-of-00009.gguf": (48129640000, "49d3de04bd6a09de786c9ef7db900eae02ee9fd391573f91a923013d7d5b24d3"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00007-of-00009.gguf": (48129640000, "f18feae5878dd680f1ea87ecd1d84f4fb098480298b25a3162dcbdab8dc2ca5b"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00008-of-00009.gguf": (202758032592, "12df293355efbd104b088a77e13ee22410fb1ec3f7ab3863947f09896e64bec7"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q4_K_XL-00009-of-00009.gguf": (9165923392, "c21ad6105a780bc2f44eb7dd41f9b1a1efb4e8ec87618f60b733bc2652bd2ffe"),
+}
+DSV41_FILES.update(DSV41_UDQ4_FILES)    # (the repository's pins: REPO_PINS)
 # The ISTA-DAS Coder (2026-11-01; the official ISTA-DASLab repository since 2026-11-02): ISTA-DAS's coding variant of this model, "the layout of the
 # IQ2_XXS set with half of the experts removed": 192 routed experts a layer instead of 384 (the router, the experts and the routing biases are narrower; every other tensor has the 2.00
 # set's name, shape and type).  Five model files in the folder IQ2_XXS/ (shard 1 = the metadata, shards 2-5 = the model; the Engram would be the sixth shard of the split) plus two files at
@@ -938,7 +954,7 @@ DSV41_ALT_FILES = {DSV41_MMPROJ: [DSV41_CODER_FILES[DSV41_CODER["mmproj"]], DSV4
 DSV41_ALT_NAMES = {DSV41_MMPROJ: (DSV41_CODER["mmproj"],)} if (DSV41_CODER_REPO and DSV41_CODER.get("mmproj") and DSV41_CODER["mmproj"] != DSV41_MMPROJ) else {}
 # The Coder repository's Engram file is the unpruned release's Engram under the same name (DSV41_ISTA_ENGRAM, converted: DSV41_ENGRAM_CONVERTED's SHA-256, accepted beside the pinned one
 # by DSV41_SHA_ALSO), so it never replaces that pin: one Engram file, on the SSD, shared by every set (a copy of either file already here is used where it is).
-DSV41_ALL_FILES = {**DSV41_FILES, **DSV41_ISTA_FILES, **DSV41_ISTA6_FILES, **DSV41_LEGACY_FILES, **DSV41_UD_FILES,
+DSV41_ALL_FILES = {**DSV41_FILES, **DSV41_ISTA_FILES, **DSV41_ISTA6_FILES, **DSV41_LEGACY_FILES, **DSV41_UD_FILES, **DSV41_UDQ4_FILES,
                    **{n: v for n, v in DSV41_CODER_FILES.items() if n not in (DSV41_MMPROJ, DSV41_ISTA_ENGRAM)}}
 
 
@@ -1013,6 +1029,13 @@ MULTI_FILE_FAMILIES["deepseek41"]["models"] = {
         "shards": [DSV41_UD_SHARD.format(quant="UD-IQ1_M", i=i) for i in range(1, 5)],
         "engram_shard": DSV41_UD_SHARD.format(quant="UD-IQ1_M", i=5),
         "shared": [DSV41_ISTA_ENGRAM, DSV41_DSPARK]},
+    "UD-Q4_K_XL": {
+        "label": "Unsloth UD-Q4_K_XL",
+        "about": "Unsloth Dynamic 4-bit: the experts in MXFP4 as DeepSeek made them, the rest in Q8_0 (9 GB instead of the 8-bit set's 17 GB); "
+                 "501 GB, for machines with hundreds of GB of RAM or several cards; its quality is not measured against the original yet",
+        "ram_gb": 298, "recipe": "ud", "subdir": "UD-Q4_K_XL", "hf": hf(DSV41_REPO) + "UD-Q4_K_XL/",
+        "shards": [DSV41_UDQ4_SHARD.format(i=i) for i in range(1, 10)],
+        "shared": []},
     "UD-Q8_K_XL": {
         "label": "Unsloth UD-Q8_K_XL",
         "about": "Unsloth Dynamic 8-bit: the experts in MXFP4 as DeepSeek made them, the rest in BF16 (the checkpoint's own precision); "
@@ -10457,7 +10480,7 @@ def main() -> int:
         try:                                           # DeepSeek-V4.1-Flash: a line, from the real numbers (strata_control/dsv41_fit.py)
             from strata_control import dsv41_fit
             cards_ok = amd_ok if hip else [g for g in found if gpu_problem(g) is None]
-            for mname in ("IST-DAS-2.00bpw", "IST-DAS-2.25bpw", "IST-DAS-1.75bpw", "UD-Q8_K_XL"):
+            for mname in ("IST-DAS-2.00bpw", "IST-DAS-2.25bpw", "IST-DAS-1.75bpw", "UD-Q4_K_XL", "UD-Q8_K_XL"):
                 ds = dsv41_fit.plan(cards_ok, ram, None, model=mname)
                 tail = {"fits": f"fits ({ds['experts_in_vram']:,} of {ds['experts_total']:,} experts in graphics memory, the rest on the CPU)",
                         "tight": ("runs, with the experts RAM cannot hold read from the SSD (about 5-7 tokens a second measured)"

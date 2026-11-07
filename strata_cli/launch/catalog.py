@@ -19,6 +19,13 @@ from typing import Any
 
 from strata_cli.launch import settings as S
 
+# A name two families carry: the family that shipped it FIRST keeps the bare name, the other one is named on the command line.
+# DeepSeek keeps UD-IQ1_M (its own since 0.2.7.1, before round 0214 gave the same name to a Qwen set; the owner's call then:
+# "the bare name stays DeepSeek's, as it was").  The other collisions are Qwen's first (UD-Q4_K_XL is a recommended Flash-Next
+# size): a DeepSeek XL set that carries such a name (setup.py MULTI_FILE_FAMILIES, UD-Q4_K_XL since 2026-11-06) launches as
+# `--family deepseek41 --model UD-Q4_K_XL`, and nobody's existing `strata launch --model ...` changes what it starts.
+DEEPSEEK_KEPT = {"UD-IQ1_M"}
+
 
 class CatalogUnavailable(RuntimeError):
     """The installer files (setup.py, tools/strata_mcp.py) are not there; the message is for the user."""
@@ -452,8 +459,10 @@ class Catalog:
             return family, match
         if not offered:
             raise ValueError(f"{match} is not offered by any model family here.")
-        if len(offered) > 1 and "deepseek41" in offered:     # UD-IQ1_M is Unsloth's name in two families (round 0214): the bare name stays DeepSeek's, as it was; the Qwen set is --family unsloth
-            return "deepseek41", match
+        if len(offered) > 1 and "deepseek41" in offered:     # the Qwen families had most of these names first: their `strata launch --model ...` must not jump to the 500 GB model
+            if match in DEEPSEEK_KEPT:                       # UD-IQ1_M is Unsloth's name in two families (round 0214): the bare name stays DeepSeek's, as it was; the Qwen set is --family unsloth
+                return "deepseek41", match
+            offered = [f for f in offered if f != "deepseek41"]      # DeepSeek's set of the same name is --family deepseek41
         return ("qwen" if "qwen" in offered else offered[0]), match
 
     def tag_of(self, family: str, model: str) -> str:

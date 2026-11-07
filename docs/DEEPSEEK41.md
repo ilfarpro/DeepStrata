@@ -8,6 +8,13 @@ shards, 508.4 GB, the experts as MXFP4 and the rest in BF16. The two official 2-
 The 508 GB set is for a computer with several graphics cards and a lot of RAM. It was run on four Radeon AI PRO R9700 (32 GB each) with
 251 GB of RAM. Strata does not refuse a smaller computer; it tells you what to expect first.
 
+Unsloth's UD-Q4_K_XL (501 GB) is the same model with the dense weights in Q8_0 instead of BF16: the same MXFP4 experts and the same
+n-gram table, 9 GB of dense weights instead of 17 and 298 GB of weights instead of 306. It has not been run here yet, so its quality
+is not measured against the original: `--check` and `strata launch --plan` size it from its exact file sizes, and the 508 GB set's
+measured speed is the closest guide. Its nine shards sit in the repository's `UD-Q4_K_XL/` folder and the engine packs them whole, as
+it does the Q8 set's. The name is also the name of a Qwen file of Unsloth: `strata launch --model ud-q4_k_xl` starts the Qwen file it
+always started, and DeepSeek's set is named with its family (`strata launch --family deepseek41 --model UD-Q4_K_XL`).
+
 ## Where it goes
 
 | | size | where |
@@ -93,12 +100,46 @@ for the Coder; 0.104, 0.108, 0.202, 0.303, 0.138 for 2.00. One run per cell unle
 engines): on an Apple M5 Max 19 to 22 tokens a second with all 7,680 experts in memory (a 6,054-token needle read at 300 tokens a second), and on a Ryzen AI Max (Strix Halo, Windows, 64 GB of RAM)
 19 to 22 tokens a second with 7,734 of 8,064 experts in graphics memory.
 
+## Unsloth's five other sets (why none is offered yet)
+
+Unsloth's repository has five quantizations of this model beyond the four Strata offers: UD-IQ2_XXS (300.5 GB), UD-Q2_K_XL (334.8 GB),
+UD-IQ3_XXS (394.7 GB), UD-IQ3_S (423.6 GB) and UD-Q3_K_XL (485.1 GB) - checked on the live Hub on 2026-11-07 at the pinned commit.
+None is on the version list, and files you already have hit the same wall: read against the engine's code, the current engine cannot load
+any of the five. That is static analysis - no pack of these five has been made or run here - so "cannot load" means "the engine's own
+rules refuse the shapes these files have", not "a run failed".
+
+Two rules stand in the way:
+
+- **One layer's experts** (`src/dsv41/ds4_model.cu:2418`, in every engine since the first): gate and up must share a type, and a layer
+  either keeps all three matrices in DeepSeek's MXFP4 or keeps all three in other, low-bit types - "MXFP4 does not mix with the others".
+  Unsloth's 3-bit sets keep MXFP4 where the layer is sensitive and drop the rest to 2 and 3 bits; in several layers that leaves an MXFP4
+  `down` beside 2- or 3-bit gate and up, and the engine stops at the start with that message.
+- **The n-gram table** (`src/dsv41/ds4_model.cu:3454`): the Engram reader knows three types - MXFP8, Q6_K and IQ4_NL, which is what the
+  offered sets carry - and stops at the start, naming the type, before any token is read. The two 2-bit sets carry the table as Q5_K.
+
+| set | download | routed experts | n-gram table | what stops it |
+|---|---:|---|---|---|
+| UD-IQ2_XXS | 300.5 GB | 156.9 GB: IQ1_S, IQ2_XXS/XS/S, IQ3_XXS, one layer's down Q2_K - all types the engine takes | Q5_K, 135.2 GB | the table's type only |
+| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers with an MXFP4 down | Q5_K, 135.2 GB | both rules |
+| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
+| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
+| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers with an MXFP4 down | MXFP8, 202.8 GB | the experts rule |
+
+The experts columns are read from the shards' tensor headers; the sums cross-check with the pinned file sizes to under 0.1 GB. The smaller
+sets would be worth having on a smaller computer: UD-IQ2_XXS wants about 165 GB of weights against the offered sets' 298 to 306, and its
+experts - the part that wants RAM - are 157 GB against 289. Quality is not measured and not claimed for any of the five.
+
+Two engine features would open them, and each is big enough to agree in an issue first: the Engram reader taking Q5_K opens UD-IQ2_XXS,
+and letting a layer keep an MXFP4 down while gate and up stay low-bit opens the other four (UD-Q2_K_XL needs both). The offered sets and
+every default path stay as they are either way; the file lists and the layer-by-layer findings are in the issues.
+
 ## Install
 
 ```
 ./setup.sh --family deepseek41 --model ISTA-DAS-2.00bpw   # 257 GB: the official 2.00 set + Engram + drafter (resumable, SHA-256 checked)
 ./setup.sh --family deepseek41 --model ISTA-DAS-2.25bpw   # 274 GB (the Engram is shared with 2.00)
 ./setup.sh --family deepseek41 --model ISTA-DAS-1.75bpw   # 239 GB, the smallest
+./setup.sh --family deepseek41 --model UD-Q4_K_XL        # Unsloth's 4-bit XL set: 501 GB, its own n-gram table (not run here yet)
 ./setup.sh --family deepseek41 --model UD-Q8_K_XL        # Unsloth's 508 GB set, for hundreds of GB of RAM or several cards
 ./setup.sh --family deepseek41 --gguf-dir DIR            # files you already have: the shards (or the folder with 2.00bpw / 2.25bpw / UD-Q8_K_XL inside); the Engram and drafter are looked for beside them
 strata launch --model ist-das-2.00bpw --plan             # where it would go on this computer, nothing changed

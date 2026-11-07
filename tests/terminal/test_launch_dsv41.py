@@ -36,7 +36,7 @@ class LaunchDeepSeek(unittest.TestCase):
 
     def test_the_model_is_in_the_list(self):
         rows = [r for r in catalog(self.hw).rows() if r.family == "deepseek41"]
-        self.assertEqual([r.model for r in rows], ["IST-DAS-2.00bpw", "IST-DAS-2.25bpw", "IST-DAS-1.75bpw", "ISTA-DAS-Coder", "UD-IQ1_S", "UD-IQ1_M", "UD-Q8_K_XL"])
+        self.assertEqual([r.model for r in rows], ["IST-DAS-2.00bpw", "IST-DAS-2.25bpw", "IST-DAS-1.75bpw", "ISTA-DAS-Coder", "UD-IQ1_S", "UD-IQ1_M", "UD-Q4_K_XL", "UD-Q8_K_XL"])
         self.assertEqual([r.download_gb for r in rows[:3]], [256.8, 273.8, 239.3])
         self.assertEqual(catalog(self.hw).resolve("ist-das-2.25bpw"), ("deepseek41", "IST-DAS-2.25bpw"))
         self.assertEqual(catalog(self.hw).resolve("ISTA-DAS-2.25bpw"), ("deepseek41", "IST-DAS-2.25bpw"))     # the name on screen is accepted too
@@ -46,6 +46,11 @@ class LaunchDeepSeek(unittest.TestCase):
         self.assertEqual((r.id, r.download_gb, r.verdict, r.images), ("deepseek-v4.1-flash-ud-q8_k_xl", 508.4, "fits", True))   # 0.2.7: pictures through the engine's own tower
         self.assertEqual(catalog(self.hw).resolve("ud-q8_k_xl"), ("deepseek41", "UD-Q8_K_XL"))
         self.assertEqual(catalog(self.hw).max_context("deepseek41", "UD-Q8_K_XL"), 131072)
+        q4 = rows[-2]
+        self.assertEqual((q4.id, q4.download_gb, q4.verdict, q4.images), ("deepseek-v4.1-flash-ud-q4_k_xl", 500.7, "fits", True))
+        self.assertEqual(catalog(self.hw).resolve("ud-q4_k_xl"), ("unsloth", "UD-Q4_K_XL"))    # the name is Unsloth's Qwen file first: the bare name stays the Qwen one's, as it was (strata_cli/launch/catalog.py DEEPSEEK_KEPT)
+        self.assertEqual(catalog(self.hw).resolve("ud-q4_k_xl", "deepseek41"), ("deepseek41", "UD-Q4_K_XL"))   # DeepSeek's set of the same name is called with its family
+        self.assertEqual(catalog(self.hw).max_context("deepseek41", "UD-Q4_K_XL"), 131072)
 
     def runner_with_own_shards(self, **kw):
         own = self.home.base / "own"

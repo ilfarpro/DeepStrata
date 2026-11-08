@@ -19,7 +19,7 @@
  "gh18": "Minimise to tray",
  "gh19": "Closing the window keeps Strata running in the tray, next to the clock. Choose Quit in the tray menu to stop it. Applies the next time Strata starts.",
  "gh20": "App port",
- "gh21": "The port Strata’s window and local address use. Leave it empty to let Strata choose (47831 when it is free). Applies the next time Strata starts.",
+ "gh21": "The port Strata’s window and local address use. Leave it empty to let Strata choose (47841 when it is free). Applies the next time Strata starts.",
  "gh22": "Port (empty = automatic)",
  "gh23": "Using port {0} now.",
  "gh24": "Strata could not use its port",

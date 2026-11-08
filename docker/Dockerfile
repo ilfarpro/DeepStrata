@@ -38,7 +38,7 @@ RUN python3 /src/packaging/package_terminal.py --out /out --cache /cache \
  && mkdir -p /opt/strata \
  && tar -xzf /out/strata-terminal-*-linux-x86_64.tar.gz -C /opt/strata \
  && mv /opt/strata/strata-terminal-* /opt/strata/terminal \
- && /opt/strata/terminal/bin/strata --version
+ && /opt/strata/terminal/bin/deepstrata --version
 # llama.cpp at the commit setup.py pins: fetched here, so the first start does not depend on GitHub. Only gguf-py (the model preparation
 # tools) and the file setup.py looks for (ggml/CMakeLists.txt) are kept: 170 MB become a few
 RUN cd /opt/strata/terminal && STRATA_CONTROL_INSTALL=1 STRATA_INSTALL_DIR=/opt/strata/seed PYTHONNOUSERSITE=1 \
@@ -113,10 +113,10 @@ ENV STRATA_COMPONENTS_DIR=/opt/strata/components \
 VOLUME ["/data"]
 EXPOSE 8080
 
-LABEL org.opencontainers.image.title="Strata" \
-      org.opencontainers.image.source="https://github.com/Niko1221/Strata" \
-      org.opencontainers.image.url="https://github.com/Niko1221/Strata" \
-      org.opencontainers.image.documentation="https://github.com/Niko1221/Strata/blob/main/docs/DOCKER.md" \
+LABEL org.opencontainers.image.title="DeepStrata" \
+      org.opencontainers.image.source="https://github.com/ilfarpro/DeepStrata" \
+      org.opencontainers.image.url="https://github.com/ilfarpro/DeepStrata" \
+      org.opencontainers.image.documentation="https://github.com/ilfarpro/DeepStrata/blob/main/docs/DOCKER.md" \
       org.opencontainers.image.description="Strata local LLM server (Terminal + engine package), flavor ${FLAVOR}" \
       org.opencontainers.image.version="${STRATA_VERSION}" \
       org.opencontainers.image.licenses="see LICENSE" \

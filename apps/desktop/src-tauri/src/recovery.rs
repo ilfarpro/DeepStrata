@@ -214,47 +214,47 @@ mod tests {
 
     #[test]
     fn the_first_recovery_keeps_the_screen_and_the_second_goes_home() {
-        let o = "http://127.0.0.1:47831";
-        assert_eq!(recovery_url(o, 1, Some("http://127.0.0.1:47831/#/chat/s_abc")), "http://127.0.0.1:47831/?recovery=1#/chat/s_abc");
-        assert_eq!(recovery_url(o, 1, Some("http://127.0.0.1:47831/?recovery=1#/chat/s_abc")), "http://127.0.0.1:47831/?recovery=1#/chat/s_abc");
-        assert_eq!(recovery_url(o, 2, Some("http://127.0.0.1:47831/#/chat/s_abc")), "http://127.0.0.1:47831/?recovery=2");
-        assert_eq!(recovery_url(o, 1, None), "http://127.0.0.1:47831/?recovery=1");
-        assert_eq!(recovery_url("http://127.0.0.1:47831/", 1, None), "http://127.0.0.1:47831/?recovery=1");
+        let o = "http://127.0.0.1:47841";
+        assert_eq!(recovery_url(o, 1, Some("http://127.0.0.1:47841/#/chat/s_abc")), "http://127.0.0.1:47841/?recovery=1#/chat/s_abc");
+        assert_eq!(recovery_url(o, 1, Some("http://127.0.0.1:47841/?recovery=1#/chat/s_abc")), "http://127.0.0.1:47841/?recovery=1#/chat/s_abc");
+        assert_eq!(recovery_url(o, 2, Some("http://127.0.0.1:47841/#/chat/s_abc")), "http://127.0.0.1:47841/?recovery=2");
+        assert_eq!(recovery_url(o, 1, None), "http://127.0.0.1:47841/?recovery=1");
+        assert_eq!(recovery_url("http://127.0.0.1:47841/", 1, None), "http://127.0.0.1:47841/?recovery=1");
     }
 
     #[test]
     fn an_address_that_is_not_ours_or_not_plain_is_not_carried_over() {
-        let o = "http://127.0.0.1:47831";
+        let o = "http://127.0.0.1:47841";
         for failed in [
             "https://example.com/#/chat/x",
             "http://127.0.0.1:47832/#/chat/x",
-            "http://127.0.0.1:47831/#/chat/x y",
-            "http://127.0.0.1:47831/#/chat/\"onload=",
-            "http://127.0.0.1:47831/#/chat/<script>",
-            "http://127.0.0.1:47831/#nothing",
-            "http://127.0.0.1:47831/#/chat/\u{e9}",
+            "http://127.0.0.1:47841/#/chat/x y",
+            "http://127.0.0.1:47841/#/chat/\"onload=",
+            "http://127.0.0.1:47841/#/chat/<script>",
+            "http://127.0.0.1:47841/#nothing",
+            "http://127.0.0.1:47841/#/chat/\u{e9}",
             "chrome-error://chromewebdata/",
         ] {
-            assert_eq!(recovery_url(o, 1, Some(failed)), "http://127.0.0.1:47831/?recovery=1", "{failed}");
+            assert_eq!(recovery_url(o, 1, Some(failed)), "http://127.0.0.1:47841/?recovery=1", "{failed}");
         }
-        let long = format!("http://127.0.0.1:47831/#/{}", "a".repeat(3000));
-        assert_eq!(recovery_url(o, 1, Some(&long)), "http://127.0.0.1:47831/?recovery=1");
+        let long = format!("http://127.0.0.1:47841/#/{}", "a".repeat(3000));
+        assert_eq!(recovery_url(o, 1, Some(&long)), "http://127.0.0.1:47841/?recovery=1");
         // a look-alike host is not the origin
-        assert_eq!(recovery_url(o, 1, Some("http://127.0.0.1:478310/#/chat/x")), "http://127.0.0.1:47831/?recovery=1");
+        assert_eq!(recovery_url(o, 1, Some("http://127.0.0.1:478410/#/chat/x")), "http://127.0.0.1:47841/?recovery=1");
     }
 
     #[test]
     fn a_failure_report_becomes_one_decision() {
-        let o = "http://127.0.0.1:47831";
+        let o = "http://127.0.0.1:47841";
         let mut g = Guard::new();
-        let chat = Some("http://127.0.0.1:47831/#/chat/s_1");
+        let chat = Some("http://127.0.0.1:47841/#/chat/s_1");
         // a GPU process or a frame going down never costs the person their page, and does not use up the allowance
         assert_eq!(plan(&mut g, 0, o, Failure::Gpu, chat), Plan::Ignore);
         assert_eq!(plan(&mut g, 1, o, Failure::FrameRendererExited, chat), Plan::Ignore);
         assert_eq!(plan(&mut g, 2, o, Failure::Unresponsive, chat), Plan::Ignore);
         assert_eq!(plan(&mut g, 3, o, Failure::BrowserExited, chat), Plan::Ignore);
-        assert_eq!(plan(&mut g, 1_000, o, Failure::RendererExited, chat), Plan::Reload { attempt: 1, url: "http://127.0.0.1:47831/?recovery=1#/chat/s_1".into() });
-        assert_eq!(plan(&mut g, 4_000, o, Failure::RendererExited, chat), Plan::Reload { attempt: 2, url: "http://127.0.0.1:47831/?recovery=2".into() });
+        assert_eq!(plan(&mut g, 1_000, o, Failure::RendererExited, chat), Plan::Reload { attempt: 1, url: "http://127.0.0.1:47841/?recovery=1#/chat/s_1".into() });
+        assert_eq!(plan(&mut g, 4_000, o, Failure::RendererExited, chat), Plan::Reload { attempt: 2, url: "http://127.0.0.1:47841/?recovery=2".into() });
         assert_eq!(plan(&mut g, 7_000, o, Failure::RendererExited, chat), Plan::Stop);
     }
 }

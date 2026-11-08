@@ -129,7 +129,7 @@ test('the app and the Terminal share one models folder: the one changed last win
 const readdirSyncSafe = folder => execFileSync(process.execPath, ['-e', `console.log(require('fs').readdirSync(${JSON.stringify(folder)}).length)`]).toString().trim() * 1;
 
 test('the Terminal settings file is where setup.py and Control keep it', () => {
-  assert.equal(terminalSettingsFile({ APPDATA: 'C:\R' }, 'win32'), join('C:\R', 'Strata', 'settings.json'));
-  assert.equal(terminalSettingsFile({ XDG_CONFIG_HOME: '/x' }, 'linux'), join('/x', 'strata', 'settings.json'));
+  assert.equal(terminalSettingsFile({ APPDATA: 'C:\R' }, 'win32'), join('C:\R', 'DeepStrata', 'settings.json'));
+  assert.equal(terminalSettingsFile({ XDG_CONFIG_HOME: '/x' }, 'linux'), join('/x', 'deepstrata', 'settings.json'));
   assert.equal(terminalSettingsFile({ STRATA_TERMINAL_SETTINGS_FILE: '/t.json' }, 'linux'), '/t.json');
 });

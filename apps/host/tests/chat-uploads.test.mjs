@@ -23,7 +23,7 @@ test('pictures and files arrive as multipart, a data address or raw bytes; pictu
     assert.equal(parseMultipart(m.body, m.contentType).length, 2);
     const out = up.accept('c1', m);
     assert.equal(out[0].kind, 'image'); assert.match(out[0].url, /^\/api\/chat\/upload\/[0-9a-f-]{36}$/);
-    assert.equal(out[1].kind, 'file'); assert.ok(existsSync(join(proj, '.strata', 'attachments', 'notes.md'))); assert.deepEqual(att.list('c1'), [out[1].path]);
+    assert.equal(out[1].kind, 'file'); assert.ok(existsSync(join(proj, '.deepstrata', 'attachments', 'notes.md'))); assert.deepEqual(att.list('c1'), [out[1].path]);
     assert.equal(readFileSync(out[1].path, 'utf8'), '# hi\r\nthere', 'the bytes are kept exactly');
     const j = up.accept('c1', { body: Buffer.from(JSON.stringify({ name: 'p.png', dataUrl: 'data:image/png;base64,' + PNG.toString('base64') })), contentType: 'application/json' });
     assert.equal(j[0].kind, 'image');
@@ -40,7 +40,7 @@ test('pictures and files arrive as multipart, a data address or raw bytes; pictu
     assert.throws(() => up.accept('c1', { body: bigPng, contentType: 'image/png', name: 'big.png' }), /bigger than 6 MB/);
     assert.throws(() => up.accept('c1', { body: Buffer.alloc(13 * 1024 * 1024), contentType: 'application/pdf', name: 'huge.pdf' }), /bigger than 12 MB/);
     const evil = up.accept('c1', { body: Buffer.from('x'), contentType: 'text/plain', name: '..' + String.fromCharCode(92) + '..' + String.fromCharCode(92) + 'evil.txt' });
-    assert.ok(evil[0].path.startsWith(join(proj, '.strata', 'attachments')), 'a file name cannot climb out of the attachments folder');
+    assert.ok(evil[0].path.startsWith(join(proj, '.deepstrata', 'attachments')), 'a file name cannot climb out of the attachments folder');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

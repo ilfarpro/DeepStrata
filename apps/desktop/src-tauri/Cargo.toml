@@ -1,5 +1,5 @@
 [package]
-name = "strata-desktop"
+name = "deepstrata-desktop"
 version = "0.2.12"
 description = "Strata Desktop — local AI, tuned to one model."
 edition = "2021"

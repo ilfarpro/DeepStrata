@@ -355,7 +355,7 @@ class AppPlatform(unittest.TestCase):
         self.public, self.secret = fx.minisign_pair()
         self.archive = self.root / "Strata.app.tar.gz"
         with tarfile.open(self.archive, "w:gz") as tar:
-            for name, data in (("Strata.app/Contents/Info.plist", b"<plist/>"), ("Strata.app/Contents/MacOS/strata-desktop", b"bin")):
+            for name, data in (("DeepStrata.app/Contents/Info.plist", b"<plist/>"), ("DeepStrata.app/Contents/MacOS/deepstrata-desktop", b"bin")):
                 info = tarfile.TarInfo(name)
                 info.size = len(data)
                 tar.addfile(info, io.BytesIO(data))

@@ -3,13 +3,14 @@
  *
  * `POST /api/chat/upload?sessionId=&name=` takes the bytes in any of three forms: multipart/form-data (one or more files), a JSON body
  * { name, dataUrl } (a pasted or read picture), or the raw bytes with the file's type. A picture is kept as an upload the next message
- * can name (imageIds) and is shown again by its id; any other file is saved inside the chat's folder under .strata/attachments and named
+ * can name (imageIds) and is shown again by its id; any other file is saved inside the chat's folder under .deepstrata/attachments and named
  * in the next message (@path), so the assistant reads it. Nothing is ever written outside those two places.
  */
 
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
+import * as identity from './fork-identity.mjs';
 
 export const IMAGE_TYPES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
 export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
@@ -71,7 +72,7 @@ export function createUploads({ dir, folderOf, attachments }) {
     }
     if (/^image\//i.test(f.type)) throw Object.assign(new Error(`"${safeName(f.name)}" is a picture type the model cannot read. Use PNG, JPEG or WebP.`), { code: 'bad-image' });
     const root = folderOf(chatId);
-    const target = join(root, '.strata', 'attachments');
+    const target = join(root, identity.HOME_DIR, 'attachments');
     mkdirSync(target, { recursive: true });
     let name = safeName(f.name), n = 1;
     while (existsSync(join(target, name))) name = `${basename(f.name, extname(f.name))}-${++n}${extname(f.name)}`.replace(/[\\/:*?"<>|]/g, '_');

@@ -75,7 +75,7 @@ for flavor in $(echo "$flavor_list" | tr ',' ' '); do
   "$here/build.sh" --flavor "$bflavor" --engine "$folder" --tag "$img" --version "$version" --repo "$repo"
   [ -n "$latest" ] && docker tag "$img" "$image:latest-$flavor"
   # the image starts and its Terminal runs (no GPU needed for this)
-  docker run --rm --entrypoint /opt/strata/terminal/bin/strata "$img" --version
+  docker run --rm --entrypoint /opt/strata/terminal/bin/deepstrata "$img" --version
   rm -rf "$folder"
   if [ -n "$push" ]; then
     docker push "$img"

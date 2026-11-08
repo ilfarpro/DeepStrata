@@ -3,7 +3,7 @@
 
     python apps/desktop/scripts/app-close-matrix.py --install <folder the installer wrote> [--scenarios all] [--report out.json]
 
-For each case it starts the REAL installed `strata-desktop.exe` (its window opens), loads a stub engine through the host's API
+For each case it starts the REAL installed `deepstrata-desktop.exe` (its window opens), loads a stub engine through the host's API
 (profile + `runtime start` under Control's owner runtime, exactly the app's path), records every process of the tree (the app,
 the host, Control, the owner host, the server, the engine), ends the app one way, and asserts:
   * no process of the tree is left, the engine's port is free, the runtime lease can be taken again;
@@ -94,7 +94,7 @@ class Scratch:
 class App:
     def __init__(self, scratch: Scratch):
         self.s = scratch
-        self.proc = subprocess.Popen([str(scratch.install / "strata-desktop.exe")], cwd=scratch.install, env=scratch.env,
+        self.proc = subprocess.Popen([str(scratch.install / "deepstrata-desktop.exe")], cwd=scratch.install, env=scratch.env,
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.base = None
 
@@ -236,7 +236,7 @@ def case(name: str, install: Path, how: str) -> dict:
             engine_ports = [i["port"] for i in state["instances"]]
             idents, _ = tree_of(app, slots)
             kinds = sorted({("engine" if "engine" in " ".join(i.cmd) else "server" if "serve.server" in " ".join(i.cmd) else
-                             "owner" if "strata_control.runtime" in " ".join(i.cmd) else "app" if "strata-desktop" in i.cmd[0].lower()
+                             "owner" if "strata_control.runtime" in " ".join(i.cmd) else "app" if "deepstrata-desktop" in i.cmd[0].lower()
                              else "host" if "node" in i.cmd[0].lower() else "other") for i in idents})
             note = f"tree {len(idents)} processes: {', '.join(kinds)}; engine ports {engine_ports}"
             t0 = time.monotonic()
@@ -253,7 +253,7 @@ def case(name: str, install: Path, how: str) -> dict:
                 host = app.host()
                 subprocess.run(["taskkill", "/F", "/PID", str(host.pid)], capture_output=True)
             elif how == "second-launch":
-                second = subprocess.Popen([str(install / "strata-desktop.exe")], cwd=install, env=scratch.env,
+                second = subprocess.Popen([str(install / "deepstrata-desktop.exe")], cwd=install, env=scratch.env,
                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 try:
                     code = second.wait(timeout=30)
@@ -264,7 +264,7 @@ def case(name: str, install: Path, how: str) -> dict:
                 time.sleep(2)
                 hosts = [p for p in psutil.process_iter(["name", "pid"]) if p.info["name"].lower() == "node.exe"
                          and (p.parent() and p.parent().pid == app.proc.pid)]
-                apps = [p for p in psutil.process_iter(["name"]) if p.info["name"].lower() == "strata-desktop.exe"]
+                apps = [p for p in psutil.process_iter(["name"]) if p.info["name"].lower() == "deepstrata-desktop.exe"]
                 if app.proc.poll() is not None:
                     problems.append("the first app went away")
                 if len(apps) != 1:

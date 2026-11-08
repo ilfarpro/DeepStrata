@@ -1,8 +1,9 @@
 import { OFFLINE_MESSAGE, looksOffline, plainUpdateError } from './update-messages.mjs';
+import { REPO } from './fork-identity.mjs';
 
 /** Read-only release checks. Installing/rolling back needs a managed installer. */
-const RELEASES = 'https://api.github.com/repos/Niko1221/Strata/releases?per_page=30';
-const RELEASE_PREFIX = 'https://github.com/Niko1221/Strata/releases/';
+const RELEASES = `https://api.github.com/repos/${REPO}/releases?per_page=30`;
+const RELEASE_PREFIX = `https://github.com/${REPO}/releases/`;
 
 function versionParts(value) {
   const match = /^v?(\d+)\.(\d+)\.(\d+)(?:\+[\w.-]+)?$/.exec(value ?? '');

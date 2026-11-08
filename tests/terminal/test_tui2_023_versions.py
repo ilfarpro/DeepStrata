@@ -38,7 +38,7 @@ class VersionBump(unittest.TestCase):
     def test_every_place_the_app_version_lives_says_0_2_3(self):
         self.assertEqual(first("apps/desktop/src-tauri/Cargo.toml", r'^version = "([^"]+)"'), "0.2.12")
         lock = (ROOT / "apps/desktop/src-tauri/Cargo.lock").read_text(encoding="utf-8")
-        self.assertRegex(lock, r'name = "strata-desktop"\r?\nversion = "0.2.12"')
+        self.assertRegex(lock, r'name = "deepstrata-desktop"\r?\nversion = "0.2.12"')
         self.assertEqual(json.loads((ROOT / "apps/desktop/package.json").read_text(encoding="utf-8"))["version"], "0.2.12")
         host = json.loads((ROOT / "apps/host/package.json").read_text(encoding="utf-8"))
         self.assertEqual(host["version"], "0.2.12")

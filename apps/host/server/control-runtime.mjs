@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
+import * as identity from './fork-identity.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -26,8 +27,8 @@ export function bundledPython(dir, platform = process.platform) {
 /** The per-user component folder, the same rule as strata_control/engine_component.py components_dir(). */
 export function componentsDirectory({ env = process.env, platform = process.platform, home = homedir() } = {}) {
   if (env.STRATA_COMPONENTS_DIR) return env.STRATA_COMPONENTS_DIR;
-  if (platform === 'win32') return join(env.LOCALAPPDATA || join(home, 'AppData', 'Local'), 'Strata', 'components');
-  return join(env.XDG_DATA_HOME || join(home, '.local', 'share'), 'strata', 'components');
+  if (platform === 'win32') return join(env.LOCALAPPDATA || join(home, 'AppData', 'Local'), identity.FOLDER_WINDOWS, 'components');
+  return join(env.XDG_DATA_HOME || join(home, '.local', 'share'), identity.FOLDER_POSIX, 'components');
 }
 
 /**

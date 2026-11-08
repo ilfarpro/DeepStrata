@@ -43,7 +43,7 @@ test('item 6: with nothing chosen the first workspace is Documents\\Strata, neve
   const { body } = await host.call('GET', '/api/workspaces');
   const first = body.workspaces[0];
   assert.equal(first.id, 'root');
-  assert.equal(resolve(first.path), join(s.user, 'Documents', 'Strata', 'Workspace'));
+  assert.equal(resolve(first.path), join(s.user, 'Documents', 'DeepStrata', 'Workspace'));
   assert.equal(first.name, 'Strata');
   assert.ok(existsSync(first.path), 'the folder is created');
   assert.notEqual(resolve(first.path), HOST_DIR);
@@ -55,7 +55,7 @@ test('item 6: a saved first workspace that is the app folder moves to the defaul
   writeFileSync(join(s.home, 'data', 'workspaces.json'), JSON.stringify([{ id: 'root', name: 'host', path: HOST_DIR }, { id: 'ws_a', name: 'Mine', path: s.user }]));
   const host = await start(t, s);
   const { body } = await host.call('GET', '/api/workspaces');
-  assert.equal(resolve(body.workspaces[0].path), join(s.user, 'Documents', 'Strata', 'Workspace'));
+  assert.equal(resolve(body.workspaces[0].path), join(s.user, 'Documents', 'DeepStrata', 'Workspace'));
   assert.equal(body.workspaces[0].name, 'Strata');
   assert.deepEqual(body.workspaces[0].aliases, [HOST_DIR]);
   assert.equal(body.workspaces[1].path, s.user, 'a folder the person added is left alone');

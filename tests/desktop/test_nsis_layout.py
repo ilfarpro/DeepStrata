@@ -1,6 +1,8 @@
-r"""The Windows installer must never touch the user's data. The app lives in %LOCALAPPDATA%\Programs\Strata; %LOCALAPPDATA%\Strata
-holds engines, model run configs, tuning. A build that installed the app into the data folder is migrated by removing only its app
-files. Exercised with makensis on a temp layout (the template's own migration macro, extracted and run); skipped without NSIS."""
+r"""The Windows installer must never touch the user's data. The app lives in %LOCALAPPDATA%\Programs\DeepStrata;
+%LOCALAPPDATA%\DeepStrata holds engines, model run configs, tuning. A build that installed the app into the data folder is migrated
+by removing only its app files. DeepStrata installs beside the original Strata (DIVERGENCE.md): the migration names only this
+build's own binary and the uninstaller's data page deletes only the DeepStrata folders, never the shared Documents\Strata\Models.
+Exercised with makensis on a temp layout (the template's own migration macro, extracted and run); skipped without NSIS."""
 
 import os
 import re
@@ -14,7 +16,7 @@ TEMPLATE = ROOT / "apps" / "desktop" / "src-tauri" / "nsis" / "installer.nsi"
 MAKENSIS = Path(os.environ.get("LOCALAPPDATA", "")) / "tauri" / "NSIS" / "makensis.exe"
 DATA = ["components/engine/0.1.45/strata.exe", "install/strata-iq3_s.json", "procs/p.json", "runtime/r.json", "time-skip/t.json",
         "presets/p.json"]
-APP = ["strata-desktop.exe", "uninstall.exe", "host/server/index.mjs", "node/node.exe", "control/python/python.exe"]
+APP = ["deepstrata-desktop.exe", "uninstall.exe", "host/server/index.mjs", "node/node.exe", "control/python/python.exe"]
 BS = "\\"
 
 
@@ -51,6 +53,20 @@ class TemplateTests(unittest.TestCase):
         self.assertNotIn(r'RmDir /r "$LOCALAPPDATA\${PRODUCTNAME}"', self.text)
         self.assertIn(r'RmDir /r "$LOCALAPPDATA\${BUNDLEID}"', self.text)
 
+    def test_the_fork_deletes_only_its_own_folders_and_never_the_shared_models(self):
+        """DeepStrata installs beside the original: the data page and its deletes name the DeepStrata folders, the migration names
+        only this build's own binary, and the shared model folder (Documents\Strata\Models) is gone from the uninstaller."""
+        self.assertIn(r'RmDir /r "$LOCALAPPDATA\DeepStrata"', self.text)
+        self.assertIn(r'RmDir /r "$APPDATA\DeepStrata"', self.text)
+        self.assertIn(r'RmDir /r "$PROFILE\.deepstrata"', self.text)
+        self.assertNotIn(r'RmDir /r "$LOCALAPPDATA\Strata"', self.text)
+        self.assertNotIn(r'RmDir /r "$APPDATA\Strata"', self.text)
+        self.assertNotIn(r'RmDir /r "$PROFILE\.strata"', self.text)
+        uninstall = self.text[self.text.index("Section Uninstall"):]
+        self.assertNotIn("$DOCUMENTS", uninstall)                       # the shared models folder is never deleted
+        migrate = re.search(r"; STRATA-MIGRATE-BEGIN.*?; STRATA-MIGRATE-END", self.text, re.S).group(0)
+        self.assertIn(r'"${OLDDIR}\${MAINBINARYNAME}.exe"', migrate)  # only this build's binary, never a literal other product named
+
 
 @unittest.skipUnless(MAKENSIS.is_file(), "NSIS (the Tauri bundler's copy) is not installed here")
 class MigrationTests(unittest.TestCase):
@@ -58,13 +74,13 @@ class MigrationTests(unittest.TestCase):
         template = TEMPLATE.read_text(encoding="utf-8")
         block = chr(10).join(re.search(rf"; STRATA-{name}-BEGIN.*?; STRATA-{name}-END", template, re.S).group(0) for name in ("MIGRATE", "STOP", "CLEAN"))
         script = work / "t.nsi"
-        script.write_text('Unicode true\nOutFile "t.exe"\nRequestExecutionLevel user\nSilentInstall silent\n' + block + "\nSection\n" + body + "\nSectionEnd\n", encoding="utf-8")
+        script.write_text('Unicode true\n!define MAINBINARYNAME "deepstrata-desktop"\nOutFile "t.exe"\nRequestExecutionLevel user\nSilentInstall silent\n' + block + "\nSection\n" + body + "\nSectionEnd\n", encoding="utf-8")
         done = subprocess.run([str(MAKENSIS), "/V1", str(script)], cwd=work, capture_output=True, text=True)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         subprocess.run([str(work / "t.exe")], cwd=work, check=True, timeout=60)
 
     def layout(self, base: Path) -> Path:
-        old = base / "Strata"
+        old = base / "DeepStrata"
         touch(old, DATA + APP)
         return old
 
@@ -72,7 +88,7 @@ class MigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             old = self.layout(base)
-            new = base / "Programs" / "Strata"
+            new = base / "Programs" / "DeepStrata"
             self.run_nsis(f'!insertmacro StrataMigrateOldInstall "{old}" "{new}"', base)
             for name in DATA:
                 self.assertTrue((old / name).is_file(), f"data kept: {name}")
@@ -90,8 +106,8 @@ class MigrationTests(unittest.TestCase):
                 self.assertTrue((old / name).is_file(), name)
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
-            touch(base / "Strata", DATA)                   # data only: no strata-desktop.exe
-            self.run_nsis(f'!insertmacro StrataMigrateOldInstall "{base / "Strata"}" "{base / "Programs" / "Strata"}"', base)
+            touch(base / "DeepStrata", DATA)               # data only: no deepstrata-desktop.exe
+            self.run_nsis(f'!insertmacro StrataMigrateOldInstall "{base / "DeepStrata"}" "{base / "Programs" / "DeepStrata"}"', base)
             for name in DATA:
                 self.assertTrue((base / "Strata" / name).is_file(), name)
 
@@ -107,7 +123,7 @@ class MigrationTests(unittest.TestCase):
             self.run_nsis("\n".join(lines), base)
             for name in DATA:
                 self.assertTrue((old / name).is_file(), name)
-            self.assertFalse((old / "strata-desktop.exe").exists())
+            self.assertFalse((old / "deepstrata-desktop.exe").exists())
 
 
     def test_the_uninstaller_stops_only_the_processes_started_from_the_install_folder(self):
@@ -116,7 +132,7 @@ class MigrationTests(unittest.TestCase):
             self.skipTest("no PING.EXE to stand in for a running Strata process")
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
-            inst, other = base / "Programs" / "Strata", base / "Elsewhere"
+            inst, other = base / "Programs" / "DeepStrata", base / "Elsewhere"
             for folder in (inst / "node", other):
                 folder.mkdir(parents=True)
             mine = inst / "node" / "node.exe"
@@ -140,14 +156,14 @@ class MigrationTests(unittest.TestCase):
         """Strix, standard user: after the app had run, Python bytecode caches under control\\ kept the program folder alive."""
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
-            inst = base / "Programs" / "Strata"
-            touch(inst, ["strata-desktop.exe", "control/python/python.exe", "control/python/Lib/__pycache__/argparse.cpython-312.pyc",
+            inst = base / "Programs" / "DeepStrata"
+            touch(inst, ["deepstrata-desktop.exe", "control/python/python.exe", "control/python/Lib/__pycache__/argparse.cpython-312.pyc",
                          "control/serve/__pycache__/server.cpython-312.pyc", "host/server/index.mjs", "host/logs/made-at-run.txt", "node/node.exe",
                          "harness/BUNDLE.json", "components/engine/keep.txt", "runtime/keep.json"])
             self.run_nsis(f'!insertmacro StrataRemoveAppFolders "{inst}"', base)
             for folder in ("control", "host", "node", "harness"):
                 self.assertFalse((inst / folder).exists(), folder)
-            for name in ("components/engine/keep.txt", "runtime/keep.json", "strata-desktop.exe"):
+            for name in ("components/engine/keep.txt", "runtime/keep.json", "deepstrata-desktop.exe"):
                 self.assertTrue((inst / name).is_file(), f"kept: {name}")
 
     def test_the_uninstaller_clears_those_folders_before_the_last_rmdir(self):

@@ -6,14 +6,14 @@
 //!   desktop-crash-<UTC time>.log   written when the window process dies without being closed: what happened in plain words, the system,
 //!                                  the graphics session, the last lines of the window and of the host, and a backtrace when the system keeps one
 //!
-//! `strata-desktop --save-logs` puts the newest crash log, the tails of the newest shell logs and the engine server logs into one text file
+//! `deepstrata-desktop --save-logs` puts the newest crash log, the tails of the newest shell logs and the engine server logs into one text file
 //! in the Downloads folder. The same pieces go into Settings > Engine > Diagnostics > Save logs (the host reads this folder).
 //!
 //! Windows and macOS (one process owns the host and the window) use the same folder and file names for what happens while the app starts:
 //! `init_startup` opens the run log first thing in `main`, before anything that can fail, and installs a panic hook; a start that fails
 //! (the host does not come up, the window cannot be made, any panic) ends in `startup_failed`: the reason goes into the run log and a
 //! `desktop-crash-` file, and the person sees a plain message box instead of a process that vanished with no trace. On Windows the folder
-//! is `%LOCALAPPDATA%\Strata\logs`, next to the components folder.
+//! is `%LOCALAPPDATA%\DeepStrata\logs`, next to the components folder.
 
 // Linux uses the shell log, the crash log and --save-logs; Windows and macOS use the start-up half. Each side leaves the other unused.
 #![allow(dead_code)]
@@ -36,7 +36,7 @@ pub fn data_dir() -> PathBuf {
     platform_data_dir()
 }
 
-/// Windows: `%LOCALAPPDATA%\Strata`, the folder the host and Control already use for the components and the install.
+/// Windows: `%LOCALAPPDATA%\DeepStrata`, the folder the host and Control already use for the components and the install.
 #[cfg(windows)]
 fn platform_data_dir() -> PathBuf {
     std::env::var_os("LOCALAPPDATA")
@@ -44,10 +44,10 @@ fn platform_data_dir() -> PathBuf {
         .filter(|p| p.is_absolute())
         .or_else(|| std::env::var_os("USERPROFILE").map(|h| PathBuf::from(h).join("AppData").join("Local")))
         .unwrap_or_else(std::env::temp_dir)
-        .join("Strata")
+        .join(crate::identity::FOLDER_WINDOWS)
 }
 
-/// Linux and macOS: `$XDG_DATA_HOME/strata`, usually `~/.local/share/strata`.
+/// Linux and macOS: `$XDG_DATA_HOME/deepstrata`, usually `~/.local/share/deepstrata`.
 #[cfg(not(windows))]
 fn platform_data_dir() -> PathBuf {
     let base = std::env::var_os("XDG_DATA_HOME")
@@ -55,7 +55,7 @@ fn platform_data_dir() -> PathBuf {
         .filter(|p| p.is_absolute())
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local").join("share")))
         .unwrap_or_else(std::env::temp_dir);
-    base.join("strata")
+    base.join(crate::identity::FOLDER_POSIX)
 }
 
 pub fn logs_dir() -> PathBuf {
@@ -551,7 +551,7 @@ mod tests {
 
     #[test]
     fn logs_are_pruned_and_saved_into_one_file() {
-        let dir = std::env::temp_dir().join(format!("strata-desktoplog-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("deepstrata-desktoplog-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::env::set_var("STRATA_DESKTOP_DATA_DIR", &dir);
         let logs = logs_dir();
@@ -577,7 +577,7 @@ mod tests {
     fn a_failed_start_is_explained_in_plain_words_and_written_to_a_crash_file() {
         let webview = plain_reason("Failed to setup app: error encountered during setup hook: WebView2 error: 0x8007139F");
         assert!(webview.contains("WebView2") && webview.contains("go.microsoft.com"));
-        assert!(plain_reason("the Strata App Host did not become healthy at http://127.0.0.1:47831/api/health").contains("background program"));
+        assert!(plain_reason("the Strata App Host did not become healthy at http://127.0.0.1:47841/api/health").contains("background program"));
         assert!(plain_reason("something else").contains("log file"));
         let dir = std::env::temp_dir().join(format!("strata-startlog-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -594,7 +594,7 @@ mod tests {
     #[test]
     fn on_windows_the_logs_sit_in_the_local_app_data_strata_folder() {
         let dir = platform_data_dir();
-        assert!(dir.ends_with("Strata"), "{}", dir.display());
+        assert!(dir.ends_with("DeepStrata"), "{}", dir.display());
         assert!(system_version().split('.').count() == 3, "{}", system_version());
     }
 }

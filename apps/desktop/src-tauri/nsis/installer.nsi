@@ -485,20 +485,20 @@ Var DeleteAppDataCheckboxState
 !insertmacro MUI_UNPAGE_CONFIRM
 
 ; 2. "Also remove my Strata data": unticked by default, and it says exactly what it deletes. Skipped when updating or in passive mode
-;    (an update never deletes anything). Model folders the person chose themselves are never touched.
+;    (an update never deletes anything). Model folders are never touched: the shared Documents\Strata\Models and one the person chose alike.
 UninstPage custom un.DataPage un.DataPageLeave
 Function un.DataPage
   ${If} $PassiveMode = 1
   ${OrIf} $UpdateMode = 1
     Abort
   ${EndIf}
-  !insertmacro MUI_HEADER_TEXT "Remove your Strata data too?" "Your models, chats and settings stay on this PC unless you tick the box."
+  !insertmacro MUI_HEADER_TEXT "Remove your Strata data too?" "Your models stay on this PC: they are shared with the Strata model library. Your chats and settings stay unless you tick the box."
   nsDialogs::Create 1018
   Pop $0
   ${IfThen} $(^RTL) = 1 ${|} nsDialogs::SetRTL $(^RTL) ${|}
-  ${NSD_CreateCheckBox} 0 0 100% 12u "Also remove my Strata data (models, chats, settings)"
+  ${NSD_CreateCheckBox} 0 0 100% 12u "Also remove my Strata data (chats, settings)"
   Pop $DeleteAppDataCheckbox
-  ${NSD_CreateLabel} 12u 18u -12u 96u "If you tick it, these folders are deleted, and nothing else:$\r$\n$\r$\n$LOCALAPPDATA\Strata   (engine, installed copy, tunings)$\r$\n$APPDATA\Strata   (settings)$\r$\n$PROFILE\.strata   (your chats, app settings)$\r$\n$DOCUMENTS\Strata\Models   (models Strata downloaded into its own folder)$\r$\n$\r$\nA model folder you chose yourself is never deleted."
+  ${NSD_CreateLabel} 12u 18u -12u 96u "If you tick it, these folders are deleted, and nothing else:$\r$\n$\r$\n$LOCALAPPDATA\DeepStrata   (engine, installed copy, tunings)$\r$\n$APPDATA\DeepStrata   (settings)$\r$\n$PROFILE\.deepstrata   (your chats, app settings)$\r$\n$\r$\nThe shared models folder (Documents\Strata\Models), a model folder you chose yourself, and anything belonging to another Strata install are never deleted."
   Pop $0
   ${NSD_SetFocus} $DeleteAppDataCheckbox
   nsDialogs::Show
@@ -687,12 +687,14 @@ Section WebView2
 SectionEnd
 
 ; STRATA-MIGRATE-BEGIN
-; An earlier build installed the app into %LOCALAPPDATA%\Strata, the folder that also holds the user's data (components, install,
-; procs, runtime, time-skip). Remove only the app files that build put there; everything else stays.
+; An earlier build installed the app into %LOCALAPPDATA%\DeepStrata, the folder that also holds the user's data (components, install,
+; procs, runtime, time-skip). Remove only the app files that build put there; everything else stays. The fork never passes the
+; original Strata's %LOCALAPPDATA%\Strata here, and the binary check below names only this build's own executable: an
+; original-product install is never a migration source.
 !macro StrataMigrateOldInstall OLDDIR NEWDIR
   StrCmp "${OLDDIR}" "${NEWDIR}" +8
-  IfFileExists "${OLDDIR}\strata-desktop.exe" 0 +7
-    Delete "${OLDDIR}\strata-desktop.exe"
+  IfFileExists "${OLDDIR}\${MAINBINARYNAME}.exe" 0 +7
+    Delete "${OLDDIR}\${MAINBINARYNAME}.exe"
     Delete "${OLDDIR}\uninstall.exe"
     RMDir /r "${OLDDIR}\host"
     RMDir /r "${OLDDIR}\node"
@@ -982,19 +984,16 @@ Section Uninstall
     RmDir /r "$APPDATA\${BUNDLEID}"
     RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
 
-    ; Strata's own data, for a fresh start: the folders listed on the page, nothing else. Each path is checked first.
+    ; DeepStrata's own data, for a fresh start: the folders listed on the page, nothing else. Each path is checked first.
+    ; The models folder (Documents\Strata\Models) is shared with the original Strata on purpose and is never deleted here.
     ${If} "$LOCALAPPDATA" != ""
-      RmDir /r "$LOCALAPPDATA\Strata"
+      RmDir /r "$LOCALAPPDATA\DeepStrata"
     ${EndIf}
     ${If} "$APPDATA" != ""
-      RmDir /r "$APPDATA\Strata"
+      RmDir /r "$APPDATA\DeepStrata"
     ${EndIf}
     ${If} "$PROFILE" != ""
-      RmDir /r "$PROFILE\.strata"
-    ${EndIf}
-    ${If} "$DOCUMENTS" != ""
-      RmDir /r "$DOCUMENTS\Strata\Models"
-      RmDir "$DOCUMENTS\Strata"          ; only if it is empty now
+      RmDir /r "$PROFILE\.deepstrata"
     ${EndIf}
   ${EndIf}
 

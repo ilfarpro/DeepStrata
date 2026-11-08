@@ -13,7 +13,7 @@ from strata_control import feed as feedmod, signing
 from tests.terminal import update_fixture as fx
 
 ROOT = Path(__file__).resolve().parents[2]
-RELEASE_KEY_ID = "5d1bc23abbeffd0d"
+RELEASE_KEY_ID = "9badd1d2b37076b5"
 TAURI_CONF = ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json"
 
 

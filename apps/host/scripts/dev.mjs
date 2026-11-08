@@ -4,16 +4,17 @@
  *
  *   npm run dev
  *
- * Starts the engine host (:8791) and the Vite dev server (:5199), prefixes their
+ * Starts the engine host (:8891) and the Vite dev server (:5199), prefixes their
  * output, and shuts both down together. Vite proxies /api to the host, so the
  * browser only ever talks to one origin — the same shape as the packaged app.
  */
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import { HOST_PORT as FORK_HOST_PORT } from '../server/fork-identity.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const HOST_PORT = process.env.STRATA_PORT ?? '8791';
+const HOST_PORT = process.env.STRATA_PORT ?? String(FORK_HOST_PORT);   // the fork's page port (server/fork-identity.mjs)
 
 const palette = { host: '\u001b[38;5;114m', web: '\u001b[38;5;111m', dim: '\u001b[2m', off: '\u001b[0m' };
 

@@ -5,14 +5,15 @@ import { alignModels, isDriveRoot, libraryFolderFromPick, makeFolder } from './m
 import { dirname, isAbsolute, join, parse, relative, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { defaultModelDirectory } from './model-directory-default.mjs';
+import * as identity from './fork-identity.mjs';
 
 /**
- * Prefer ~/.strata, the way the packaged app stores its data. Sandboxes and
+ * Prefer ~/.deepstrata, the way the packaged app stores its data. Sandboxes and
  * locked-down accounts cannot write to the home directory, so fall back to a
  * folder next to the checkout rather than failing to boot.
  */
 function resolveHome() {
-  const candidates = [process.env.STRATA_HOME, join(homedir(), '.strata'), join(process.cwd(), '.strata')].filter(
+  const candidates = [process.env.STRATA_HOME, join(homedir(), identity.HOME_DIR), join(process.cwd(), identity.HOME_DIR)].filter(
     Boolean,
   );
   for (const dir of candidates) {

@@ -13,10 +13,11 @@ opens a monitor. It also connects your coding apps. Text previews of the screens
 strata launch --plan --family qwen --model q2_0            # what would happen; nothing changes
 strata launch --family qwen --model q2_0 --yes --no-tui    # download, serve, print the address, return
 strata launch --status                                     # what is serving now
-strata launch --stop
+strata stop                                                # stop it (the same as strata launch --stop)
 ```
 
 `strata launch --help` lists every flag with examples. An unknown model or flag gets a plain message with the closest match.
+`strata start` is a shorter word for `strata launch`: every flag works the same on it, and `strata stop` is `strata launch --stop` on its own.
 
 ## Install (one line)
 
@@ -130,7 +131,7 @@ The Auto drafter policy rebuilds its options at every start and keeps only layer
 **Launching while a model is serving.** The same choices restart nothing and print the running addresses. Different choices
 (another context, pictures, access, or another model on the same port) make the screens ask once, "Restart the model with these
 settings? Answers in progress stop." With `--no-tui` the command refuses with one line naming the running model, its port and settings. Add
-`--restart` or run `strata launch --stop` first. A different `--port` runs beside the first server; two big models may not fit in graphics memory together, and the launch says so.
+`--restart` or run `strata stop` first. A different `--port` runs beside the first server; two big models may not fit in graphics memory together, and the launch says so.
 
 ## DeepSeek V4.1-Flash
 

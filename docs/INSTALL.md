@@ -99,7 +99,7 @@ strata launch --family qwen --model q2_0 --yes --no-tui
 ```sh
 strata launch --status
 strata connect
-strata launch --stop
+strata stop
 ```
 
 If a model is already running with different settings, add `--restart` to replace that run; `--yes` alone does not

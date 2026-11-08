@@ -157,7 +157,7 @@ Tell the user which model is running, where its files are, its address, how the 
 ```sh
 strata launch --preset NAME
 strata launch --status
-strata launch --stop
+strata stop
 strata update --check
 ```
 

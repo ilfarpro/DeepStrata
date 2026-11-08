@@ -160,7 +160,7 @@ ISTA_MEASURED = ("an RTX 5070 (12 GB) with 64 GB of RAM and a 3.6 GB/s NVMe driv
                  "about 31 tokens a second")
 # A unified-memory APU (Ryzen AI Max "Strix Halo", gfx1151, Windows): the graphics chip and the CPU share one pool of RAM, so the
 # engine's expert tiers are one pool too.  The measured 64 GB box: 2.00 bpw, Faster (5 experts), DSpark auto, Adrenalin 26.10.1.
-UMA_RESERVE_GB = 12.0                 # kept for Windows, the desktop and the engine's buffers (the engine's own RAM store margin)
+UMA_RESERVE_GB = 12.0                 # kept for Windows, the app and the engine's buffers (the engine's own RAM store margin)
 UMA_MEASURED = ("a Ryzen AI Max+ 395 (Radeon 8060S, 128 GB unified: a 64 GB BIOS carve-out plus 64 GB seen by Windows) on Windows: answers "
                 "14-16 tokens a second on code in the default Faster mode (5 experts) and 10-11 on chat; a 4,000-token prompt 77-81 tokens a "
                 "second, 8,000 tokens 108-111")

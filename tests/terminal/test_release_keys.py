@@ -1,4 +1,4 @@
-"""The keys shipped with a release build (strata_control/update_keys.json): the release feed key and the Tauri app key are there,
+"""The keys shipped with a release build (strata_control/update_keys.json): the release feed key is there,
 the tester / local-test keys are not (they come with STRATA_UPDATE_TRUSTED_KEYS), and a feed is verified against them."""
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ from tests.terminal import update_fixture as fx
 
 ROOT = Path(__file__).resolve().parents[2]
 RELEASE_KEY_ID = "9badd1d2b37076b5"
-TAURI_CONF = ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json"
 
 
 class ShippedKeys(unittest.TestCase):
@@ -24,13 +23,11 @@ class ShippedKeys(unittest.TestCase):
         self.assertEqual(list(keys), [RELEASE_KEY_ID])           # only the release key: no tester or local-test key in a release build
         self.assertEqual(signing.key_id_of(keys[RELEASE_KEY_ID]), RELEASE_KEY_ID)
 
-    def test_the_app_key_is_the_one_in_the_tauri_config(self):
-        shipped = json.loads((ROOT / "strata_control" / "update_keys.json").read_text(encoding="utf-8-sig"))["app_minisign_public"]
-        conf = json.loads(TAURI_CONF.read_text(encoding="utf-8-sig"))["plugins"]["updater"]["pubkey"]
-        self.assertEqual(shipped, conf)
-        key_id, public = signing.minisign_public(shipped)         # parses as a real Ed25519 minisign key, not the placeholder
-        self.assertEqual(len(public), 32)
-        self.assertEqual(signing.app_public_key if False else shipped, conf)
+    def test_the_app_updater_key_is_gone_with_the_desktop_app(self):
+        """The Tauri app key lived in update_keys.json as app_minisign_public; with no desktop app, no such key is shipped."""
+        shipped = json.loads((ROOT / "strata_control" / "update_keys.json").read_text(encoding="utf-8-sig"))
+        self.assertNotIn("app_minisign_public", shipped)
+        self.assertFalse(hasattr(signing, "app_public_key"))
 
     def test_a_feed_signed_by_another_key_is_refused_and_a_tester_key_works_through_the_override(self):
         other = fx.make_key()

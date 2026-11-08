@@ -6,9 +6,7 @@ the command name, the update feed, the default ports the two products would figh
 comes from this module. The words people read (sentences, help texts, UI strings) keep
 saying Strata: the fork is a minimal rebrand, and the zone in DIVERGENCE.md keeps the list.
 
-The Node host (``apps/host/server/fork-identity.mjs``), the Rust shell
-(``apps/desktop/src-tauri/src/identity.rs``) and the NSIS template (which takes the folder and
-binary names from the product name and ``MAINBINARYNAME``) carry the same values.
+The Node host (``apps/host/server/fork-identity.mjs``) carries the same values.
 ``tests/terminal/test_fork_identity.py`` fails when the copies drift apart, and when an
 original-product value (the Niko1221/Strata release address, ``ai.strata.desktop``, the old
 ports, ``~/.strata``) appears in product code again. ``setup.py``, ``serve/server.py``,
@@ -40,14 +38,11 @@ LATEST_DOWNLOAD = f"{RELEASES_URL}/latest/download"
 #: The signed feed's artifact name stays (it lives inside our own release folder).
 FEED_NAME = "strata-feed.json"
 FEED_URL = f"{LATEST_DOWNLOAD}/{FEED_NAME}"
-#: The desktop app updater's manifest (Tauri ``latest.json``).
-APP_UPDATER_URL = f"{LATEST_DOWNLOAD}/latest.json"
 
 #: Ports two products on one machine must not both want. The inference server's defaults
 # (8080 / 8095) stay as they are: the person picks one, and a port-in-use error is plain
 # and belongs to one install.
 HOST_PORT = 8891        # the App Host page (``strata ui``); the share and tunnel ports follow at +1/+2
-DESKTOP_PORT = 47841    # the desktop shell's preferred port (the page's browser storage follows the port)
 
 #: Model files are shared on purpose: both products use the same ``Documents/Strata`` folder,
 # so an installed model is never downloaded twice. Settings, chats and state stay apart.

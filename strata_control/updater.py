@@ -1,4 +1,4 @@
-"""The component updater: the one explicit step that downloads and installs engines (and Control, and the app installer).
+"""The component updater: the one explicit step that downloads and installs engines (and Control).
 
 Everything that fetches software lives behind this module. Starting or serving never imports it (`acquisition.require`
 refuses here when ``STRATA_NO_ACQUIRE`` is set), so a PC that only runs models never reaches the network.
@@ -346,7 +346,6 @@ class Context:
     wait: float = 0.0                             # seconds to wait for a serving engine to stop
     force: bool = False
     channel: str = "stable"
-    app_version: str | None = None
     now: dt.datetime | None = None
     run_config: str | None = None                 # a run config for the test start (default: an installed model's)
     test_timeout: float = 600.0
@@ -661,14 +660,14 @@ def _serving_or_empty(ctx: Context) -> list[dict]:
 
 
 def check(ctx: Context) -> dict:
-    """Read the signed feed and say what an update would do for the engine, Control and the app. Downloads nothing but the feed."""
+    """Read the signed feed and say what an update would do for the engine and Control. Downloads nothing but the feed."""
     with update_lock(ctx.components):
         state = State(ctx.components)
         feed = open_feed(ctx, state)
         report = {"feed": {"source": ctx.source, "sequence": feed.sequence, "channel": feed.channel, "key_id": feed.key_id,
                            "generated_at": feed.generated_at, "trusted_by": "test key file" if signing.extra_keys_in_effect(ctx.environ) else "built-in keys"},
                   "engine": decide_engine(feed, ctx, state), "control": decide_control(feed, ctx, state),
-                  "app": decide_app(feed, ctx), "dsv41": decide_dsv41(feed, ctx), "serving": _serving_or_empty(ctx), "hardware": ctx.hardware}
+                  "dsv41": decide_dsv41(feed, ctx), "serving": _serving_or_empty(ctx), "hardware": ctx.hardware}
         state.data["last_check"] = _last_check(ctx, report)
         state.save()
         return report
@@ -680,7 +679,6 @@ def _last_check(ctx: Context, report: dict, control_version: str | None = None) 
     return {
         "at": (ctx.now or dt.datetime.now(dt.timezone.utc)).isoformat(),
         "engine": report["engine"]["offered"]["version"] if report["engine"]["status"] in ("available", "install") and report["engine"]["offered"] else None,
-        "app": report["app"]["offered"] if report["app"]["status"] == "available" else None,
         "dsv41": report["dsv41"]["offered"] if report["dsv41"]["status"] == "available" else None,
         "dsv41_installed": report["dsv41"]["installed"],
         # the versions this result is for, so a later Control, engine or app change drops the cached notice
@@ -1606,71 +1604,6 @@ def update_control(ctx: Context, feed: feedmod.Feed, state: State) -> dict:
         shutil.rmtree(longpath.long_path(stage), ignore_errors=True)
 
 
-# ---------------------------------------------------------------------------------------------- app
-
-def app_public_key(environ=None) -> str | None:
-    environ = os.environ if environ is None else environ
-    explicit = environ.get("STRATA_APP_UPDATE_PUBKEY")
-    if explicit:
-        return explicit
-    try:
-        data = json.loads(signing.BUILTIN_KEYS.read_text(encoding="utf-8-sig"))
-        value = data.get("app_minisign_public")
-        return value if isinstance(value, str) and value else None
-    except (OSError, ValueError):
-        return None
-
-
-def decide_app(feed: feedmod.Feed, ctx: Context) -> dict:
-    report = {"installed": ctx.app_version, "offered": None, "status": "not-in-feed", "notes": "", "download_bytes": 0}
-    if feed.app is None:
-        return report
-    entry = feed.app.for_platform(ctx.hardware["platform"])
-    if entry is None:
-        report["status"] = "none-for-this-pc"
-        return report
-    report.update({"offered": feed.app.version, "notes": feed.app.notes, "download_bytes": entry["size"]})
-    if not ctx.app_version:
-        report["status"] = "unknown-installed"
-    else:
-        report["status"] = "available" if feedmod.app_version_key(feed.app.version) > feedmod.app_version_key(ctx.app_version) else "current"
-    return report
-
-
-def update_app(ctx: Context, feed: feedmod.Feed) -> dict:
-    """The Terminal's share of an app update: download the installer, check its SHA-256 (signed feed) and its minisign signature
-    (the key the app trusts), and leave it in ``.updates/app``. The Desktop app installs itself through Tauri's updater; a
-    terminal only fetches and verifies, because installing an app is the platform installer's job."""
-    decision = decide_app(feed, ctx)
-    result = {"component": "app", "status": decision["status"], "changed": False, "installed_before": decision["installed"]}
-    if decision["status"] not in ("available", "unknown-installed"):
-        return result
-    entry = feed.app.for_platform(ctx.hardware["platform"])
-    key = app_public_key(ctx.environ)
-    if not key:
-        raise UpdateError("this build has no app update key (update_keys.json app_minisign_public); the app installer cannot be verified, so it was not downloaded", 5)
-    root = ctx.components
-    _free_space_check(root, entry["size"], ctx, entry["sha256"], "app")
-    archive = _download(ctx, "app", entry["url"], entry["size"], entry["sha256"], f"Strata app {feed.app.version}", feed)
-
-    def chunks():
-        with archive.open("rb") as stream:
-            yield from iter(lambda: stream.read(1 << 20), b"")
-    try:
-        signing.minisign_verify(key, entry["signature"], chunks())
-    except signing.SignatureError as exc:
-        archive.unlink(missing_ok=True)
-        raise UpdateError(f"the app installer failed its signature check: {exc}; it was deleted", 5) from None
-    target_dir = updates_dir(root) / "app"
-    target_dir.mkdir(parents=True, exist_ok=True)
-    name = Path(transfer.resolve_ref(transfer.base_of(feed.source), entry["url"]).replace("\\", "/")).name or f"strata-app-{feed.app.version}"
-    target = target_dir / name
-    _atomic_mod.replace(archive, target)
-    result.update({"changed": True, "status": "downloaded", "installed_after": None, "version": feed.app.version, "path": str(target),
-                   "note": "Verified. Run the installer to finish; models and settings are kept."})
-    return result
-
-
 # ---------------------------------------------------------------------------------------------- the one command
 
 def _installed_before(name: str, ctx: Context):
@@ -1721,8 +1654,8 @@ def _model_check(ctx: Context, feed: feedmod.Feed, state: State, *, engine: bool
     gate.consent(serving, "It would update the " + " and the ".join(changes) + ".")
 
 
-def run_update(ctx: Context, *, engine: bool = True, control: bool = True, app: bool = False) -> dict:
-    """`strata update`: the feed once, then the engine, Control and (if asked) the app installer, each reported separately.
+def run_update(ctx: Context, *, engine: bool = True, control: bool = True) -> dict:
+    """`strata update`: the feed once, then the engine and Control, each reported separately.
     A component that fails does not undo one that succeeded; the exit code is the worst one."""
     require_acquisition("the update")
     results, failure = [], None
@@ -1733,8 +1666,7 @@ def run_update(ctx: Context, *, engine: bool = True, control: bool = True, app: 
         _model_check(ctx, feed, state, engine=engine, control=control)
         steps = ([("engine", lambda: update_engine(ctx, feed, state))] if engine else []) + \
                 ([("dsv41", lambda: update_dsv41(ctx, feed, state))] if engine else []) + \
-                ([("control", lambda: update_control(ctx, feed, state))] if control else []) + \
-                ([("app", lambda: update_app(ctx, feed))] if app else [])
+                ([("control", lambda: update_control(ctx, feed, state))] if control else [])
         for name, step in steps:
             try:
                 results.append(step())
@@ -1746,11 +1678,11 @@ def run_update(ctx: Context, *, engine: bool = True, control: bool = True, app: 
             state.data.get("last_check", {}).pop("engine", None)
         if any(r.get("component") == "dsv41" and r.get("status") == "updated" for r in results):
             state.data.get("last_check", {}).pop("dsv41", None)
-        try:                                              # the feed was read for this update: what it offers that is still newer is kept for the app's one card
+        try:                                              # the feed was read for this update: what it offers that is still newer is kept for the page's one card
             now_control = next((r.get("installed_after") for r in results if r.get("component") == "control" and r.get("status") == "updated"), None)
-            state.data["last_check"] = _last_check(ctx, {"engine": decide_engine(feed, ctx, state), "app": decide_app(feed, ctx),
+            state.data["last_check"] = _last_check(ctx, {"engine": decide_engine(feed, ctx, state),
                                                          "dsv41": decide_dsv41(feed, ctx)}, now_control)
-        except Exception:                                 # noqa: BLE001 - only a hint for the app
+        except Exception:                                 # noqa: BLE001 - only a hint for the page
             pass
         state.save()
     return {"feed": {"source": ctx.source, "sequence": feed.sequence, "channel": feed.channel, "key_id": feed.key_id},

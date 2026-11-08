@@ -1,6 +1,6 @@
 """The model catalog, the computer's figures and the fit words for `strata launch`.
 
-There is ONE catalog: setup.py's MODELS / FAMILIES / CONTEXTS, which the desktop app reads through tools/strata_mcp.py
+There is ONE catalog: setup.py's MODELS / FAMILIES / CONTEXTS, which the app reads through tools/strata_mcp.py
 (`Strata.model_table`, `Strata.hardware`, `Strata.recommend`; the app page's own fit arithmetic is
 apps/host/src/lib/native-fit.ts `fitOn`). This module loads that same file from the installer folder and ports `fitOn` line by
 line; it holds no table of its own. Without the installer files (a Terminal bundle made before launch existed) it says so in
@@ -586,7 +586,7 @@ class Catalog:
         return None
 
     def data_dir_choice(self) -> tuple[Path, str]:
-        """(the data folder, where it came from): the person's own setting, the desktop app's folder, a Documents/Strata that holds models,
+        """(the data folder, where it came from): the person's own setting, the app's folder, a Documents/Strata that holds models,
         else the default beside the install. The same rule for every command."""
         from strata_control import discovery
         return discovery.data_dir(Path(self._mcp_data_dir()))

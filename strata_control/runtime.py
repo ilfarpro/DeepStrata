@@ -596,7 +596,7 @@ def start(name: str, *, wait: float = 300, shutdown_timeout: float = 30,
 
     The owner host is a background service: it is not tied to the terminal or the process that ran this command and
     keeps serving after they end. It stops on `runtime stop`, when its server ends, or - only if `die_with_pid`
-    names a process - when that process is gone (the desktop app uses this for the engines it starts)."""
+    names a process - when that process is gone (the App Host uses this for the engines it starts)."""
     name = _name(name)
     die_with = None
     if die_with_pid is not None:
@@ -1407,7 +1407,7 @@ class Host:
         return not self.starting and self.last_error is not None
 
     def _die_with_gone(self) -> bool:
-        """Whether the process this instance lives for (the desktop app's host) is gone. A look that cannot read the process (the macOS
+        """Whether the process this instance lives for (the App Host) is gone. A look that cannot read the process (the macOS
         `ps` that timed out, a handle that was refused) is not an answer: the engine used to be stopped on it, cleanly and without a word,
         hours into an idle session (#4973). A different start time is a later process with that number: gone at once. Nothing found is
         confirmed against a plain liveness check, and has to repeat DIE_WITH_MISSES times."""

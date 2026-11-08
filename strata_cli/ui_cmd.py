@@ -1,14 +1,14 @@
 """``strata ui``: open Strata's full page (Chat, Monitor, About) in your browser.
 
-The address ``strata launch`` prints is the API. The full page is served by the App Host - the same Node host the
-desktop app shows in its own window. Here it starts with ``STRATA_UI_MODE=browser`` (apps/host/server/app-ui.mjs),
-so the page opens as an ordinary browser tab and its "Quit Strata" - like this command's ``--stop`` - ends the host.
-The model keeps serving either way: stopping the model stays ``strata launch --stop``.
+The address ``strata launch`` prints is the API. The full page is served by the App Host (apps/host): the same Node host,
+started here with ``STRATA_UI_MODE=browser`` (apps/host/server/app-ui.mjs), so the page opens as an ordinary browser tab and
+its "Quit Strata" - like this command's ``--stop`` - ends the host. The model keeps serving either way: stopping the model
+stays ``strata launch --stop``.
 
-The App Host is found at ``--host-dir``, ``STRATA_HOST_DIR``, this repository's ``apps/host`` (a source checkout)
-or the ``host/`` folder of an installed Strata; it needs its built UI (``dist``). Node 24.12 or newer is taken from
-``--node``, ``STRATA_NODE`` or the PATH, or from the desktop bundle's private copy when one is there. Nothing is
-downloaded; when a piece is missing the command says which and what to do.
+The App Host is found at ``--host-dir``, ``STRATA_HOST_DIR``, this repository's ``apps/host`` (a source checkout) or the
+``host/`` folder of an installed Strata; it needs its built UI (``dist``). Node 24.12 or newer is taken from ``--node``,
+``STRATA_NODE``, the PATH, or the installed Strata's private copy when one is there. Nothing is downloaded; when a piece is
+missing the command says which and what to do.
 """
 
 from __future__ import annotations
@@ -127,7 +127,7 @@ def _node_path(cli_value: str | None) -> Path | None:
     found = shutil.which("node")
     if found:
         return Path(found)
-    for base in (ROOT / "apps" / "desktop" / "src-tauri" / "resources" / "node", ROOT / "resources" / "node"):
+    for base in (ROOT / "resources" / "node", ROOT / "node", ROOT / "node" / "bin"):
         for name in NODE_NAMES:
             p = base / name
             if p.is_file():
@@ -235,8 +235,8 @@ def _start(a, port: int, machine, fail) -> int:
                     "once:  cd apps/host && npm ci && npm run build", code="host_not_found")
     node = _node_path(getattr(a, "node", None))
     if node is None:
-        return fail("Node 24.12 or newer was not found (PATH, STRATA_NODE, --node, or the desktop bundle's copy). "
-                    "Install Node from nodejs.org, or use the desktop app, which carries its own.", code="node_not_found")
+        return fail("Node 24.12 or newer was not found (PATH, STRATA_NODE, --node, or the installed Strata's copy). "
+                    "Install Node from nodejs.org, or install the Strata Terminal, which carries its own.", code="node_not_found")
 
     url, running, key = _server_url(getattr(a, "url", None))
     if not running:

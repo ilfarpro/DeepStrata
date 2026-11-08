@@ -1,6 +1,6 @@
 """Move the model files (models, packs, mtp) from one data folder to another (0.2.2, Settings > Storage > Models folder).
 
-The desktop app and the Terminal both use this: ``strata models move``.  Rules, in the order they matter:
+The App Host and the Terminal both use this: ``strata models move``.  Rules, in the order they matter:
 
 * Nothing is deleted until its copy is whole and checked.  One file at a time: copy to ``name.part``, compare the size, read the copy
   back and compare its SHA-256 with the original's (and with the pinned SHA-256 in the file's ``.done`` mark when it has one), rename it

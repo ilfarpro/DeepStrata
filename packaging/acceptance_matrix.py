@@ -17,6 +17,10 @@ The statuses are deliberately conservative:
 A code defect is never ``pending-hardware``: if the implementation is wrong or absent, that is said
 plainly, because deferring a defect to another machine is how defects become permanent.
 
+Historical note: the Desktop (Tauri) app was later removed; the browser page in the App Host is the
+product. Rows P01-P03 and every "Desktop" word below record what was true when the evidence was
+written, and are kept as the evidence stands, not as what a build produces today.
+
 Usage:
     python packaging/acceptance_matrix.py [--out docs/work/ACCEPTANCE-EVIDENCE.md]
 """

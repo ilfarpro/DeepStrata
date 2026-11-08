@@ -444,5 +444,102 @@ class OperatorProfileTests(unittest.TestCase):
             _launch_plan("local")
 
 
+class ProfileDeleteAndListTests(unittest.TestCase):
+    """Deleting a saved profile, and the list's note for a launch profile its preset no longer has."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.env = mock.patch.dict(os.environ, {"STRATA_PROFILE_DIR": str(self.root / "profiles"),
+                                                "STRATA_LAUNCH_PRESET_DIR": str(self.root / "launch-presets"),
+                                                "STRATA_RUNTIME_DIR": str(self.root / "runtime"),
+                                                "COLUMNS": "400"})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        self.config = self.root / "run.json"
+        self.config.write_text(json.dumps({"exe": "engine", "args": [], "tokenizer": "tok"}), encoding="utf-8")
+
+    def human(self, *args):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main(list(args))
+        return code, output.getvalue()
+
+    def command(self, *args):
+        code, text = self.human(*args)
+        return code, json.loads(text)
+
+    def test_help_explains_profiles_in_plain_words(self):
+        output = io.StringIO()
+        with redirect_stdout(output), self.assertRaises(SystemExit) as stopped:
+            main(["profile", "--help"])
+        self.assertEqual(stopped.exception.code, 0)
+        text = output.getvalue()
+        text = " ".join(text.split())                                  # argparse wraps at the terminal width; compare the words, not the lines
+        self.assertIn("Saved profiles keep your serving settings apart from setup's own config", text)
+        self.assertIn("Editing a profile never restarts a running model; use strata runtime restart.", text)
+        self.assertIn("delete", text)
+
+    def test_delete_removes_the_profile_and_its_history_only(self):
+        profiles.create("local", str(self.config))
+        profiles.set_values("local", ["parallel=4"])
+        self.assertTrue((self.root / "profiles" / "local.json").is_file())
+        self.assertTrue((self.root / "profiles" / ".history" / "local").is_dir())
+        code, text = self.human("profile", "delete", "local")
+        self.assertEqual(code, 0)
+        self.assertIn("Deleted profile local", text)
+        self.assertIn("model and its files were not touched", text)
+        self.assertFalse((self.root / "profiles" / "local.json").exists())
+        self.assertFalse((self.root / "profiles" / ".history" / "local").exists())
+        code, listing = self.command("profile", "list", "--output", "json")
+        self.assertEqual(listing["profiles"], [])
+
+    def test_delete_names_the_missing_profile_and_the_next_step(self):
+        errors = io.StringIO()
+        with redirect_stderr(errors):
+            code = main(["profile", "delete", "local"])
+        self.assertEqual(code, 5)
+        self.assertIn("profile 'local' is not saved", errors.getvalue())
+
+    def test_delete_refuses_while_the_profile_is_serving(self):
+        profiles.create("local", str(self.config))
+        errors = io.StringIO()
+        with mock.patch("strata_control.runtime._owner_alive", return_value=True), redirect_stderr(errors):
+            code = main(["profile", "delete", "local"])
+        self.assertEqual(code, 6)
+        self.assertIn("is serving now; stop it first: strata runtime stop --profile local", errors.getvalue())
+        self.assertTrue((self.root / "profiles" / "local.json").is_file())
+
+    def test_list_marks_a_launch_profile_left_without_a_preset(self):
+        profiles.create("launch-office", str(self.config))
+        code, listing = self.command("profile", "list", "--output", "json")
+        self.assertIs(listing["profiles"][0]["launch_preset_saved"], False)
+        code, text = self.human("profile", "list")
+        self.assertIn("no launch preset is saved under this name any more", text)
+        self.assertIn("strata profile delete launch-office", text)
+        (self.root / "launch-presets").mkdir()
+        (self.root / "launch-presets" / "office.json").write_text("{}", encoding="utf-8")
+        code, text = self.human("profile", "list")
+        self.assertNotIn("no launch preset", text)
+        code, listing = self.command("profile", "list", "--output", "json")
+        self.assertIs(listing["profiles"][0]["launch_preset_saved"], True)
+        profiles.create("four-gpu", str(self.config))          # an operator profile carries no preset fact, and the plain line keeps its shape
+        code, listing = self.command("profile", "list", "--output", "json")
+        by_id = {item["id"]: item for item in listing["profiles"]}
+        self.assertNotIn("launch_preset_saved", by_id["four-gpu"])
+        code, text = self.human("profile", "list")
+        self.assertEqual(text.splitlines()[0], f"four-gpu  {by_id['four-gpu']['revision']}")
+        self.assertNotIn("no launch preset", text)
+
+    def test_list_leaves_a_serving_launch_profile_without_a_note(self):
+        profiles.create("launch-office", str(self.config))
+        with mock.patch("strata_control.runtime._owner_alive", return_value=True):
+            code, text = self.human("profile", "list")
+        self.assertEqual(code, 0)
+        self.assertNotIn("no launch preset", text)
+        self.assertEqual(text.splitlines()[0], f"launch-office  {profiles.load('launch-office')[1]}")
+
+
 if __name__ == "__main__":
     unittest.main()

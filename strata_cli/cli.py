@@ -66,12 +66,21 @@ def parser() -> argparse.ArgumentParser:
     serve.add_argument("--json", action="store_true", help="alias for --plan --output json")
     serve.add_argument("--quiet", action="store_true", help="suppress human informational output")
 
-    profile = sp.add_parser("profile", help="edit saved serving overrides outside setup's run config")
+    profile = sp.add_parser("profile", help="edit saved serving overrides outside setup's run config",
+                            description="Saved profiles keep your serving settings apart from setup's own config, so an "
+                                        "update cannot erase them. Profiles say how an installed model serves: the address "
+                                        "and port, how many requests at a time, and the queue in front of it. Every change "
+                                        "is saved as a revision, so profile history and profile rollback bring an old "
+                                        "setting back. Editing a profile never restarts a running model; use strata "
+                                        "runtime restart.")
     profile_sp = profile.add_subparsers(dest="profile_command", required=True)
     profile_create = profile_sp.add_parser("create", help="save a named profile from an installed run config")
     profile_create.add_argument("name")
     profile_create.add_argument("--from-config", required=True, metavar="CONFIG.json")
     profile_create.add_argument("--output", choices=("human", "json"), default="human")
+    profile_delete = profile_sp.add_parser("delete", help="remove a saved profile and its history (the model is not touched)")
+    profile_delete.add_argument("name")
+    profile_delete.add_argument("--output", choices=("human", "json"), default="human")
     profile_list = profile_sp.add_parser("list", help="list saved profiles")
     profile_list.add_argument("--output", choices=("human", "json"), default="human")
     profile_show = profile_sp.add_parser("show", help="show a profile and optional effective settings")
@@ -966,9 +975,29 @@ def _profile_command(a: argparse.Namespace) -> int:
         saved, revision = profiles.create(a.name, a.from_config)
         return _success({"profile": saved, "revision": revision}, machine=machine,
                         human=f"Saved profile {a.name} at revision {revision}")
+    if a.profile_command == "delete":
+        from strata_control import runtime
+        if runtime._owner_alive(a.name):                   # deleting it now would leave the server unmanageable by name
+            raise ProfileError(f"profile {a.name!r} is serving now; stop it first: strata runtime stop --profile {a.name}", 6)
+        profiles.delete(a.name)
+        return _success({"deleted": a.name}, machine=machine,
+                        human=f"Deleted profile {a.name}. Its history is gone with it; the model and its files were not "
+                              "touched.")
     if a.profile_command == "list":
+        from strata_cli.launch import store as launch_store
+        from strata_control import runtime
         items = profiles.list_profiles()
-        human = "\n".join(f"{item['id']}  {item.get('revision', item.get('error'))}" for item in items) or "No saved profiles"
+        lines = []
+        for item in items:
+            if item["id"].startswith("launch-"):            # launch creates these; after --delete-preset one can stay without a name
+                stem = item["id"][len("launch-"):]
+                item["launch_preset_saved"] = (launch_store.preset_dir() / f"{stem}.json").is_file()
+            line = f"{item['id']}  {item.get('revision', item.get('error'))}"
+            if item.get("launch_preset_saved") is False and not runtime._owner_alive(item["id"]):
+                line += (f"\n    no launch preset is saved under this name any more; if the preset was deleted, remove "
+                         f"this profile with: strata profile delete {item['id']}")
+            lines.append(line)
+        human = "\n".join(lines) or "No saved profiles"
         return _success({"profiles": items}, machine=machine, human=human)
     saved, revision = profiles.load(a.name)
     if a.profile_command == "use-config":

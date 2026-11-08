@@ -18,7 +18,7 @@ import stat
 import subprocess
 import tempfile
 from strata_control import atomic as _atomic_mod
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress as _suppress
 from pathlib import Path
 
 
@@ -250,6 +250,32 @@ def create(name: str, source_config: str) -> tuple[dict, str]:
             raise ProfileError(f"profile {name!r} already exists")
         _atomic(path, _bytes(profile))
     return load(name)
+
+
+def delete(name: str) -> None:
+    """Remove a saved profile and its history; the model and its run config are not touched.
+
+    Whether a server is serving under this profile is the caller's check (it lives in the runtime state, not here)."""
+    name = _name(name)
+    with _lock(name):
+        path = _path(name)
+        try:
+            if not stat.S_ISREG(path.lstat().st_mode):
+                raise ProfileError("profile must be a regular file", 5)
+        except FileNotFoundError:
+            raise ProfileError(f"profile {name!r} is not saved; use strata profile create", 5) from None
+        path.unlink()
+    history = profile_dir() / ".history" / name
+    try:
+        if not stat.S_ISDIR(history.lstat().st_mode):
+            return
+    except FileNotFoundError:
+        return
+    for old in history.glob("*.json"):                    # the revisions save() wrote; nothing else lives here
+        if re.fullmatch(r"[0-9a-f]{16}", old.stem) and old.is_file() and not old.is_symlink():
+            old.unlink(missing_ok=True)
+    with _suppress(OSError):                               # a leftover from a concurrent save keeps the folder, not the profile
+        history.rmdir()
 
 
 def propose_source(name: str, source_config: str) -> tuple[dict, str]:

@@ -2162,9 +2162,13 @@ def _run(a: argparse.Namespace) -> int:
             return _timeskip(a)
         if a.command == "presets":
             return tune_commands.presets_command(a)
-        if a.command in ("launch", "connect"):
+        if a.command in ("launch", "start", "connect", "stop"):
             from strata_cli.launch import cmd as launch_cmd
-            return launch_cmd.run_launch(a) if a.command == "launch" else launch_cmd.run_connect(a)
+            if a.command == "connect":
+                return launch_cmd.run_connect(a)
+            if a.command == "stop":
+                return launch_cmd.run_stop(a)
+            return launch_cmd.run_launch(a)       # "launch" and its alias "start"
         if a.command == "tune":
             return _tune(a)
         if a.command == "runtime":
@@ -2252,9 +2256,10 @@ def main(argv: list[str] | None = None) -> int:
     a, extras = ap.parse_known_args(_install_argv(raw))
     a.raw_argv = raw
     if extras:
-        if getattr(a, "command", None) in ("launch", "connect"):
+        if getattr(a, "command", None) in ("launch", "start", "connect", "stop"):
             from strata_cli.launch import cmd as launch_cmd
-            print("strata: " + launch_cmd.unknown_option_message(a.command, extras, ap), file=sys.stderr)
+            word = "launch" if a.command == "start" else a.command     # strata start is strata launch: its help is the launch help
+            print("strata: " + launch_cmd.unknown_option_message(word, extras, ap), file=sys.stderr)
             return 2
         ap.error("unrecognized arguments: " + " ".join(extras))
     if getattr(a, "json", False) and a.command not in ("status", "monitor", "logs", "connection", "config"):

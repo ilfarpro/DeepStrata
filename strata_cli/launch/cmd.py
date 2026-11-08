@@ -1,4 +1,4 @@
-"""The `strata launch` and `strata connect` commands: the flags, the plain-text (no TUI) run, and the hand-over to the TUI."""
+"""The `strata launch` (its shorter word: `strata start`), `strata stop` and `strata connect` commands: the flags, the plain-text (no TUI) run, and the hand-over to the TUI."""
 
 from __future__ import annotations
 
@@ -26,6 +26,8 @@ examples:
                                                    change one advanced setting for this start
   strata launch --plan --model q2_0                show what would happen, change nothing
   strata launch --list-presets | --delete-preset NAME | --status | --stop [--preset NAME]
+  strata stop [--preset NAME]                      stop what is serving and free the memory (the same as strata launch --stop)
+  strata start ...                                 another word for strata launch: every launch flag works on it too
   strata connect                                   list the apps Strata can be connected to
   strata connect opencode --write                  write OpenCode's config for the running server (keeps a backup)
 """
@@ -74,7 +76,8 @@ def _parallel(value: str) -> int:
 
 def add_parsers(sp: argparse._SubParsersAction) -> list[argparse.ArgumentParser]:
     p = sp.add_parser(
-        "launch", help="guided setup, serve and monitor (the screens), or the same with flags", epilog=EXAMPLES,
+        "launch", aliases=["start"],
+        help="guided setup, serve and monitor (the screens), or the same with flags (also: strata start)", epilog=EXAMPLES,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="Set up a model, tune it, start serving and watch it, in one place. With no flags it opens the guided screens: "
                     "start from a saved preset or set up from the beginning, one decision per screen. With flags it does the same "
@@ -156,7 +159,7 @@ def add_parsers(sp: argparse._SubParsersAction) -> list[argparse.ArgumentParser]
     m.add_argument("--list-presets", action="store_true", help="list saved presets")
     m.add_argument("--delete-preset", metavar="NAME", help="delete a saved preset")
     m.add_argument("--status", action="store_true", help="show what this command is serving now")
-    m.add_argument("--stop", action="store_true", help="stop what this command started (with --preset NAME: that one)")
+    m.add_argument("--stop", action="store_true", help="stop what this command started (with --preset NAME: that one); the same on its own: strata stop")
     m.add_argument("--show-key", action="store_true", help="print the API key of --preset NAME (or of the running launch); with none of those, the key of a model setup.py set up "
                                                                     "(--model NAME picks one when several have a key)")
 
@@ -177,7 +180,15 @@ def add_parsers(sp: argparse._SubParsersAction) -> list[argparse.ArgumentParser]
     c.add_argument("--yes", action="store_true", help="do not ask before --write")
     c.add_argument("--show-key", action="store_true", help="print the real key instead of a masked one")
     c.add_argument("--output", choices=("human", "json"), default="human")
-    return [p, c]
+
+    t = sp.add_parser(
+        "stop", help="stop what `strata launch` serves (the same as its --stop)",
+        description="Stops the model that `strata launch` (or its shorter word, `strata start`) is serving and frees its memory. "
+                    "Without --preset it stops every running launch; `strata launch --status` shows what is serving.")
+    t.add_argument("--preset", metavar="NAME", help="stop only this saved preset (default: every running launch)")
+    t.add_argument("--output", choices=("human", "json"), default="human")
+    t.add_argument("--json", action="store_true", help="alias for --output json")
+    return [p, c, t]
 
 
 def unknown_option_message(command: str, extras: list[str], parser: argparse.ArgumentParser) -> str:
@@ -591,23 +602,39 @@ def _printer(quiet: bool = False):
     return emit
 
 
-def _stop_all(name: str | None) -> int:
+def _stop_all(name: str | None, machine: bool = False) -> int:
+    """Stop the named launch profile, or every running launch when no name is given.
+    `machine` prints one JSON object instead of the human lines (the `strata stop --output json` path;
+    `strata launch --stop` keeps the plain lines)."""
     from strata_cli.launch import access, store
     from strata_control import profiles, runtime
     targets = [name] if name else [p["id"] for p in profiles.list_profiles() if p["id"].startswith("launch-")]
-    stopped = failed = 0
+    stopped: list[str] = []
+    failed: list[dict] = []
     for prof in targets:
         prof = prof if prof.startswith("launch-") else "launch-" + S.slug(prof)
         st = runtime.status(prof)
         if st.get("state") in ("ready", "starting", "failed", "stale"):
             r = runtime.stop(prof, timeout=180)
-            _say(f"Stopped {prof[7:]}." if r.get("ok") else f"Could not stop {prof[7:]}: {r.get('error') or r.get('state')}.")
-            stopped += 1 if r.get("ok") else 0
-            failed += 0 if r.get("ok") else 1
+            if r.get("ok"):
+                stopped.append(prof[7:])
+            else:
+                failed.append({"name": prof[7:], "error": r.get("error") or r.get("state")})
+            if not machine:
+                _say(f"Stopped {prof[7:]}." if r.get("ok") else f"Could not stop {prof[7:]}: {r.get('error') or r.get('state')}.")
         access.stop_tunnel(prof)
+    if machine:
+        print(json.dumps({"schema_version": 1, "ok": not failed, "stopped": stopped, "failed": failed,
+                          "nothing_running": not stopped and not failed}))
+        return 1 if failed else 0                                # any failed stop is a nonzero exit, also when another one succeeded
     if not stopped and not failed:                           # zero targets only: a failed stop already said so and must not be followed by "nothing"
         _say("Nothing from `strata launch` is running.")
     return 1 if failed else 0                                # any failed stop is a nonzero exit, also when another one succeeded
+
+
+def run_stop(a: argparse.Namespace) -> int:
+    """`strata stop`: stop what `strata launch` (or `strata start`) serves, without naming launch."""
+    return _stop_all("launch-" + S.slug(a.preset) if a.preset else None, machine=a.output == "json")
 
 
 def _can_ask() -> bool:

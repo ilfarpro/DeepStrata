@@ -135,7 +135,7 @@ not tested with it, and Linux `gfx1151` has not been measured against it.
 ## 5. Traps
 
 1. **Keep RAM free.** Qwen IQ3_S held 49 GB of 63.6 GB. A browser with many tabs, or a second model, is enough to push the PC into paging.
-2. **Do not run two engines.** One model at a time on this PC; `strata launch --status` shows what is serving, `strata launch --stop` ends it.
+2. **Do not run two engines.** One model at a time on this PC; `strata launch --status` shows what is serving, `strata stop` ends it.
 3. **The graphics driver.** The 2025-03 driver failed at 32K context for DeepSeek. The measured driver is Adrenalin 26.10.1 (32.0.32015.7029).
 4. **If Windows resets the driver** (screen flicker, the engine dies mid-answer), see the driver-reset entry in
    [TROUBLESHOOTING.md](TROUBLESHOOTING.md#amd-cards).

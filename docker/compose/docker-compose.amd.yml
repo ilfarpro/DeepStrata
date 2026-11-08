@@ -4,11 +4,11 @@
 #   cp .env.example .env
 #   docker compose -f docker-compose.amd.yml up -d
 #
-# Images: ghcr.io/niko1221/strata (published from 0.2.1 on). To use one you built yourself: STRATA_IMAGE=strata:0.2.7-<flavor> docker compose up -d
+# Images: ghcr.io/ilfarpro/deepstrata (published from 0.2.1 on). To use one you built yourself: STRATA_IMAGE=deepstrata:0.2.7-<flavor> docker compose up -d
 services:
-  strata:
-    image: ${STRATA_IMAGE:-ghcr.io/niko1221/strata:0.2.7-rocm-gfx120x}
-    container_name: strata
+  deepstrata:
+    image: ${STRATA_IMAGE:-ghcr.io/ilfarpro/deepstrata:0.2.7-rocm-gfx120x}
+    container_name: deepstrata
     restart: unless-stopped
     ports:
       - "${STRATA_BIND:-127.0.0.1}:${STRATA_PORT:-8080}:8080"
@@ -21,7 +21,7 @@ services:
       TUNE: ${TUNE:-skip}
       API_KEY: ${API_KEY:-}
     volumes:
-      - strata-data:/data
+      - deepstrata-data:/data
       # - /srv/gguf/IQ3_XXS:/models:ro
     devices:
       - /dev/kfd:/dev/kfd
@@ -35,4 +35,4 @@ services:
     stop_grace_period: 2m
     # security_opt: [seccomp:unconfined]     # only if the log says a ROCm call was blocked (rare)
 volumes:
-  strata-data:
+  deepstrata-data:

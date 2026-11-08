@@ -2,11 +2,11 @@
 # Entry point of the Strata container: `strata launch --no-tui` with the settings the TUI asks for, read from environment
 # variables, then stay up and stop cleanly on SIGTERM (`docker stop`).
 #
-#   docker run ... strata              start the server (default)
-#   docker run ... strata strata ...   run any strata command instead (e.g. `strata launch --plan --model q2_0`)
+#   docker run ... deepstrata          start the server (default)
+#   docker run ... deepstrata deepstrata ...   run any deepstrata command instead (e.g. `deepstrata launch --plan --model q2_0`)
 #   docker run ... strata sh           a shell
 #
-# Settings (all optional; names match the screens of `strata launch`):
+# Settings (all optional; names match the screens of `deepstrata launch`):
 #   MODEL         model size, e.g. IQ3_XXS, Q2_0 (empty: Strata picks one for this card and says so)
 #   FAMILY        model family when a size is offered by several (qwen, swift, coder, ...)
 #   MODEL_PATH    GGUF files you already have, a folder or one .gguf, inside the container (mount it read-only)
@@ -22,7 +22,7 @@
 #   API_KEY / API_KEY_FILE   the key clients must send. The server listens on every address inside the container, and Strata does
 #                 not serve beyond loopback without a key, so one is always on: yours, or one made on the first start and kept in /data.
 #   PRESET        preset name in /data (default "docker"). Settings above are saved into it; with no settings given a saved preset is reused.
-#   STRATA_SET    advanced engine settings, space separated KEY=VALUE (like `strata launch --set`)
+#   STRATA_SET    advanced engine settings, space separated KEY=VALUE (like `deepstrata launch --set`)
 set -u
 
 APP=/opt/strata
@@ -50,18 +50,18 @@ legacy_models_guard() {
   if [ "${ALLOW_DOWNLOAD:-0}" = "1" ]; then warn "$msg Going on, because ALLOW_DOWNLOAD=1."; else die "$msg" 2; fi
 }
 
-# ---- other commands: `docker run image strata ...`, `docker run image sh`
+# ---- other commands: `docker run image deepstrata ...`, `docker run image sh`
 if [ "$#" -gt 0 ] && [ "$1" != "run" ] && [ "$1" != "serve" ]; then
-  case "$1" in strata) shift; exec "$STRATA" "$@" ;; *) exec "$@" ;; esac
+  case "$1" in deepstrata) shift; exec "$STRATA" "$@" ;; *) exec "$@" ;; esac
 fi
 
-mkdir -p /data/state /data/home /data/install /data/Strata-data /run 2>/dev/null || die "/data is not writable. Mount a volume there: -v strata-data:/data"
+mkdir -p /data/state /data/home /data/install /data/Strata-data /run 2>/dev/null || die "/data is not writable. Mount a volume there: -v deepstrata-data:/data"
 # llama.cpp at the pinned commit is part of the image: link it into the install folder, so the first start fetches nothing from GitHub
 if [ -d /opt/strata/seed/third_party/llama.cpp ] && [ ! -e /data/install/third_party/llama.cpp ]; then
   mkdir -p /data/install/third_party && ln -s /opt/strata/seed/third_party/llama.cpp /data/install/third_party/llama.cpp
 fi
 if ! grep -q " /data " /proc/self/mountinfo 2>/dev/null; then
-  warn "/data is not a volume, so the model and your settings are lost when this container is removed. Add: -v strata-data:/data"
+  warn "/data is not a volume, so the model and your settings are lost when this container is removed. Add: -v deepstrata-data:/data"
 fi
 
 # ---- plain warnings (never refusals)
@@ -166,7 +166,7 @@ if [ -z "$key" ] && [ -n "${API_KEY_FILE:-}" ]; then
   key=$(tr -d '\r\n' < "$API_KEY_FILE")
 fi
 
-# ---- settings -> `strata launch` flags
+# ---- settings -> `deepstrata launch` flags
 set -- launch --no-tui --access lan --port "$PORT" --data-dir /data/Strata-data
 have=""
 
@@ -291,15 +291,15 @@ if [ "$rc" -ne 0 ]; then
   die "strata launch stopped with code $rc (the lines above say why). The container ends. Fix that and start it again: finished steps are not repeated, and an interrupted download continues where it stopped." "$rc"
 fi
 
-# keep the key where `docker exec ... strata monitor` and the health check can read it (private file on the volume)
+# keep the key where `docker exec ... deepstrata monitor` and the health check can read it (private file on the volume)
 ( umask 077; "$STRATA" launch --show-key --preset "$PRESET" > "$KEY_FILE" 2>/dev/null ) || true
 [ -s "$KEY_FILE" ] || rm -f "$KEY_FILE"
 if [ -z "$key" ]; then
   warn "No API_KEY was set, so Strata made one (the server listens on all addresses in the container and will not run without a key)."
-  warn "Show it with: docker exec <container> strata launch --show-key --preset $PRESET   Set your own with -e API_KEY=..."
+  warn "Show it with: docker exec <container> deepstrata launch --show-key --preset $PRESET   Set your own with -e API_KEY=..."
 fi
 phase serving
-say "Serving on port $PORT. Watch it: docker exec -it <container> strata monitor    Stop: docker stop <container>"
+say "Serving on port $PORT. Watch it: docker exec -it <container> deepstrata monitor    Stop: docker stop <container>"
 
 # ---- stay up; leave (so a restart policy can act) if the server is gone
 bad=0

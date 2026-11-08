@@ -2,15 +2,15 @@
 # Build a Strata image from an engine component package. Run it on a Linux x86_64 machine with Docker (it needs the internet
 # for the base image and for the Terminal's pinned Python and locked wheels; the engine package is local).
 #
-#   docker/build.sh --flavor cuda --engine ~/pkgs/0.1.45.3-linux-x86_64-cuda-cuda13 --tag strata:0.2.7-cuda13
-#   docker/build.sh --flavor hip  --engine ~/pkgs/0.1.45.3-linux-x86_64-hip-gfx120X  --tag strata:0.2.7-rocm-gfx120x
-#   docker/build.sh --flavor sycl --engine ~/pkgs/0.1.45.3-linux-x86_64-sycl         --tag strata:0.2.7-sycl
+#   docker/build.sh --flavor cuda --engine ~/pkgs/0.1.45.3-linux-x86_64-cuda-cuda13 --tag deepstrata:0.2.7-cuda13
+#   docker/build.sh --flavor hip  --engine ~/pkgs/0.1.45.3-linux-x86_64-hip-gfx120X  --tag deepstrata:0.2.7-rocm-gfx120x
+#   docker/build.sh --flavor sycl --engine ~/pkgs/0.1.45.3-linux-x86_64-sycl         --tag deepstrata:0.2.7-sycl
 #
 # --engine is the package FOLDER that packaging/package_engine.py wrote (engine-component.json inside). It can be given more than
 # once to put several packages in one image (the Terminal picks the one that fits the card).
 #
 #   --flavor cuda|hip|sycl   which system libraries the runtime adds (see docker/Dockerfile)
-#   --tag NAME               image name (default strata:<version>-<flavor>)
+#   --tag NAME               image name (default deepstrata:<version>-<flavor>)
 #   --base IMAGE             base image (default ubuntu:24.04; sycl: ubuntu:26.04)
 #   --repo DIR               the Strata source tree (default: the one this script is in)
 #   --version V              label (default: read from CMakeLists.txt)
@@ -93,13 +93,13 @@ done
 
 # 3. the Dockerfile and the container scripts
 cp "$here/Dockerfile" "$ctx/Dockerfile"
-cp "$here/entrypoint.sh" "$here/strata-wrapper.sh" "$here/healthcheck.sh" "$ctx/docker/"
+cp "$here/entrypoint.sh" "$here/deepstrata-wrapper.sh" "$here/healthcheck.sh" "$ctx/docker/"
 tr -d '\r' < "$here/entrypoint.sh" > "$ctx/docker/entrypoint.sh"          # a checkout with CRLF line ends must not break the scripts
-tr -d '\r' < "$here/strata-wrapper.sh" > "$ctx/docker/strata-wrapper.sh"
+tr -d '\r' < "$here/deepstrata-wrapper.sh" > "$ctx/docker/deepstrata-wrapper.sh"
 tr -d '\r' < "$here/healthcheck.sh" > "$ctx/docker/healthcheck.sh"
 
 engine_label=$(for e in $engines; do basename "$e"; done | tr '\n' ' ' | sed 's/ $//')
-[ -n "$tag" ] || tag="strata:$version-$flavor"
+[ -n "$tag" ] || tag="deepstrata:$version-$flavor"
 echo "context: $ctx"
 echo "flavor $flavor, base $base, engine(s): $engine_label, tag $tag"
 [ -n "$ctxonly" ] && { echo "context kept (--ctx-only)"; exit 0; }

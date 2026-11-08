@@ -10,7 +10,7 @@
 # Plain `docker build` also works when the context folder has this layout (build.sh makes it):
 #     terminal-src/   the files package_terminal.py needs (packaging/, strata_cli/, strata_control/, serve/, tools/, data/, ...)
 #     engine/         one folder per engine package, exactly as `package_engine.py` wrote it (engine-component.json inside)
-#     docker/         entrypoint.sh, strata-wrapper.sh, healthcheck.sh
+#     docker/         entrypoint.sh, deepstrata-wrapper.sh, healthcheck.sh
 #   docker build --build-arg FLAVOR=cuda -t strata:0.2.7-cuda13 -f Dockerfile <context>
 #
 # FLAVOR picks the small set of system libraries the runtime image adds and its base:
@@ -85,8 +85,8 @@ COPY --from=terminal /opt/strata/terminal /opt/strata/terminal
 COPY --from=terminal /opt/strata/seed /opt/strata/seed
 COPY --from=verify /engine/ /opt/strata/components/engine/
 COPY docker/entrypoint.sh docker/healthcheck.sh /opt/strata/
-COPY docker/strata-wrapper.sh /usr/local/bin/strata
-RUN chmod 0755 /opt/strata/entrypoint.sh /opt/strata/healthcheck.sh /usr/local/bin/strata
+COPY docker/deepstrata-wrapper.sh /usr/local/bin/deepstrata
+RUN chmod 0755 /opt/strata/entrypoint.sh /opt/strata/healthcheck.sh /usr/local/bin/deepstrata
 
 # Does the dynamic linker find every library of the package inside this image? (the GPU driver's libcuda / libnvidia-* come from the host)
 RUN set -e; \

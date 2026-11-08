@@ -1,12 +1,12 @@
 #!/bin/bash
 # Smoke test of one Strata image on a real card (docs/DOCKER.md, "Build it yourself"). Run it under your own GPU lock if the box is shared.
 #
-#   IMAGE=strata:0.1.45-sycl NAME=strata-t PORT=18080 BASE=http://127.0.0.1:18080 \
+#   IMAGE=deepstrata:0.1.45-sycl NAME=deepstrata-t PORT=18080 BASE=http://127.0.0.1:18080 \
 #   RUN_FLAGS="--device /dev/dri -p 18080:8080" ENVS="-e MODEL=IQ3_S -e MODEL_PATH=/models -e API_KEY=..." VOLS="-v $HOME/dt/data:/data -v /m:/models:ro" \
 #   GPU_USED_CMD='nvidia-smi --query-gpu=memory.used --format=csv,noheader' OUT=$HOME/dt/out docker/smoke-test.sh
 #
-# Steps: run -> wait for the model (health check) -> GET /v1/models -> pong chat -> tool call -> docker exec strata monitor --once ->
-# strata connect opencode --check (from inside) -> docker stop (time, exit code, log) -> GPU memory back, no strata process left.
+# Steps: run -> wait for the model (health check) -> GET /v1/models -> pong chat -> tool call -> docker exec deepstrata monitor --once ->
+# deepstrata connect opencode --check (from inside) -> docker stop (time, exit code, log) -> GPU memory back, no strata process left.
 set -u
 : "${IMAGE:?}" "${NAME:?}" "${BASE:?}" "${OUT:?}"
 DOCKER=${DOCKER:-docker}
@@ -67,12 +67,12 @@ m=json.load(sys.stdin)["choices"][0]["message"]; tc=m.get("tool_calls") or []
 print("tool_calls:",[(t["function"]["name"],t["function"]["arguments"]) for t in tc])
 sys.exit(0 if tc and tc[0]["function"]["name"]=="get_weather" and "paris" in tc[0]["function"]["arguments"].lower() else 1)' && ok "tool call get_weather(Paris)" || bad "tool call"
 
-step "docker exec strata monitor --once (no key typed: the wrapper supplies it)"
-$DOCKER exec "$NAME" strata monitor --once 2>&1 | head -40 && ok "monitor --once ran" || bad "monitor --once"
-step "docker exec strata status"
-$DOCKER exec "$NAME" strata status 2>&1 | head -12
-step "docker exec strata connect opencode --check (inside the container)"
-chk=$($DOCKER exec "$NAME" strata connect opencode --check 2>&1); echo "$chk" | tail -8
+step "docker exec deepstrata monitor --once (no key typed: the wrapper supplies it)"
+$DOCKER exec "$NAME" deepstrata monitor --once 2>&1 | head -40 && ok "monitor --once ran" || bad "monitor --once"
+step "docker exec deepstrata status"
+$DOCKER exec "$NAME" deepstrata status 2>&1 | head -12
+step "docker exec deepstrata connect opencode --check (inside the container)"
+chk=$($DOCKER exec "$NAME" deepstrata connect opencode --check 2>&1); echo "$chk" | tail -8
 echo "$chk" | grep -q "^FAIL" && bad "connect opencode --check reported a failure (model answered in words instead of calling the tool? see above)" || ok "connect opencode --check: prompt and tool call"
 step "GPU used while serving: $(gpu_used)"
 step "docker stats / health"

@@ -6,7 +6,7 @@ name: Docker images
 # For each flavor the job downloads the engine package from the release and checks it against the signed update feed
 # (docker/fetch-engines.py: the feed's Ed25519 signature, the archive's SHA-256, the manifest hash, the package signature,
 # every file's hash), builds the image with docker/build.sh and, only when "push" is on, pushes
-#   ghcr.io/niko1221/strata:<version>-<flavor>   and   ghcr.io/niko1221/strata:latest-<flavor>
+#   ghcr.io/ilfarpro/deepstrata:<version>-<flavor>   and   ghcr.io/ilfarpro/deepstrata:latest-<flavor>
 # The first run with "push" off builds everything without publishing it (a dry run).
 
 on:
@@ -41,7 +41,7 @@ permissions:
   contents: read
 
 env:
-  IMAGE: ghcr.io/niko1221/strata
+  IMAGE: ghcr.io/ilfarpro/deepstrata
 
 jobs:
   plan:

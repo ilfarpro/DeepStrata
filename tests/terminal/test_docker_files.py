@@ -28,7 +28,7 @@ def sh_path(p) -> str:
 class Scripts(unittest.TestCase):
     @unittest.skipIf(SH is None, "needs sh")
     def test_shell_scripts_parse(self):
-        for name in ("entrypoint.sh", "strata-wrapper.sh", "healthcheck.sh", "build.sh", "publish.sh"):
+        for name in ("entrypoint.sh", "deepstrata-wrapper.sh", "healthcheck.sh", "build.sh", "publish.sh"):
             r = subprocess.run([SH, "-n", sh_path(DOCKER / name)], capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, f"{name}: {r.stderr}")
 
@@ -74,7 +74,7 @@ class Scripts(unittest.TestCase):
                 self.assertTrue((ctx / "terminal-src" / "metal" / "tools" / f"{name}.py").is_file(), f"build.sh did not copy metal/tools/{name}.py into the context")
 
     def test_scripts_use_unix_line_ends(self):
-        for name in ("entrypoint.sh", "strata-wrapper.sh", "healthcheck.sh", "build.sh", "publish.sh"):
+        for name in ("entrypoint.sh", "deepstrata-wrapper.sh", "healthcheck.sh", "build.sh", "publish.sh"):
             self.assertNotIn(b"\r", (DOCKER / name).read_bytes(), name)       # build.sh strips CR for a CRLF checkout, the files themselves stay LF
 
 
@@ -111,32 +111,32 @@ class Dockerfiles(unittest.TestCase):
 class Compose(unittest.TestCase):
     def load(self, name: str) -> dict:
         data = yaml.safe_load((DOCKER / "compose" / name).read_text(encoding="utf-8"))
-        self.assertIn("strata", data["services"], name)
+        self.assertIn("deepstrata", data["services"], name)
         return data
 
     def test_common_settings(self):
         for name in ("docker-compose.nvidia.yml", "docker-compose.amd.yml", "docker-compose.intel.yml"):
-            svc = self.load(name)["services"]["strata"]
-            self.assertIn("strata-data:/data", svc["volumes"], name)
+            svc = self.load(name)["services"]["deepstrata"]
+            self.assertIn("deepstrata-data:/data", svc["volumes"], name)
             self.assertEqual(svc["ulimits"]["memlock"], {"soft": -1, "hard": -1}, name)
             self.assertEqual(svc["shm_size"], "2gb", name)
             self.assertEqual(svc["stop_grace_period"], "2m", name)
             self.assertTrue(svc["ports"][0].startswith("${STRATA_BIND:-127.0.0.1}:"), f"{name}: the port must default to this computer only")
             for var in ("MODEL", "MODEL_PATH", "CONTEXT", "PARALLEL", "VISION", "TUNE", "API_KEY"):
                 self.assertIn(var, svc["environment"], f"{name}: {var}")
-            self.assertIn("strata-data", self.load(name)["volumes"], name)
+            self.assertIn("deepstrata-data", self.load(name)["volumes"], name)
 
     def test_gpu_access_per_vendor(self):
-        nv = self.load("docker-compose.nvidia.yml")["services"]["strata"]
+        nv = self.load("docker-compose.nvidia.yml")["services"]["deepstrata"]
         dev = nv["deploy"]["resources"]["reservations"]["devices"][0]
         self.assertEqual(dev["driver"], "nvidia")
         self.assertIn("gpu", dev["capabilities"])
-        amd = self.load("docker-compose.amd.yml")["services"]["strata"]
+        amd = self.load("docker-compose.amd.yml")["services"]["deepstrata"]
         self.assertIn("/dev/kfd:/dev/kfd", amd["devices"])
         self.assertIn("/dev/dri:/dev/dri", amd["devices"])
         self.assertIn("video", amd["group_add"])
         self.assertTrue(any("render" in str(g).lower() or "RENDER" in str(g) for g in amd["group_add"]))
-        intel = self.load("docker-compose.intel.yml")["services"]["strata"]
+        intel = self.load("docker-compose.intel.yml")["services"]["deepstrata"]
         self.assertIn("/dev/dri:/dev/dri", intel["devices"])
         self.assertNotIn("/dev/kfd:/dev/kfd", intel["devices"])
 
@@ -215,8 +215,8 @@ class Document(unittest.TestCase):
         doc = (ROOT / "docs" / "DOCKER.md").read_text(encoding="utf-8")
         for tag in ("0.2.7-cuda13", "0.2.7-cuda12", "0.2.7-rocm-gfx120x", "0.2.7-rocm-gfx110x", "0.2.7-rocm-gfx1151", "0.2.7-sycl"):
             self.assertIn(tag, doc)
-        for name, tag in (("docker-compose.nvidia.yml", "ghcr.io/niko1221/strata:0.2.7-cuda13"), ("docker-compose.amd.yml", "ghcr.io/niko1221/strata:0.2.7-rocm-gfx120x"),
-                          ("docker-compose.intel.yml", "ghcr.io/niko1221/strata:0.2.7-sycl")):
+        for name, tag in (("docker-compose.nvidia.yml", "ghcr.io/ilfarpro/deepstrata:0.2.7-cuda13"), ("docker-compose.amd.yml", "ghcr.io/ilfarpro/deepstrata:0.2.7-rocm-gfx120x"),
+                          ("docker-compose.intel.yml", "ghcr.io/ilfarpro/deepstrata:0.2.7-sycl")):
             self.assertIn(tag, (DOCKER / "compose" / name).read_text(encoding="utf-8"))
 
     def test_the_user_doc_says_images_are_published_from_0_2_1(self):
@@ -271,7 +271,7 @@ class Publishing(unittest.TestCase):
             self.assertIn("ENV STRATA_BUILD_COMMIT=${STRATA_COMMIT}", text, dockerfile.name)
         self.assertIn(".git", (ROOT / ".dockerignore").read_text(encoding="utf-8").split())
         doc = (ROOT / "docs" / "DOCKER.md").read_text(encoding="utf-8")
-        self.assertEqual(doc.count("docker build -t strata:src"), doc.count("--build-arg STRATA_COMMIT=$(git rev-parse HEAD)"))
+        self.assertEqual(doc.count("docker build -t deepstrata:src"), doc.count("--build-arg STRATA_COMMIT=$(git rev-parse HEAD)"))
         self.assertIn("/data/install/", (ROOT / ".dockerignore").read_text(encoding="utf-8"))
 
     def test_workflow_is_manual_and_pushes_only_on_request(self):
@@ -284,7 +284,7 @@ class Publishing(unittest.TestCase):
         self.assertEqual(data["permissions"], {"contents": "read"})
         self.assertEqual(data["jobs"]["image"]["permissions"], {"contents": "read", "packages": "write"})
         text = self.WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("ghcr.io/niko1221/strata", text)
+        self.assertIn("ghcr.io/ilfarpro/deepstrata", text)
         self.assertIn("docker/publish.sh", text)
         self.assertNotIn("${{ secrets.GITHUB_TOKEN }}\" |", text)   # the token goes through an env variable, not into the command line
 

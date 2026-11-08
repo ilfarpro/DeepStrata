@@ -138,9 +138,27 @@ The first of those two features - the Engram reader taking Q5_K - has landed on 
 by its table type: a Q5_K table is read on CUDA, HIP and Metal, each decoder verified against the reference decoder and none
 yet run on a real card. It is not on the version list yet, and it is not wired into the download either: a set is not offered
 until an engine release carries the code to run it, so the file list and `--model ud-iq2_xxs` land with that release, not
-before (the exact wiring is written down in the branch's commits for whoever lands it). The second feature - letting a layer
+before. What that landing needs is written down just below. The second feature - letting a layer
 keep an MXFP4 `down` while gate and up stay low-bit - would open the other four (UD-Q2_K_XL needs both); it is bigger and is
 to be agreed in an issue. The offered sets and every default path stay exactly as they are.
+
+### Landing UD-IQ2_XXS when a release carries fmt 4
+
+For whoever wires it, with the facts read off the pinned set (repo `unsloth/DeepSeek-V4.1-Flash-1017-GGUF`, revision
+`8a6ec9cf118e785a362ea94ee123c61c70553be6`, path `UD-IQ2_XXS/`):
+
+- Six files `DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-0000N-of-00006.gguf`. Shard 1 (5,780,923 B) is metadata, no tensors;
+  shards 2-5 (49,955,895,008; 49,950,675,200; 48,971,469,632; 16,419,622,240 B) are the experts and dense weights - about
+  165 GB, all types the engine already takes; shard 6 (135,172,021,792 B) is the n-gram table and nothing else.
+- The download follows the low-bit recipe the offered sets use (`setup.py`'s UD-IQ1_M shape): pack shards 1-5, take the
+  Engram table from shard 6 with the packer's `--engram`, `shared: []` (its table is its own Q5_K file, not the shared
+  IQ4_NL one), the same drafter and picture files the other DeepSeek sets share. The model key `ud-iq2_xxs` and its engine
+  minimum go into `strata_cli/launch/catalog.py` and `setup.py` together, gated on an engine that ships fmt 4 - never list
+  it under a release that cannot load it.
+- The sizes above are read from the Hub and cross-check with the tensor headers; take each file's SHA-256 from the pinned
+  revision when the pins are written, rather than from here, so no hash is claimed that was not fetched.
+- Build and run `tests/dsv41/q5k_engram_test` on the target card first (`tests/dsv41/build_q5k_test.sh`, CUDA and HIP; the
+  Metal engine build on a Mac), before listing the set - the hardware request is in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
 
 ## Install
 

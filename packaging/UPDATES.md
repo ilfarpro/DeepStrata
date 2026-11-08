@@ -133,7 +133,7 @@ On an offline machine, outside any git checkout:
     npx tauri signer generate -w D:\strata-keys\tauri-updater.key      # asks for a password; prints the public key
 
 Back both up (a lost feed key means every installed PC needs a build with a new key; a lost Tauri key means the same for the app).
-Then, in git, once, in the commit that ships the first signed release (the release key id is `5d1bc23abbeffd0d`):
+Then, in git, once, in the commit that ships the first signed release (the fork's release key id is `9badd1d2b37076b5`):
 
 * the `keys` entry from `feed-key.pub.json` into `strata_control/update_keys.json`;
 * the Tauri public key into `apps/desktop/src-tauri/tauri.conf.json` (`plugins.updater.pubkey`) and into `update_keys.json` as `app_minisign_public`

@@ -1,8 +1,11 @@
 """docs/media/make_figures.py - the README's "How does it work?" illustrations, in the Strata app's style: its colors
-(serve/web/tokens.css), its icons (serve/web/sprite.svg) and its font (Outfit, embedded, SIL OFL 1.1).  Light and dark
-follow the reader's system setting.
+(tokens below), its icons (assets/sprite.svg, kept here so the figures stay byte-identical) and its font (Outfit,
+embedded, SIL OFL 1.1: assets/OFL.txt).  Light and dark follow the reader's system setting.
 
     python docs/media/make_figures.py        # writes docs/media/how-it-works.svg and docs/media/guess-and-check.svg
+
+The old source of these assets, the served web page (serve/web), is gone: the page now comes from the App Host
+(`strata ui`).  These three files stay so the checked-in figures can still be regenerated unchanged.
 """
 import base64
 import random
@@ -11,8 +14,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "docs" / "media"
-SPRITE = (ROOT / "serve" / "web" / "sprite.svg").read_text(encoding="utf-8")
-FONT = base64.b64encode((ROOT / "serve" / "web" / "fonts" / "outfit-latin-wght.woff2").read_bytes()).decode()
+ASSETS = OUT / "assets"
+SPRITE = (ASSETS / "sprite.svg").read_text(encoding="utf-8")
+FONT = base64.b64encode((ASSETS / "outfit-latin-wght.woff2").read_bytes()).decode()
 
 # the app's tokens (light, then dark)
 CSS = """

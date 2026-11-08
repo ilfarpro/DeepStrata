@@ -104,7 +104,8 @@ What the first run does (each step is skipped when it is already done):
 7. **Writes `strata-<model>.json` and `run-<model>.sh`, then starts the server.**
 
 After that, `./setup.sh` or `./run-q2_0.sh` starts the model directly. The server is the same as on a PC: the OpenAI-compatible
-API on `http://127.0.0.1:8080/v1`, the Anthropic API on `/v1/messages`, and the chat page on `http://127.0.0.1:8080/`.
+API on `http://127.0.0.1:8080/v1`, the Anthropic API on `/v1/messages`; the address itself is an API index, and
+`strata ui` opens the chat page (the App Host) in a browser.
 
 | Option | Meaning |
 | --- | --- |

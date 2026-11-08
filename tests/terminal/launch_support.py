@@ -38,7 +38,8 @@ class Home:
             "HOME": str(base / "home"),
             "USERPROFILE": str(base / "home"),
         }
-        self.env_clear = ("STRATA_SETTINGS_FILE", "STRATA_CONNECTION_DIR", "CUDA_VISIBLE_DEVICES", "HIP_VISIBLE_DEVICES", "ROCR_VISIBLE_DEVICES")   # a developer's own variables must not leak into a test either
+        self.env_clear = ("STRATA_SETTINGS_FILE", "STRATA_CONNECTION_DIR", "CUDA_VISIBLE_DEVICES", "HIP_VISIBLE_DEVICES", "ROCR_VISIBLE_DEVICES",
+                          "STRATA_HOST_DIR", "STRATA_NODE", "STRATA_PORT", "STRATA_SERVER_URL", "STRATA_UI_MODE", "STRATA_UI_NO_BROWSER")   # a developer's own variables must not leak into a test either
         (base / "home").mkdir(parents=True, exist_ok=True)
         self.patch = mock.patch.dict(os.environ, self.env)
 

@@ -2,9 +2,9 @@
 """Build the self-contained Strata Terminal distribution for Windows x64, Linux x86_64, Linux aarch64 (the DGX Spark) or macOS arm64.
 
 The requirement this exists for (checklist P04, and the owner's rule that starting or serving never fetches Python
-packages from the internet): a user installs the terminal without Desktop, and needs no development checkout, no
-system Python, no pip run, no compiler. So the archive carries its own Python runtime and its own dependencies, and
-the `strata` launchers prefer them.
+packages from the internet): a user installs the terminal without a development checkout, and needs no system Python,
+no pip run, no compiler. So the archive carries its own Python runtime and its own dependencies, and the `strata`
+launchers prefer them.
 
 What goes in
 ------------
@@ -18,6 +18,11 @@ What goes in
   the bundle. pip itself is the one the interpreter shipped with (not upgraded);
 * the application: `strata.py`, `strata_control`, `strata_cli`, `serve`, a `VERSION` file and the docs the CLI
   references;
+* the **App Host** — the web UI `deepstrata ui` opens in the browser: `host/` with the host's `server/`, the built
+  `dist/` and `package.json`. Build it first: `cd apps/host && npm ci && npm run build`;
+* a pinned **Node 24.12.0** runtime for that host (`node/bin/node`, `node/node.exe` on Windows), the official
+  nodejs.org archive downloaded at BUILD time and SHA-256-verified against the pin below; only the `node` binary
+  ships — the host imports nothing outside `server/` and `dist/`;
 * the read-only tooling under `tools/` that the terminal paths import. Everything else under `tools/` is engine
   installation and preparation work and is deliberately excluded: the serving import graph must not pull it in
   (tests/terminal/test_no_acquisition.py checks that);
@@ -27,7 +32,7 @@ What does NOT go in
 -------------------
 * the engine binary. That is a separate, independently versioned component (`packaging/README.md`);
 * model weights or prepared data;
-* `node_modules` or the UI. The terminal does not need a browser.
+* `node_modules`. The built host imports only its own files and Node's builtins at run time.
 
 Usage
 -----
@@ -93,6 +98,23 @@ for _pin in PYTHON_PINS.values():
 #: Kept for callers of the Mac-only script: the macOS pin.
 PYTHON_PIN = {**PYTHON_PINS["darwin-arm64"], "target": "darwin-arm64"}
 
+#: The Node runtime that runs the bundled App Host, one official nodejs.org archive per target, digests from the
+#: release's SHASUMS256.txt. The host needs at least Node 24.12 (the version `apps/host/package.json` engines says).
+NODE_VERSION = "24.12.0"
+NODE_BASE = f"https://nodejs.org/dist/v{NODE_VERSION}/"
+NODE_PINS = {
+    "windows-x86_64": {"file": f"node-v{NODE_VERSION}-win-x64.zip", "binary": "node.exe",
+                       "sha256": "9c125f61ae947b52e779095830f9cac267846a043ef7192183c84016aaad2812"},
+    "linux-x86_64": {"file": f"node-v{NODE_VERSION}-linux-x64.tar.gz", "binary": "bin/node",
+                     "sha256": "6159227e0af7d7c3c6bb2fa900452b04a6cb8841a702a79acc613209d70b04d0"},
+    "linux-aarch64": {"file": f"node-v{NODE_VERSION}-linux-arm64.tar.gz", "binary": "bin/node",
+                      "sha256": "9b2a2eeb98a8eb37361224e2a1d060300ad2dd143af58dfdb16de785df0f1228"},
+    "darwin-arm64": {"file": f"node-v{NODE_VERSION}-darwin-arm64.tar.gz", "binary": "bin/node",
+                     "sha256": "319f221adc5e44ff0ed57e8a441b2284f02b8dc6fc87b8eb92a6a93643fd8080"},
+}
+for _pin in NODE_PINS.values():
+    _pin["url"] = NODE_BASE + _pin["file"]
+
 #: The application, as paths relative to ROOT (copied to the same place in the archive).
 PAYLOAD = (
     "strata.py",
@@ -115,11 +137,11 @@ TOOLS_SUBSET = (
     "dflash2_pack.py",     # the DFlash2 drafter: strata_control/drafting_fetch.py packs the download with it (numpy only)
 )
 
-#: What `strata launch` and the desktop app's installer need on top of the read-only terminal: the model catalog and GPU probe
+#: What `strata launch` and the installer path need on top of the read-only terminal: the model catalog and GPU probe
 #: (tools/strata_mcp.py reads setup.py's tables) and the install job, which downloads the model the user chose, prepares it with
 #: the bundled tools and writes a run config naming "component:strata-engine". setup.py runs in its CONTROL mode there
 #: (STRATA_CONTROL_INSTALL=1: no pip, no engine fetch, no compiler). Entry points; their local imports under tools/ come with them.
-#: The same list the app's Control component stages (apps/desktop/scripts/stage-control.py uses these names).
+#: The same names the Control component stages for an update feed.
 INSTALLER_FILES = ("setup.py", "ref/load.py")   # ref/load.py: strata_pack.py (the Q2_0 AVX-512 repack) imports it
 #: calibrate: setup.py imports it after a tune (calibrate_config, and the earlier tuning that a rerun applies); it was missing from this
 #: list in 0.1.47, so every launch after a tune failed (#3613, #3467). setup_tool_imports() below also reads setup.py itself, so a tools/
@@ -176,6 +198,58 @@ def fetch_python(target: str, cache: Path) -> Path:
             f"the CPython download does not match its pin\n  expected {pin['sha256']}\n"
             f"  got      {got}\nRefusing to package an unverified interpreter.")
     return archive
+
+
+def fetch_node(target: str, cache: Path) -> tuple[Path, str]:
+    """Download the pinned Node archive once (build time), verify its digest, and return (archive, member-path).
+    Only the `node` binary is later pulled out; the archive stays cached so a rebuild fetches nothing."""
+    pin = NODE_PINS[target]
+    archive = cache / pin["file"]
+    if not archive.exists():
+        print(f"fetching the pinned Node from {pin['url']}")
+        part = archive.with_suffix(archive.suffix + ".part")
+        urllib.request.urlretrieve(pin["url"], part)
+        part.replace(archive)
+    got = sha256(archive)
+    if got != pin["sha256"]:
+        archive.unlink(missing_ok=True)
+        raise SystemExit(
+            f"the Node download does not match its pin\n  expected {pin['sha256']}\n"
+            f"  got      {got}\nRefusing to package an unverified runtime.")
+    return archive, pin["binary"]
+
+
+def stage_node(target: str, root: Path, cache: Path) -> str:
+    """Put the pinned `node` binary into the bundle where the host's `deepstrata ui` looks for it
+    (`node/bin/node`, or `node/node.exe` on Windows). Returns the path inside the bundle."""
+    archive, binary = fetch_node(target, cache)
+    inner_dir = Path(NODE_PINS[target]["file"]).name.removesuffix(".zip").removesuffix(".tar.gz")
+    inner = f"{inner_dir}/{binary}"   # node-vX.Y.Z-<arch>/bin/node
+    dest = root / "node" / binary
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if archive.suffix == ".zip":
+        with zipfile.ZipFile(archive) as zf:
+            dest.write_bytes(zf.read(inner))
+    else:
+        with tarfile.open(archive) as tf:
+            dest.write_bytes(tf.extractfile(inner).read())
+    if binary != "node.exe":
+        dest.chmod(0o755)
+    return (dest.relative_to(root)).as_posix()
+
+
+def stage_host(root: Path) -> None:
+    """Copy the built App Host into `host/` so `deepstrata ui` can open the page: server/, dist/ and package.json.
+    No node_modules — the host imports only its own files and Node's builtins at run time."""
+    src = ROOT / "apps" / "host"
+    for needed in ("server/index.mjs", "dist/index.html", "package.json"):
+        if not (src / needed).is_file():
+            raise SystemExit(f"the App Host is not built: apps/host/{needed} is missing "
+                             "(build it first: cd apps/host && npm ci && npm run build)")
+    dst = root / "host"
+    shutil.copytree(src / "server", dst / "server", ignore=ignore)
+    shutil.copytree(src / "dist", dst / "dist")
+    shutil.copy2(src / "package.json", dst / "package.json")
 
 
 def ignore(_directory: str, names: list[str]) -> set[str]:
@@ -427,6 +501,21 @@ def main() -> int:
             if launcher == "deepstrata":
                 (bin_dir / launcher).chmod(0o755)
 
+        # the web UI `deepstrata ui` opens: the built App Host and the Node runtime that runs it
+        host_version = None
+        node_rel = None
+        if (ROOT / "apps" / "host" / "dist" / "index.html").is_file():
+            print("staging the App Host and the pinned Node runtime")
+            stage_host(root)
+            node_rel = stage_node(target, root, cache)
+            host_version = json.loads((ROOT / "apps" / "host" / "package.json").read_text(encoding="utf-8")).get("version")
+        elif not args.skip_deps:
+            raise SystemExit("the App Host is not built: apps/host/dist/index.html is missing "
+                             "(build it first: cd apps/host && npm ci && npm run build)")
+        else:
+            print("warning: the App Host is not built; the staged layout has no host/ or node/ "
+                  "(build apps/host before a distributable archive)")
+
         installed: dict[str, str] = {}
         removed: list[str] = []
         if not args.skip_deps:
@@ -471,7 +560,10 @@ def main() -> int:
             "payload": list(PAYLOAD),
             "tools_subset": list(TOOLS_SUBSET),
             "installer": installer,
-            "excludes": ["engine binary", "model weights", "prepared data", "UI", "node_modules"],
+            "host": {"version": host_version, "path": "host", "built": host_version is not None},
+            "node": {"version": NODE_VERSION, "path": node_rel, "bundled": node_rel is not None,
+                     **({"url": NODE_PINS[target]["url"], "sha256": NODE_PINS[target]["sha256"]} if node_rel else {})},
+            "excludes": ["engine binary", "model weights", "prepared data", "node_modules"],
             "deps_installed": not args.skip_deps,
         }, indent=2) + "\n", encoding="utf-8")
         print(f"  manifest {manifest}")
@@ -521,11 +613,12 @@ Put `bin/` on your PATH to get the `deepstrata` command everywhere:
     return f"""Strata Terminal {version} ({target})
 {'=' * (len(version) + len(target) + 18)}
 
-This is the terminal distribution. It carries its own Python {PYTHON_VERSION} and its own packages, so you do not
-need Python, pip, Node, a compiler or a development checkout. Serving and watching (`strata serve`, `strata runtime`,
-`strata monitor`) never install or download anything; if something is missing, the error names the command that
-installs it. Only two commands fetch files, and only when you run them: `strata launch` (the engine and the model you
-choose, after it tells you the size) and `strata update` (the engine and the Strata components).
+This is the terminal distribution. It carries its own Python {PYTHON_VERSION}, its own packages and its own Node for
+the browser page, so you do not need Python, pip, Node, a compiler or a development checkout. Serving and watching
+(`strata serve`, `strata runtime`, `strata monitor`) never install or download anything; if something is missing, the
+error names the command that installs it. Only two commands fetch files, and only when you run them: `strata launch`
+(the engine and the model you choose, after it tells you the size) and `strata update` (the engine and the Strata
+components).
 
 Install
 -------
@@ -549,6 +642,7 @@ Useful commands
 ---------------
     strata launch                     choose a model, tune it, serve it and watch it (guided screens; docs/TERMINAL_LAUNCH.md)
     strata connect opencode           the setup for a coding app on the running server (also codex, claude-code, omp, pi, hermes, openclaw)
+    strata ui                         the chat page in your browser (serves off the running model; --url points it at another)
     strata --version                  the version and the interpreter it runs on
     strata doctor                     read-only component inventory
     strata profile list               saved serving profiles

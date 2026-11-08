@@ -1479,12 +1479,12 @@ static inline void* cpu_addr(void* p) {
     return h ? h : p;
 }
 
-// ds4_kernels.cu:1286 engram_dequant_kernel - the Engram rows (fmt 2 = IQ4_NL, the tables this model's pack carries; the
-// other formats are left to the CUDA launch, which reports the line)
+// ds4_kernels.cu:1286 engram_dequant_kernel - the Engram rows (fmt 2 = IQ4_NL and fmt 4 = Q5_K, the tables this model's
+// pack carries; both keep their scales inside the block; the other formats are left to the CUDA launch, which reports the line)
 bool engram_dequant(const uint8_t* rows, const uint8_t* scales, int n, int hd, float* out, int fmt) {
-    (void) scales;   // (fmt 2 keeps every block's scale in its own 18 bytes)
+    (void) scales;   // (fmt 2 and fmt 4 keep every block's scale in its own bytes)
     if (n <= 0 || hd <= 0) return true;
-    if (fmt != 2 || rows == nullptr || out == nullptr) return false;
+    if ((fmt != 2 && fmt != 4) || rows == nullptr || out == nullptr) return false;
     if (!ensure()) return false;
     void* hr = cpu_addr((void*) rows);
     void* ho = cpu_addr((void*) out);

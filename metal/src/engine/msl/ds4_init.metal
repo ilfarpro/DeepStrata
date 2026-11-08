@@ -519,6 +519,27 @@ kernel void ds4_moe_sort_fill(device const int* idx [[buffer(0)]], constant uint
 // high nibble value j + 16, each an index into ggml-common.h's kvalues_iq4nl (ds4_kernels.cu:1280).
 constant int ds4_kIq4nl[16] = {-127, -104, -83, -65, -49, -35, -22, -10, 1, 13, 25, 38, 53, 69, 89, 113};
 
+// one value of a ggml Q5_K superblock (176 bytes: fp16 d, fp16 dmin, 12 packed scale/min bytes, 32 qh bytes with the
+// 5th bit transposed (byte = place in the sub-block, bit = the sub-block index), 128 qs bytes with the low nibbles).
+// weight = d*sc*(nibble + 16*hbit) - dmin*m, the same arithmetic as ds4_dq_q5k and ds4_kernels.cu's q5k_value (unsloth's
+// UD-IQ2_XXS Engram tables are Q5_K; head_dim 256, so a table row is one superblock).
+static inline float ds4_q5k_value(device const uchar* b, int i) {
+    const int ib = i >> 5, l = i & 31;
+    int sc, m;
+    if (ib < 4) {
+        sc = int(b[4 + ib]) & 63;
+        m = int(b[8 + ib]) & 63;
+    } else {
+        sc = (int(b[8 + ib]) & 0xF) | ((int(b[ib]) >> 6) << 4);
+        m = (int(b[8 + ib]) >> 4) | ((int(b[4 + ib]) >> 6) << 4);
+    }
+    const int sh = 4 * (ib & 1);
+    const int q = ((int(b[48 + 32 * (ib >> 1) + l]) >> sh) & 0xF) | (((int(b[16 + l]) >> ib) & 1) << 4);
+    const float d = float(as_type<half>(ushort(b[0]) | (ushort(b[1]) << 8)));
+    const float dmin = float(as_type<half>(ushort(b[2]) | (ushort(b[3]) << 8)));
+    return (d * float(sc)) * float(q) - dmin * float(m);
+}
+
 kernel void ds4_engram_dequant(device const uchar* src [[buffer(0)]], constant ulong& per [[buffer(1)]],
                                constant uint& cols [[buffer(2)]], constant uint& hd [[buffer(3)]],
                                device float* out [[buffer(4)]], constant int& fmt [[buffer(5)]],
@@ -533,6 +554,11 @@ kernel void ds4_engram_dequant(device const uchar* src [[buffer(0)]], constant u
             const ushort dh = ushort(b[0]) | (ushort(b[1]) << 8);
             out[(size_t) r * hd + e] = float(as_type<half>(dh)) * float(ds4_kIq4nl[v]);
         }
+        return;
+    }
+    if (fmt == 4) {   // ggml Q5_K superblocks at the row's start (unsloth's UD-IQ2_XXS Engram tables)
+        for (uint e = tid; e < hd; e += 256u)
+            out[(size_t) r * hd + e] = ds4_q5k_value(rows + (size_t) (e / 256u) * 176u, int(e & 255u));
         return;
     }
     // fmt 1 (Q6_K) and fmt 0 (E4M3 x scale) are not ported: write NaN, so a wrong path shows as NaN in the output rather than
@@ -1042,6 +1068,12 @@ kernel void ds4_engram_dequant_rows(device const uchar* rows [[buffer(0)]], cons
             const ushort dh = ushort(b[0]) | (ushort(b[1]) << 8);
             out[(size_t) r * (size_t) hd + e] = float(as_type<half>(dh)) * float(ds4_kIq4nl[v]);
         }
+        return;
+    }
+    if (fmt == 4) {   // ggml Q5_K superblocks at the row's start (unsloth's UD-IQ2_XXS Engram tables)
+        const device uchar* row = rows + (size_t) r * (size_t) hd;
+        for (uint e = tid; e < hd; e += 256u)
+            out[(size_t) r * (size_t) hd + e] = ds4_q5k_value(row + (size_t) (e / 256u) * 176u, int(e & 255u));
         return;
     }
     // fmt 1 (Q6_K) and fmt 0 (E4M3 x scale) are not ported: NaN rather than a silent zero (as ds4_engram_dequant does)

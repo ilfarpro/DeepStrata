@@ -108,19 +108,24 @@ None is on the version list, and files you already have hit the same wall: read 
 any of the five. That is static analysis - no pack of these five has been made or run here - so "cannot load" means "the engine's own
 rules refuse the shapes these files have", not "a run failed".
 
-Two rules stand in the way:
+Two rules stood in the way. On this branch the table rule is lifted (a Q5_K table is read); the experts rule still stops four
+of the five:
 
 - **One layer's experts** (`src/dsv41/ds4_model.cu:2418`, in every engine since the first): gate and up must share a type, and a layer
   either keeps all three matrices in DeepSeek's MXFP4 or keeps all three in other, low-bit types - "MXFP4 does not mix with the others".
   Unsloth's 3-bit sets keep MXFP4 where the layer is sensitive and drop the rest to 2 and 3 bits; in several layers that leaves an MXFP4
   `down` beside 2- or 3-bit gate and up, and the engine stops at the start with that message.
-- **The n-gram table** (`src/dsv41/ds4_model.cu:3454`): the Engram reader knows three types - MXFP8, Q6_K and IQ4_NL, which is what the
-  offered sets carry - and stops at the start, naming the type, before any token is read. The two 2-bit sets carry the table as Q5_K.
+- **The n-gram table** (`src/dsv41/ds4_model.cu:3454`): the Engram reader takes MXFP8, Q6_K and IQ4_NL - what the offered
+  sets carry - and now also **Q5_K**, the type the two 2-bit sets use, as its fourth format. It decodes a Q5_K table row
+  (`src/dsv41/ds4_q5k.cuh`) exactly as this engine already decodes a Q5_K dense weight; checked value for value against a
+  reference decoder on the real UD-IQ2_XXS bytes (its head_dim of 256 makes a row one whole superblock), and **not yet
+  built or run on hardware** - this checkout has no CUDA / HIP / Metal toolchain, so the cards run is requested in
+  [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
 
 | set | download | routed experts | n-gram table | what stops it |
 |---|---:|---|---|---|
-| UD-IQ2_XXS | 300.5 GB | 156.9 GB: IQ1_S, IQ2_XXS/XS/S, IQ3_XXS, one layer's down Q2_K - all types the engine takes | Q5_K, 135.2 GB | the table's type only |
-| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers with an MXFP4 down | Q5_K, 135.2 GB | both rules |
+| UD-IQ2_XXS | 300.5 GB | 156.9 GB: IQ1_S, IQ2_XXS/XS/S, IQ3_XXS, one layer's down Q2_K - all types the engine takes | Q5_K, 135.2 GB (read now) | nothing in the engine now: only the setup wiring and a release are left |
+| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers with an MXFP4 down | Q5_K, 135.2 GB (read now) | the experts rule |
 | UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
 | UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
 | UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers with an MXFP4 down | MXFP8, 202.8 GB | the experts rule |
@@ -129,9 +134,13 @@ The experts columns are read from the shards' tensor headers; the sums cross-che
 sets would be worth having on a smaller computer: UD-IQ2_XXS wants about 165 GB of weights against the offered sets' 298 to 306, and its
 experts - the part that wants RAM - are 157 GB against 289. Quality is not measured and not claimed for any of the five.
 
-Two engine features would open them, and each is big enough to agree in an issue first: the Engram reader taking Q5_K opens UD-IQ2_XXS,
-and letting a layer keep an MXFP4 down while gate and up stay low-bit opens the other four (UD-Q2_K_XL needs both). The offered sets and
-every default path stay as they are either way; the file lists and the layer-by-layer findings are in the issues.
+The first of those two features - the Engram reader taking Q5_K - has landed on this branch, so UD-IQ2_XXS is no longer held
+by its table type: a Q5_K table is read on CUDA, HIP and Metal, each decoder verified against the reference decoder and none
+yet run on a real card. It is not on the version list yet, and it is not wired into the download either: a set is not offered
+until an engine release carries the code to run it, so the file list and `--model ud-iq2_xxs` land with that release, not
+before (the exact wiring is written down in the branch's commits for whoever lands it). The second feature - letting a layer
+keep an MXFP4 `down` while gate and up stay low-bit - would open the other four (UD-Q2_K_XL needs both); it is bigger and is
+to be agreed in an issue. The offered sets and every default path stay exactly as they are.
 
 ## Install
 

@@ -9,6 +9,7 @@
 #endif
 #include "ds4_numerics.cuh"
 #include "ds4_q6k.cuh"
+#include "ds4_q5k.cuh"
 #include "ds4_attn_split.cuh"
 #include "ds4_wmma.cuh"
 #include "ds4_experts_rule.hpp"
@@ -1540,12 +1541,20 @@ __device__ __forceinline__ float iq4nl_value(const uint8_t* b, int e) {
     return __half2float(__ushort_as_half(*(const uint16_t*) b)) * (float) kIq4nl[v];
 }
 
+// ggml's Q5_K superblock decodes with ds4_q5k.cuh's q5k_value (its head_dim of 256 makes a table row one whole
+// superblock; unsloth's UD-IQ2_XXS Engram tables are Q5_K).
+
 __global__ void engram_dequant_kernel(const uint8_t* __restrict__ rows, const uint8_t* __restrict__ scales, int hd,
                                       float* __restrict__ out, int fmt) {
     const int r = blockIdx.x;
     if (fmt == 1) {   // (ggml Q6_K superblocks at the row's start)
         for (int e = threadIdx.x; e < hd; e += blockDim.x)
             out[(size_t) r * hd + e] = q6k_value(rows + (size_t) r * hd + (size_t) (e / 256) * kQ6kBytes, e % 256);
+        return;
+    }
+    if (fmt == 4) {   // (ggml Q5_K superblocks at the row's start: unsloth's UD-IQ2_XXS Engram tables)
+        for (int e = threadIdx.x; e < hd; e += blockDim.x)
+            out[(size_t) r * hd + e] = q5k_value(rows + (size_t) r * hd + (size_t) (e / 256) * kQ5kBytes, e % 256);
         return;
     }
     if (fmt == 2) {   // (ggml IQ4_NL blocks at the row's start, their scales inside)
@@ -1972,6 +1981,11 @@ __global__ void engram_dequant_tok_kernel(const uint8_t* __restrict__ src, size_
     if (fmt == 1) {   // (ggml Q6_K superblocks at the row's start)
         for (int e = threadIdx.x; e < hd; e += blockDim.x)
             out[(size_t) r * hd + e] = q6k_value(rows + (size_t) (e / 256) * kQ6kBytes, e % 256);
+        return;
+    }
+    if (fmt == 4) {   // (ggml Q5_K superblocks at the row's start: unsloth's UD-IQ2_XXS Engram tables)
+        for (int e = threadIdx.x; e < hd; e += blockDim.x)
+            out[(size_t) r * hd + e] = q5k_value(rows + (size_t) (e / 256) * kQ5kBytes, e % 256);
         return;
     }
     if (fmt == 2) {   // (ggml IQ4_NL blocks at the row's start, their scales inside)
@@ -2636,7 +2650,7 @@ void confidence(const float* x, const uint16_t* E, const int* tok, const float* 
 
 void engram_dequant(const uint8_t* rows, const uint8_t* scales, int n, int hd, float* out, cudaStream_t s, int fmt) {
 #if defined(STRATA_METAL)
-    // engram_dequant_kernel on the Metal dispatch (fmt 2, this model's IQ4_NL tables); the launch below is the fallback
+    // engram_dequant_kernel on the Metal dispatch (fmt 2 IQ4_NL and fmt 4 Q5_K tables); the launch below is the fallback
     if (strata::dsv41::metal_host::engram_dequant(rows, scales, n, hd, out, fmt)) return;
 #endif
     strata_ds4_launch(engram_dequant_kernel, n, kThreads, 0, s, rows, scales, hd, out, fmt);

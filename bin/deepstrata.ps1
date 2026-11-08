@@ -4,13 +4,13 @@
 #   2. <root>\python\python.exe            the private runtime shipped in the terminal archive
 #   3. <root>\.venv\Scripts\python.exe     a source checkout set up by SETUP.bat
 #   4. py -3 / python on PATH, 3.10+       a developer convenience, never a requirement
-# If scripts are blocked on this PC, use bin\strata.cmd, or:  powershell -ExecutionPolicy Bypass -File bin\strata.ps1 ...
+# If scripts are blocked on this PC, use bin\deepstrata.cmd, or:  powershell -ExecutionPolicy Bypass -File bin\deepstrata.ps1 ...
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = if (Test-Path -LiteralPath (Join-Path $here 'strata.py')) { $here } else { Split-Path -Parent $here }
 $app = Join-Path $root 'strata.py'
 if (-not (Test-Path -LiteralPath $app)) {
-    [Console]::Error.WriteLine("strata: cannot find strata.py next to $here or its parent; the installation looks incomplete")
+    [Console]::Error.WriteLine("deepstrata: cannot find strata.py next to $here or its parent; the installation looks incomplete")
     exit 5
 }
 
@@ -27,7 +27,7 @@ $bundled = Join-Path $root 'python\python.exe'
 $venv = Join-Path $root '.venv\Scripts\python.exe'
 if ($env:STRATA_PYTHON) {
     if (-not (Test-Path -LiteralPath $env:STRATA_PYTHON)) {
-        [Console]::Error.WriteLine("strata: STRATA_PYTHON=$($env:STRATA_PYTHON) does not exist")
+        [Console]::Error.WriteLine("deepstrata: STRATA_PYTHON=$($env:STRATA_PYTHON) does not exist")
         exit 5
     }
     $py = @($env:STRATA_PYTHON)
@@ -45,7 +45,7 @@ if ($env:STRATA_PYTHON) {
     $py = @('python')
 }
 if (-not $py) {
-    [Console]::Error.WriteLine("strata: no usable Python found.")
+    [Console]::Error.WriteLine("deepstrata: no usable Python found.")
     [Console]::Error.WriteLine("        This archive carries its own runtime in python\: it is missing from this install.")
     [Console]::Error.WriteLine("        Reinstall the archive, or set STRATA_PYTHON to a Python 3.10 or newer.")
     exit 5

@@ -237,7 +237,7 @@ TUNED_BF16_NAME = "qwen3.8-flash-next-dflash2.strata1.q4_0-bf16sel.pack"
 TUNED_BF16_BYTES = 522458112
 TUNED_BF16_SHA256 = "34ca17fee701ff088b6069acc35a26661d237953f5d114be0a3f7dae3ec5cda9"
 TUNED_BF16_GB = 0.52
-#: Where it is hosted (owner 11-06, recommendation of the coordinator): a GitHub release asset of Niko1221/Strata, listed in the signed feed (strata-feed.json, feed key 5d1bc23a) as a
+#: Where it is hosted (owner 11-06, recommendation of the coordinator): a GitHub release asset of this repository's releases, listed in the signed feed (strata-feed.json, feed key 9badd1d2) as a
 #: `drafters` entry (packaging/feed_tool.py pack-drafter, build-feed --drafters), so the app gets the feed's signature, offline handling and updates the same way as engine packages.
 #: The entry's url is relative to the feed (flat release assets); the size and SHA-256 above are pinned in the code as well, so the feed can move the file but never swap its bytes.
 #: Written alternative, not implemented: a Hugging Face repository under the owner's account (a resolve address of the pinned commit), fetched with the

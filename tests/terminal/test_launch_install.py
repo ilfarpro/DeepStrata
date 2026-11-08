@@ -43,7 +43,7 @@ class Scripts(unittest.TestCase):
         text = (ROOT / "packaging" / "install.ps1").read_text(encoding="utf-8")
         self.assertNotIn("__FEED__", text)
         self.assertIn("else { '" + mlf.RELEASE_FEED + "' }", text)
-        self.assertIn("Installed. Run: strata launch", text)
+        self.assertIn("Installed. Run: deepstrata launch", text)
         ps = shutil.which("powershell") or shutil.which("pwsh")
         if not ps:
             self.skipTest("no PowerShell")

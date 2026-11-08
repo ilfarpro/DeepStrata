@@ -49,7 +49,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
-from strata_control import acquisition, longpath
+from strata_control import acquisition, fork_identity, longpath
 from strata_control.targets import BACKEND_MATRIX, backend_supported, host_platform
 
 SCHEMA_VERSION = 2
@@ -175,6 +175,7 @@ def package_lib_dirs(folder) -> list[str]:
 
 def components_dir(environ=None, *, windows: bool | None = None, home: Path | None = None) -> Path:
     """The per-user component folder. ``STRATA_COMPONENTS_DIR`` wins (the app and the tests set it)."""
+    from strata_control import fork_identity
     environ = os.environ if environ is None else environ
     explicit = environ.get(ENV_DIR)
     if explicit:
@@ -182,8 +183,8 @@ def components_dir(environ=None, *, windows: bool | None = None, home: Path | No
     windows = os.name == "nt" if windows is None else windows
     home = Path.home() if home is None else home
     if windows:
-        return Path(environ.get("LOCALAPPDATA") or str(home / "AppData" / "Local")) / "Strata" / "components"
-    return Path(environ.get("XDG_DATA_HOME") or str(home / ".local" / "share")) / "strata" / "components"
+        return Path(environ.get("LOCALAPPDATA") or str(home / "AppData" / "Local")) / fork_identity.FOLDER_WINDOWS / "components"
+    return Path(environ.get("XDG_DATA_HOME") or str(home / ".local" / "share")) / fork_identity.FOLDER_POSIX / "components"
 
 
 def engine_dir(root: Path | None = None) -> Path:
@@ -1052,7 +1053,7 @@ def arch_notice(built: tuple[str, ...], here: list[str]) -> str:
             f"Ask for the {make(have)} build.")
 
 
-RELEASES_URL = "https://github.com/Niko1221/Strata/releases"
+RELEASES_URL = fork_identity.RELEASES_URL
 MAKE_NAMES = {"cuda": "NVIDIA", "hip": "AMD", "sycl": "Intel"}
 
 

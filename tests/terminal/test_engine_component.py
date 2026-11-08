@@ -228,9 +228,9 @@ class Where(unittest.TestCase):
         self.assertEqual(ec.components_dir({"STRATA_COMPONENTS_DIR": "/x/y"}), Path("/x/y"))
         win = ec.components_dir({"LOCALAPPDATA": "C:\\L"}, windows=True)
         self.assertEqual(win.name, "components")
-        self.assertEqual(win.parent.name, "Strata")
+        self.assertEqual(win.parent.name, "DeepStrata")
         posix = ec.components_dir({"XDG_DATA_HOME": "/d"}, windows=False)
-        self.assertEqual(posix.as_posix(), "/d/strata/components")
+        self.assertEqual(posix.as_posix(), "/d/deepstrata/components")
 
     def test_backend_override_is_validated(self):
         self.assertEqual(ec.detect_backend({"STRATA_ENGINE_BACKEND": "HIP"}), ("hip", "environment"))
@@ -329,7 +329,7 @@ class WrongCardFamily(unittest.TestCase):
         with mock.patch.object(ec, "hip_archs_present", return_value=[]):
             note = ec.status(self.root, backend="cuda")["notice"]
         self.assertTrue(note.startswith("This Strata is for AMD RX 9000 cards. Your PC has an NVIDIA card: download the NVIDIA version from "), note)
-        self.assertIn("https://github.com/Niko1221/Strata/releases", note)
+        self.assertIn("https://github.com/ilfarpro/DeepStrata/releases", note)
 
     def test_the_matching_family_is_not_blocked(self):
         with mock.patch.object(ec, "hip_archs_present", return_value=["gfx1201"]):

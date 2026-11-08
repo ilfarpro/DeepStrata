@@ -75,11 +75,13 @@ def connection_dir(*, create: bool = False) -> Path:
         directory = Path(explicit).expanduser()
         if not directory.is_absolute():
             raise ConnectionError("STRATA_CONNECTION_DIR must be absolute")
-    elif os.name == "nt":
-        base = os.environ.get("APPDATA")
-        directory = (Path(base) if base else Path.home() / "AppData" / "Roaming") / "Strata" / "connections"
     else:
-        directory = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "strata" / "connections"
+        from strata_control import fork_identity
+        if os.name == "nt":
+            base = os.environ.get("APPDATA")
+            directory = (Path(base) if base else Path.home() / "AppData" / "Roaming") / fork_identity.FOLDER_WINDOWS / "connections"
+        else:
+            directory = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / fork_identity.FOLDER_POSIX / "connections"
     if create:
         _private_mkdir(directory, parents=True, exist_ok=True)
     if directory.exists() or directory.is_symlink():

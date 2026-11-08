@@ -24,12 +24,12 @@ class AppIsolation(unittest.TestCase):
         self.old = base / "T-Strata"
         self.old.mkdir()
         (self.old / "strata-gyro-gyro-s.json").write_text(json.dumps({"exe": "strata.exe", "tokenizer": "t", "args": []}))
-        shared = base / "appdata" / "Strata"
+        shared = base / "appdata" / "DeepStrata"
         shared.mkdir(parents=True)
         (shared / "settings.json").write_text(json.dumps({"installs": [str(self.old)], "data_dir": str(base / "T-data")}))
-        (base / "xdg" / "strata").mkdir(parents=True)
-        (base / "xdg" / "strata" / "settings.json").write_text(json.dumps({"installs": [str(self.old)], "data_dir": str(base / "T-data")}))
-        self.app_data = base / "app" / "Strata"
+        (base / "xdg" / "deepstrata").mkdir(parents=True)
+        (base / "xdg" / "deepstrata" / "settings.json").write_text(json.dumps({"installs": [str(self.old)], "data_dir": str(base / "T-data")}))
+        self.app_data = base / "app" / "DeepStrata"
         self.app_data.mkdir(parents=True)
         self.env = {"APPDATA": str(base / "appdata"), "XDG_CONFIG_HOME": str(base / "xdg"),
                     "LOCALAPPDATA": str(base / "local"), "XDG_DATA_HOME": str(base / "xdg-data"), "STRATA_COMPONENTS_DIR": ""}
@@ -60,7 +60,7 @@ class AppIsolation(unittest.TestCase):
 
     def test_saving_settings_goes_to_the_app_file_only(self):
         env = {**self.env, "STRATA_SETTINGS_FILE": str(self.app_data / "app-settings.json")}
-        shared = self.base / "appdata" / "Strata" / "settings.json"
+        shared = self.base / "appdata" / "DeepStrata" / "settings.json"
         before = shared.read_bytes()
         with mock.patch.dict(os.environ, env):
             strata_setup.save_settings({"data_dir": str(self.app_data / "data")})

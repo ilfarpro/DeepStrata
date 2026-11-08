@@ -82,7 +82,7 @@ def clean_env(sandbox: Path) -> tuple[dict, list[str]]:
 
 
 def launcher(root: Path) -> list[str]:
-    return [str(root / "bin" / "strata.cmd")] if os.name == "nt" else [str(root / "bin" / "strata")]
+    return [str(root / "bin" / "deepstrata.cmd")] if os.name == "nt" else [str(root / "bin" / "deepstrata")]
 
 
 def as_command(args: list[str]):

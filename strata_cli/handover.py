@@ -32,14 +32,17 @@ _VERSION = re.compile(r"^[0-9]+(\.[0-9]+){1,3}(-[0-9A-Za-z][0-9A-Za-z.]*)?$")   
 
 
 def components_dir(environ=None) -> Path:
-    """The per-user component folder (same rule as strata_control/engine_component.py components_dir)."""
+    """The per-user component folder (same rule as strata_control/engine_component.py components_dir).
+
+    Standard library only here, so the folder names are this module's own copy of strata_control/fork_identity.py;
+    tests/terminal/test_fork_identity.py pins them to the module's values."""
     environ = os.environ if environ is None else environ
     if environ.get("STRATA_COMPONENTS_DIR"):
         return Path(environ["STRATA_COMPONENTS_DIR"])
     home = Path.home()
     if os.name == "nt":
-        return Path(environ.get("LOCALAPPDATA") or str(home / "AppData" / "Local")) / "Strata" / "components"
-    return Path(environ.get("XDG_DATA_HOME") or str(home / ".local" / "share")) / "strata" / "components"
+        return Path(environ.get("LOCALAPPDATA") or str(home / "AppData" / "Local")) / "DeepStrata" / "components"
+    return Path(environ.get("XDG_DATA_HOME") or str(home / ".local" / "share")) / "deepstrata" / "components"
 
 
 def version_key(text) -> tuple[int, ...] | None:

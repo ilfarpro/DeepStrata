@@ -39,10 +39,11 @@ def profile_dir() -> Path:
     explicit = os.environ.get("STRATA_PROFILE_DIR")
     if explicit:
         return Path(explicit).expanduser()
+    from strata_control import fork_identity
     if os.name == "nt":
         base = os.environ.get("APPDATA")
-        return (Path(base) if base else Path.home() / "AppData" / "Roaming") / "Strata" / "profiles"
-    return Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "strata" / "profiles"
+        return (Path(base) if base else Path.home() / "AppData" / "Roaming") / fork_identity.FOLDER_WINDOWS / "profiles"
+    return Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / fork_identity.FOLDER_POSIX / "profiles"
 
 
 def _name(name: str) -> str:

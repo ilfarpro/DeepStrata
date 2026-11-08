@@ -24,8 +24,10 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from strata_control import fork_identity
+
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PORT = 8791                       # apps/host/server/index.mjs: STRATA_PORT ?? 8791
+DEFAULT_PORT = fork_identity.HOST_PORT      # apps/host/server/index.mjs: STRATA_PORT ?? the fork's host port
 
 NODE_NAMES = ("node", "node.exe")
 

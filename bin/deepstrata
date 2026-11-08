@@ -16,7 +16,7 @@
 # than failing obscurely.
 set -eu
 
-# Resolve this script's real directory, following symlinks, so `strata` can live on PATH.
+# Resolve this script's real directory, following symlinks, so `deepstrata` can live on PATH.
 self=$0
 while [ -L "$self" ]; do
   dir=$(CDPATH= cd -- "$(dirname -- "$self")" && pwd -P)
@@ -75,7 +75,7 @@ pick_python() {
 
 if ! PY=$(pick_python); then
   cat >&2 <<'MSG'
-strata: no usable Python found.
+deepstrata: no usable Python found.
 
 This distribution is meant to run on its own. If you are seeing this, the private runtime is
 missing from the install and no Python 3.10+ is on your PATH.
@@ -88,14 +88,14 @@ MSG
 fi
 
 # Find the application root. Two layouts are supported so the same launcher works from a checkout
-# (`bin/strata` beside `strata.py`) and from an installed distribution (`<root>/bin/strata` with the
+# (`bin/deepstrata` beside `strata.py`) and from an installed distribution (`<root>/bin/deepstrata` with the
 # code under `<root>/`).
 if [ -f "$HERE/strata.py" ]; then
   APP=$HERE
 elif [ -f "$HERE/../strata.py" ]; then
   APP=$(CDPATH= cd -- "$HERE/.." && pwd -P)
 else
-  echo "strata: cannot find strata.py next to $HERE or its parent; the installation looks incomplete" >&2
+  echo "deepstrata: cannot find strata.py next to $HERE or its parent; the installation looks incomplete" >&2
   exit 5
 fi
 

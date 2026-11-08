@@ -1,8 +1,8 @@
 # Troubleshooting
 
 This page is for anyone whose install or startup fails, or whose answers go wrong. Find your symptom below. Each entry gives one fix.
-Start from the route you installed: [desktop app or Terminal](INSTALL.md), or [source checkout](SOURCE_INSTALL.md).
-The normal release uses the app or `deepstrata launch` and needs no `.bat` file. Detailed engine errors are in the
+Start from the route you installed: the [Terminal and its browser page](INSTALL.md), or a [source checkout](SOURCE_INSTALL.md).
+The normal release uses `deepstrata launch` and needs no `.bat` file; `deepstrata ui` opens the page in a browser. Detailed engine errors are in the
 [engine reference](DETAILS.md#troubleshooting).
 
 **Quick check.** Run these and keep the output for a bug report:
@@ -13,13 +13,14 @@ deepstrata doctor --live
 deepstrata launch --status
 ```
 
-## The desktop app and the Terminal
+## The page and the Terminal
 
 **I cannot find `START-HERE.bat` or `SETUP.bat`.**
-Open the installed Strata app, or run `deepstrata launch`. Those wrappers are in the source repository and are not the
-startup path for the app. For a fresh desktop install, download the one installer for your system
-(`Strata-0.2.9-windows-x64-setup.exe`, `Strata-0.2.9-linux-x86_64.AppImage` or `Strata-0.2.9-macos-arm64.dmg`), not a
-`strata-engine-…` archive.
+Run `deepstrata launch`, or open the browser page with `deepstrata ui`. Those wrappers are in the source repository and
+are not a release startup path. For a fresh install, download the Terminal archive for your system
+(`strata-terminal-<version>-<target>`) from the [latest release](https://github.com/ilfarpro/DeepStrata/releases/latest),
+or run its one-line install command. There are no per-system app installers, and a `strata-engine-…` archive is an
+engine component, not Strata.
 
 **`deepstrata` is not found.**
 On Windows, open a new PowerShell window after installing. On Linux or Mac, use the full path the installer printed,
@@ -47,8 +48,8 @@ missing combination.
 
 **An update says it succeeded but `deepstrata --version` is still old.**
 The Terminal switches to the updated Control on the next command, so run `deepstrata --version` again. If it is still old,
-run the one-line installer once more; it keeps models and settings. The app, Control and engine have separate version
-numbers; see [updating](INSTALL.md#updating) and the [release notes](https://github.com/ilfarpro/DeepStrata/releases).
+run the one-line installer once more; it keeps models and settings. The Terminal, Control and engine have separate
+version numbers; see [updating](INSTALL.md#updating) and the [release notes](https://github.com/ilfarpro/DeepStrata/releases).
 
 **A new engine misbehaves after an update.**
 Stop the model, then use the app's rollback control or `deepstrata components rollback`. An update keeps the engine it
@@ -57,29 +58,23 @@ replaced (one generation, about 210 MiB). Source-checkout engines use a separate
 (#670). It is described in [source setup](SOURCE_INSTALL.md).
 
 **On a Mac: "Strata is damaged and can't be opened", "cannot be opened", or "unidentified developer".**
-Check first that the download is for Apple Silicon and that macOS is 15 or newer ([Mac installation](MAC.md#the-desktop-app-and-deepstrata-launch-on-a-mac)).
+Check first that the download is for Apple Silicon and that macOS is 15 or newer ([Mac installation](MAC.md#the-browser-page-and-deepstrata-launch-on-a-mac)).
 Nothing is wrong with the file if the message is only about the developer: macOS marks everything a browser downloads, and
 only lets a marked program run if Apple has checked it. DeepStrata's builds are not notarised yet — the signing
 certificate the original product used is not ours, and the fork notarises again when it has its own Apple Developer ID —
-so a release .dmg says "damaged" or "the developer cannot be verified" the first time. Do not move it to the Trash.
-Open the Terminal app and remove the mark,
+so a downloaded Strata file says "damaged" or "the developer cannot be verified" the first time. Do not move it to the
+Trash. Open the Terminal app and remove the mark,
 with the line that matches what you have (drag the file from Finder into the Terminal window to type its path):
 
-    xattr -dr com.apple.quarantine ~/Downloads/<the .dmg file>        # the .dmg, before opening it
-    xattr -dr com.apple.quarantine /Applications/Strata.app           # the app, after dragging it over
-    xattr -dr com.apple.quarantine <the folder you unzipped>          # an unzipped Terminal folder
+    xattr -dr com.apple.quarantine ~/Downloads/<the archive you downloaded>     # the archive, before unzipping it
+    xattr -dr com.apple.quarantine <the folder you unzipped>                    # an unzipped Terminal folder
 
 Then open it again. If macOS says only "the developer cannot be verified", you can instead try to open it once, then open
 System Settings > Privacy & Security and press "Open Anyway" next to the message about Strata. Only remove the mark from a
 file you downloaded from the official release; a warning alone does not show that a file is safe or intact. Installs made
-with `curl ... | sh` carry no mark and need none of this. To see which kind you have: `spctl -a -vv /Applications/Strata.app`
-answers "accepted" and "Notarized Developer ID" for a notarised build. How the builds are signed is in
+with `curl ... | sh` carry no mark and need none of this. To see which kind you have: `spctl -a -vv <the Strata file you
+downloaded>` answers "accepted" and "Notarized Developer ID" for a notarised build. How the builds are signed is in
 [Mac packaging](../packaging/mac/README.md).
-
-**The Linux AppImage does not open.**
-Make the downloaded file executable. It may need FUSE 2 (`libfuse2` on Ubuntu 22.04, `libfuse2t64` on newer Ubuntu;
-package names vary by distribution). Without FUSE, run the file with `--appimage-extract-and-run`. For a crash log,
-run it with `--save-logs`; see [Logs and bug reports](#logs-and-bug-reports).
 
 **Checking what is installed: `deepstrata doctor`.**
 It is a read-only check of the installed engine parts (it changes nothing): which engine and helper files a saved model
@@ -125,7 +120,7 @@ on top (a fragmented machine spent minutes compacting memory, #771); `STRATA_NO_
 **The NVIDIA driver is too old.**
 Use the driver required by the engine package. CUDA 13 needs driver 580 or newer; older cards use the
 [CUDA 12 route](OLDER_GPUS.md). Update it (NVIDIA App or [nvidia.com/drivers](https://www.nvidia.com/drivers)), restart the
-PC if needed, then open the app or rerun `deepstrata launch`.
+PC if needed, then run `deepstrata launch` again.
 
 **Port 8080 is already in use, or I changed a running model's settings.**
 Strata may already be running: check `deepstrata launch --status`. To replace your existing launch, rerun the intended command
@@ -240,7 +235,7 @@ Strata prints a warning at start when it sees this limit.
 The conversation is longer than the context you chose. Start a new chat, shorten the input, or use the app's Summarize and
 continue action. A larger context needs more memory. In the Terminal, restart your chosen model with an explicit
 `--context`, such as `64k`; keep its family, model and other choices. In a source checkout, run `SETUP.bat` and pick more
-context. Do not look for `SETUP.bat` in an app install.
+context. Do not look for `SETUP.bat` in a Terminal install.
 
 **It is slower than the tables.**
 The monitor plugged into the graphics card and other GPU programs take VRAM from the expert cache; RAM running below its
@@ -361,14 +356,12 @@ overwrite local branches or edits just to make `git pull` succeed.
   `strata-diagnostics-<date>.txt`, into your Downloads folder and shows where. It holds the engine's messages, the failed
   steps and the end of each model's server log.
 - **Terminal:** include `deepstrata --version`, `deepstrata doctor --live`, `deepstrata launch --status`, and the relevant log excerpt.
-- **Windows app crash:** if the app closes right after you start it, it shows a message with the reason and writes
-  `desktop-crash-<date>.log` in `%LOCALAPPDATA%\Strata\logs`; Save logs includes it, and so can you, by hand.
-- **Linux app crash:** if the window crashes or will not open, run the AppImage with `--save-logs` in a terminal; it writes
-  the crash log and the other logs to one file in Downloads.
-- **Installer or source checkout:** `strata-<model>.log` from the Strata folder.
+- **Old Windows app installs:** an install of the earlier desktop app wrote `desktop-crash-<date>.log` in
+  `%LOCALAPPDATA%\Strata\logs` when it failed to start; Save logs still includes those files, and so can you, by hand.
+- **Terminal or source checkout:** `strata-<model>.log` from the Strata folder.
 
 Look through a log before you send it, and never send an API key. Include model and quantization, OS, GPU/VRAM, RAM,
-driver, install route (app, Terminal or the installer), Strata and engine versions, exact command, expected result and
+driver, install route (Terminal or source checkout), Strata and engine versions, exact command, expected result and
 actual error. Open an [issue](https://github.com/ilfarpro/DeepStrata/issues) and attach the log. Follow
 [CONTRIBUTING.md](../CONTRIBUTING.md). The full table of error messages, with the older engine fixes, is in the
 [details](DETAILS.md#troubleshooting).

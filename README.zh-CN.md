@@ -55,7 +55,7 @@
 <details>
 <summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b></summary>
 
-可在**桌面应用**和**终端**中使用。内存放不下的部分会从 SSD 读取，所以需要大量空闲磁盘空间。
+可在**浏览器页面**和**终端**中使用。内存放不下的部分会从 SSD 读取，所以需要大量空闲磁盘空间。
 
 | 版本（ISTA-DAS） | 下载大小 | 所需空闲磁盘 |
 | --- | ---: | ---: |
@@ -90,16 +90,16 @@ deepstrata launch --family deepseek41 --model ist-das-2.00bpw --plan
 
 <a id="option-a-the-strata-app"></a>
 
-### 桌面应用
+### 浏览器中的页面
 
 **[下载适用于 Windows、Linux 或 Mac 的 Strata →](https://github.com/ilfarpro/DeepStrata/releases/latest)**
 
-安装应用，选择模型，就可以开始聊天。每个系统只有一个安装程序。首次启动时，应用会下载适合你显卡的引擎。[安装程序帮助](docs/INSTALL.md#the-app)。
+终端自带页面。用 `deepstrata launch` 启动模型，再运行 `deepstrata ui`，聊天页面就会在浏览器中打开。[终端指南](docs/TERMINAL_LAUNCH.md)。
 
-<sub>文件: `Strata-0.2.9-windows-x64-setup.exe` · `Strata-0.2.9-linux-x86_64.AppImage` · `Strata-0.2.9-macos-arm64.dmg`</sub>
+<sub>文件: `strata-terminal-0.2.9-windows-x86_64.zip` · `strata-terminal-0.2.9-linux-x86_64.tar.gz` · `strata-terminal-0.2.9-darwin-arm64.tar.gz`</sub>
 
 <p align="center">
-  <img src="docs/media/app-chat.png" width="900" alt="Strata 桌面应用，聊天和实时代码预览并排显示">
+  <img src="docs/media/app-chat.png" width="900" alt="Strata 浏览器页面，聊天和实时代码预览并排显示">
   <br><sub>聊天、文件和实时预览都在一个窗口里。</sub>
 </p>
 

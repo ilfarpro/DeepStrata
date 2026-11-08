@@ -1,14 +1,16 @@
 # Set up Strata for a user
 
-Use this guide when a user asks an AI agent to install Strata (version 0.2.5). There are two release routes. Pick
-one; do not start from a source checkout.
+Use this guide when a user asks an AI agent to install Strata (version 0.2.5). There is one release route: the Terminal.
+Do not start from a source checkout.
 
-- **The Terminal and `deepstrata launch`** (below). This is the route for an agent that has a shell.
-- **The desktop app.** One installer per system: `Strata-0.2.9-windows-x64-setup.exe`,
-  `Strata-0.2.9-linux-x86_64.AppImage`, `Strata-0.2.9-macos-arm64.dmg`, from the
-  [latest release](https://github.com/ilfarpro/DeepStrata/releases/latest). The Windows and Linux installers carry no
-  engine: on first start the app shows the engine for the user's graphics card and downloads it, or installs a file the
-  user already has ("I already have the file"). Details: [INSTALL.md](INSTALL.md).
+- **The Terminal and `deepstrata launch`** (below). This is the route for an agent that has a shell, and the way every
+  release install of Strata lands on a PC: with the one-line install command, or by downloading the
+  `strata-terminal-<version>-<target>` archive from the [latest release](https://github.com/ilfarpro/DeepStrata/releases/latest).
+- **The browser page** (`deepstrata ui`). It starts the built App Host and opens the page in the browser; the Terminal
+  archive carries the page and the Node runtime that runs it, so a user who wants the page gets the Terminal too. There
+  are no per-system app installers. Neither the Terminal nor the page carries an engine: the first `deepstrata launch`
+  downloads the engine for the user's graphics card, or installs a file the user already has (`--model-path`).
+  Details: [INSTALL.md](INSTALL.md).
 
 Model availability, provider preference and API details are in [AI_REFERENCE.md](AI_REFERENCE.md).
 
@@ -50,7 +52,7 @@ irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 
 
 Open a new terminal on Windows. On Linux and Mac, use the full executable path printed by the installer if
 `~/.local/bin` is not on PATH. Confirm with `deepstrata --version` and `deepstrata launch --help`.
-Do not search for `START-HERE.bat` in the installed app or Terminal: it is not part of them.
+Do not search for `START-HERE.bat` in the installed Terminal: it is not part of it.
 
 ## 3. Select a compatible pack and inspect the plan
 
@@ -169,4 +171,4 @@ Stop active models before `deepstrata update`. Very old Terminals require rerunn
 A source build is a separate workflow: [SOURCE_INSTALL.md](SOURCE_INSTALL.md). `START-HERE.bat`, `SETUP.bat`,
 `UPDATE.bat`, `setup.sh` and generated `run-<model>` scripts belong to that workflow. Do not pass their flags to
 `deepstrata launch`, promise a source build will support an unknown model, or describe a source-only command as an
-installed-app command. If a required backend or artifact is missing, say exactly what is missing.
+installed Terminal command. If a required backend or artifact is missing, say exactly what is missing.

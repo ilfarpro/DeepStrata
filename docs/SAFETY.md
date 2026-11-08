@@ -32,8 +32,8 @@ Some things sound similar and stay on your PC:
 
 - The Monitor, `/metrics` and `/v1/telemetry` show hardware readings (temperature, speed, memory) to you. They are served
   from your own PC, and they need your API key when you set one.
-- When the app window crashes (Linux) or the app fails to start (Windows, Mac), a crash log is written to a folder on your disk
-  (on Windows, `%LOCALAPPDATA%\Strata\logs`). Nothing sends it. **Save logs**
+- An install of the earlier desktop app wrote a crash log when it failed to start, to a folder on your disk (on Windows,
+  `%LOCALAPPDATA%\Strata\logs`). Nothing sends it. **Save logs**
   (Settings, Engine, Diagnostics) puts a text file in your Downloads folder, and you decide whether to attach it to a bug report.
 - The coding agent is a separate component (the DeepSeek Harness, MIT). It has its own telemetry switch, and Strata starts it
   with that switch off (`apps/host/server/agent/harness-runtime.mjs`).
@@ -47,7 +47,6 @@ Like any download, each connection below shows the other side your IP address an
 | Model files, the picture reader, the speed-up layer (MTP) | huggingface.co, or the mirror in `HF_ENDPOINT` if you set one | When you install a model |
 | The same files from ModelScope, for PCs that cannot reach Hugging Face | modelscope.cn | Only if you ask for it (`--source modelscope`). Strata never switches to it by itself |
 | Engine, Terminal and Control updates | The signed feed on GitHub Releases of ilfarpro/DeepStrata | When you install an engine, press **Update engine** or **Check for updates**, or run `deepstrata update`; the DeepSeek engine also on `deepstrata launch` (below). Opening **Settings, Engine** does not connect: it shows the result of your last check |
-| App updates | `latest.json` on the same GitHub Releases, through Tauri's updater | When you press **Check for updates** or **Update Strata** |
 | llama.cpp source code (a fixed commit) | github.com/ggml-org/llama.cpp | During a model install, if it is not on your PC yet. Strata uses only its model-preparation scripts |
 | Web search and web pages | DuckDuckGo, with Bing as the second source; or Exa, Perplexity or DeepSeek if you save a key for them. Any page the agent is asked to open goes to that page's site | When the agent uses its search or "open web pages" tool. In Manual mode it asks you first, once per chat |
 | Outside model services | The service you add (OpenAI, Anthropic, OpenRouter, a server on your network and others) | Only for chats with that model, and only after you add its key |
@@ -70,9 +69,9 @@ That is the full list found in the code. Some details:
   once a day it reads the signed update feed (a few KB, no engine, a 5 second limit, nothing shown if it fails or there is no
   connection) so it can say "a new engine is available". `STRATA_UPDATE_CHECK=0` turns it off
   (`strata_control/engine_update.py`, `refresh_cache`).
-- **Starting and serving never download.** `deepstrata serve` and the app's load button fetch nothing. The app sets
-  `STRATA_PACKAGED=1` and `STRATA_NO_ACQUIRE=1` for its parts (`apps/desktop/src-tauri/src/main.rs`), and the downloaders
-  refuse to run under them (`strata_control/acquisition.py`, `apps/host/server/acquisition.mjs`). That is why the app
+- **Starting and serving never download.** `deepstrata serve` and the app's load button fetch nothing. The App Host keeps
+  `STRATA_NO_ACQUIRE=1` for its parts (`apps/host/server/control-runtime.mjs`), and the downloaders
+  refuse to run under them (`strata_control/acquisition.py`, `apps/host/server/acquisition.mjs`). That is why the page
   never downloads `cloudflared` for you while it runs.
 - **The engine itself has no network code.** The part of Strata that runs the model (`src/`, `include/`, `sycl/`, `metal/`)
   contains no networking. The app's own pages load no fonts, scripts or trackers from the internet.
@@ -116,9 +115,9 @@ The server also has browser protections (a host check, an origin check, no CORS 
 
 Updates never replace your models or saved tuning. The full description is in [packaging/UPDATES.md](../packaging/UPDATES.md).
 
-**The app.** Its updates are signed with a separate key (Tauri's minisign), and the public half is in the app
-(`apps/desktop/src-tauri/tauri.conf.json`). The updater refuses an installer whose signature does not match. The Terminal
-checks the same signature when you run `deepstrata update --app`.
+**No app that updates itself.** There is no separate app updater and no in-app auto-update. A newer Terminal comes from the
+same GitHub release: rerun the one-line install command, or unpack a newer `strata-terminal-…` archive. `deepstrata update`
+updates the Control and engine components through the signed feed above.
 
 **Model files.** Every model file that `setup.py` downloads has a fixed SHA-256 and size, written in the code, so the check
 needs no network: the main Qwen3.8-Flash-Next files (Q2_0, IQ2_XS, IQ3_XXS, IQ3_S), Swift 1.5, the Coder, the Unsloth sizes,
@@ -149,7 +148,8 @@ HTTPS and the `ilfarpro/DeepStrata` release itself. What that means, and how to 
 [SECURITY.md](../SECURITY.md#how-far-to-trust-curl--sh-and-irm--iex). Later updates are checked against the key already on
 your PC.
 
-**Code signing.** The Windows installer is not code-signed yet, so Windows shows "Windows protected your PC". The signing and
+**Code signing.** The Windows builds are not code-signed yet, so Windows can warn about Strata's programs (see
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md)). The signing and
 Apple notarisation of the Mac builds is set up in `packaging/mac/` and runs on the maintainer's Mac. A Mac build that has not
 been notarised shows macOS's "damaged" warning ([MAC.md](MAC.md)).
 
@@ -206,7 +206,7 @@ To report a security problem, use GitHub's private reporting (the repository's *
 | --- | --- |
 | Model downloads and pins | `setup.py`, `tools/mtp_fetch.py`, `tools/image/qimage.py`, `apps/host/server/models.mjs`, `image-models.mjs` |
 | Update feed, signatures | `strata_control/feed.py`, `signing.py`, `transfer.py`, `update_keys.json`, `strata_cli/update_cmd.py` |
-| App updater | `apps/desktop/src-tauri/src/updater.rs`, `apps/desktop/src-tauri/tauri.conf.json` |
+| Terminal and Control updates | `strata_control/updater.py`, `strata_control/engine_update.py` |
 | Downloads refused while running | `strata_control/acquisition.py`, `apps/host/server/acquisition.mjs` |
 | One-line installers | `packaging/install.sh`, `packaging/install.ps1` |
 | Web tools and the agent's approvals | `apps/host/server/agent/plugins/strata-gate.mjs`, `agent/profile.mjs`, `web-search-ddg.mjs`, `web-search-bing.mjs`, `web-search-keyed.mjs` |

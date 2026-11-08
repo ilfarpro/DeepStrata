@@ -1,27 +1,28 @@
-# Updates: the signed feed, the component updater, the app updater
+# Updates: the signed feed and the component updater
 
 This page is for developers who build, sign and publish releases. Users update with [INSTALL.md](../docs/INSTALL.md#updating).
-It covers the three updated parts, the feed format, what a PC checks, and the release steps.
+It covers the two updated parts, the feed format, what a PC checks, and the release steps.
 
 Everything that downloads software on a user's PC sits behind one explicit step: `strata update` in the Terminal, or
-"Update engine" or "Update Strata" in the app's Settings. Starting a model and serving never download anything
+"Update engine" or "Update Strata" in the page's Settings. Starting a model and serving never download anything
 (`STRATA_NO_ACQUIRE` stays on for them; the update step is a separate Control process that is allowed to). Engines are
-separate from the app and ship more often. An app-only update downloads no engine bytes, because the Windows and Linux installers are built
-without the engine. An engine update downloads only the package for that PC's GPU.
+separate from the Terminal and ship more often. An engine update downloads only the package for that PC's GPU.
 **Models and saved tuning presets are never downloaded, replaced or deleted by any update.**
 
-## The three things that are updated
+## The two things that are updated
 
 | What | How | Signed with |
 |---|---|---|
 | Engine package (per platform / backend / variant) | Control's component updater: download with resume, verify, install beside the old one, test-start, switch | the feed key (Ed25519) |
 | Control (Python runtime, `strata_control`, CLI, server) | the same updater: staged beside the running one, run once, then `components/control/active.json` points at it | the feed key |
-| The desktop app | Tauri's signed updater in the shell, reached by the host through a token-protected loopback bridge | the Tauri updater key (minisign) |
 
-Two separate private keys, both kept by the owner, neither in git, neither the same as Apple/Windows code signing:
+One private key, kept by the owner, not in git, not the same as Apple code signing:
 
 * **feed key**: Ed25519, signs `strata-feed.json` and every engine package manifest.
-* **Tauri updater key**: minisign (what `tauri signer generate` makes), signs the app installers.
+
+<sup>The desktop app and its Tauri updater are removed; the page rides inside the Terminal, which the Control entry
+updates. Feeds published up to 0.2.12 still carry an `app` member; a current Terminal verifies such a feed and ignores
+the member.</sup>
 
 <a id="the-feed"></a>
 ## The feed (`strata-feed.json` + `strata-feed.json.sig`)
@@ -35,10 +36,6 @@ Comments are for this document only; actual feed files must be strict JSON.
   "schema_version": 1, "feed": "strata-updates", "channel": "stable",
   "sequence": 12,                           // goes up with every feed; an older one than the last accepted is refused
   "generated_at": "2026-10-20T10:00:00Z", "expires_at": "2027-10-20T10:00:00Z",   // expires_at may be null
-  "app": {                                  // exactly Tauri's static updater JSON, plus sha256/size per platform
-    "version": "0.2.5", "notes": "...", "pub_date": "2026-10-20T10:00:00Z",
-    "platforms": {"windows-x86_64": {"url": "app/Strata-0.2.9-windows-x64-setup.exe", "signature": "<minisign, base64>", "sha256": "...", "size": 71000000}}
-  },
   "control": {"version": "0.1.50", "packages": [{"platform": "linux-x86_64", "format": "tar.gz", "url": "control/...tar.gz",
                                                   "size": 0, "sha256": "...", "installed_bytes": 0, "entry": "strata.py"}]},
   "engine": {"packages": [{
@@ -108,7 +105,7 @@ Saved tuning presets: when the engine identity changed (version, build id, manif
 
 ### Commands
 
-    strata update [--check] [--app] [--no-engine] [--no-control] [--feed URL|DIR] [--wait S] [--force] [--model-config RUN.json]
+    strata update [--check] [--no-engine] [--no-control] [--feed URL|DIR] [--wait S] [--force] [--model-config RUN.json]
     strata components update            # the same
     strata components rollback          # back to the previous engine (an engine switch; nothing is downloaded)
     strata components engines [--output json]   # every installed engine (Qwen and DeepSeek families), sizes, which one is in use: what Settings > Engine shows
@@ -118,26 +115,23 @@ Saved tuning presets: when the engine identity changed (version, build id, manif
 
 An update whose engine is already installed (the person switched to an older one) downloads nothing and makes it the engine in use again.
 A version the person switched away from is never hidden from the update. The DeepSeek engine (`engine-dsv41/`) has its own list and its own choice
-(the `.chosen` file there, read by the app, `strata launch` and setup); an update to a newer DeepSeek engine clears it. The two families never touch
+(the `.chosen` file there, read by the page, `strata launch` and setup); an update to a newer DeepSeek engine clears it. The two families never touch
 each other's files or state (`strata_control/engine_library.py`).
 
 Exit codes: 0 done or nothing to do, 5 refused (signature, hash, downgrade, no trusted key, acquiring forbidden),
 6 failed with the old version still in use (network, test start), 7 an engine is serving, 130 stopped.
-`--output json` / `--output jsonl` (progress events, last line is the result) are what the app's host uses.
+`--output json` / `--output jsonl` (progress events, last line is the result) are what the page's host uses.
 
-## How the owner makes the real keys (once)
+## How the owner makes the real key (once)
 
 On an offline machine, outside any git checkout:
 
     python packaging/feed_tool.py keygen --out D:\strata-keys          # feed-key.json (SECRET) + feed-key.pub.json
-    npx tauri signer generate -w D:\strata-keys\tauri-updater.key      # asks for a password; prints the public key
 
-Back both up (a lost feed key means every installed PC needs a build with a new key; a lost Tauri key means the same for the app).
-Then, in git, once, in the commit that ships the first signed release (the fork's release key id is `9badd1d2b37076b5`):
+Back it up (a lost feed key means every installed PC needs a build with a new key). Then, in git, once, in the commit that
+ships the first signed release (the fork's release key id is `9badd1d2b37076b5`):
 
-* the `keys` entry from `feed-key.pub.json` into `strata_control/update_keys.json`;
-* the Tauri public key into `apps/desktop/src-tauri/tauri.conf.json` (`plugins.updater.pubkey`) and into `update_keys.json` as `app_minisign_public`
-  (the Terminal verifies the app installer with it).
+* the `keys` entry from `feed-key.pub.json` into `strata_control/update_keys.json`.
 
 Only release keys live in `update_keys.json`. A tester or local-test key is never added there: it is passed with `STRATA_UPDATE_TRUSTED_KEYS`
 (a file of extra public keys; `packaging/make_local_feed.py` writes one as `test-trust.json`), so private tester builds keep working
@@ -147,67 +141,42 @@ A key rotation is a release that carries both public keys; the old private key s
 
 ## Releasing
 
-Keys live only on the release PC (`feed-key.json`, `tauri-updater.key`; the Tauri key has no password). Every build box builds WITHOUT a key:
-the default `tauri.conf.json` has `createUpdaterArtifacts: false`, so `tauri build` needs no signing key and makes the same installer bytes.
+The feed key lives only on the release PC. Every build box builds WITHOUT a key and makes the same archive bytes.
 All signing happens on the release PC, on the finished files.
 
 The release version is the upstream line plus our own number (`0.2.12.1` is our first release on upstream 0.2.12; tag `ds-0.2.12.1`,
 [DIVERGENCE.md](../DIVERGENCE.md)). Release file names and the GitHub release carry that number; the versions inside the components do not
-change: the app reports its three-number Cargo version (0.2.12) and the feed's `app.version` matches exactly what the app reports, and
+change: the page reports its `apps/host/package.json` version and the Terminal its `PRODUCT_VERSION` (both 0.2.12 today), and
 Control and the engines carry the CMake project version (0.1.58).
 
 **What is built (per OS)**
 
-* *The installer*, one per OS (0.2.5). The Windows and Linux ones have no engine inside: built with `--config src-tauri/tauri.update.conf.json`, which drops `engine-bundle`. The Mac dmg keeps its small Metal engine (one Mac variant).
-  Windows: `Strata-0.2.9-windows-x64-setup.exe`; Linux: `Strata-0.2.9-linux-x86_64.AppImage`; Mac: `Strata-0.2.9-macos-arm64.dmg` for people and
-  `Strata.app.tar.gz` as the updater archive (the updater cannot install from a dmg). The Windows and Linux files are both the first download and the
-  file `latest.json` names; the first start of the app downloads the engine for the card (the first-run card), or installs a file the person already has.
-  Why: an app update must not carry an engine, and the right engine depends on the card. Engines come per card from the signed feed
+* *The Terminal archive*, one per OS (`strata-terminal-<version>-<target>`, built by `packaging/package_terminal.py`). It carries
+  the Terminal, the page (`host/`) and the Node that runs it (`node/`) — see [README.md](README.md#the-page-and-its-node-inside-the-terminal-archive) —
+  and no engine: the right engine depends on the card, and engines come per card from the signed feed
   (`feed.select_engine`: platform, backend, CUDA `archs` and `min_driver`, HIP `archs`; `tests/terminal/test_release_matrix.py`).
+  The same archive is the first download and what `install.sh` / `install.ps1` unpack; a person who prefers the terminal never
+  opens a browser, and one who wants the page runs `deepstrata ui` after it.
 
 **Steps**
 
-    python packaging/feed_tool.py sign-package <engine package folder> --key <feed-key.json>        # every engine package (the Mac app bundles its UNSIGNED copy)
+    python packaging/feed_tool.py sign-package <engine package folder> --key <feed-key.json>        # every engine package
     python packaging/feed_tool.py pack-engine  <engine package folder> --out RELEASE/engine --url-prefix=
     python packaging/feed_tool.py pack-control <control folder> --version 0.1.50 --platform P --out RELEASE/control --url-prefix=   # --format zip for windows-x86_64
     # --url-prefix= (not --url-prefix "") because PowerShell 5.1 drops an empty argument. The Control version is the VERSION file
-    # (0.1.50), not the app version: a Control package newer than the installed one is installed by `strata update`.
+    # (0.1.50), not the page version: a Control package newer than the installed one is installed by `strata update`.
     # Pack Linux and Mac packages on Linux / the Mac or on Windows with this tool: it sets the execute bit from the file header either way.
-    cd apps/desktop && npx tauri build --bundles nsis --config src-tauri/tauri.update.conf.json    # Windows installer (no engine inside)
-    # Linux: tauri build --bundles appimage (no engine inside) is the AppImage
-    # on the release PC, per updater artifact (Windows setup .exe, Linux .AppImage, Mac Strata.app.tar.gz):
-    npx tauri signer sign -f <path to tauri-updater.key> <artifact>                                 # writes <artifact>.sig
-    python packaging/feed_tool.py set-app-platform --app-json RELEASE/tauri-latest.json --target windows-x86_64 --version 0.2.5 --archive Strata-0.2.9-windows-x64-setup.exe --sig Strata-0.2.9-windows-x64-setup.exe.sig --notes "..."
-    python packaging/feed_tool.py set-app-platform --app-json RELEASE/tauri-latest.json --target linux-x86_64   --version 0.2.5 --archive Strata-0.2.9-linux-x86_64.AppImage --sig Strata-0.2.9-linux-x86_64.AppImage.sig
-    python packaging/feed_tool.py set-app-platform --app-json RELEASE/tauri-latest.json --target darwin-aarch64 --version 0.2.5 --archive Strata.app.tar.gz --sig Strata.app.tar.gz.sig
-    python packaging/feed_tool.py build-feed --out RELEASE --sequence N --key <feed-key.json> --engine RELEASE/engine --control RELEASE/control --app-json RELEASE/tauri-latest.json [--dsv41 RELEASE/dsv41] [--drafters RELEASE/drafters]
+    python packaging/feed_tool.py build-feed --out RELEASE --sequence N --key <feed-key.json> --engine RELEASE/engine --control RELEASE/control [--dsv41 RELEASE/dsv41] [--drafters RELEASE/drafters]
     python packaging/feed_tool.py verify-feed RELEASE --pub <feed-key.pub.json>
 
-`set-app-platform` checks each `.sig` against the public key in `tauri.conf.json` over the exact bytes, so a file signed with another key, or changed after
-signing, stops the release. The Mac dmg is not in `latest.json` (the updater uses `Strata.app.tar.gz`) and needs no Tauri signature; it is downloaded by hand.
+### The Mac archive
 
-### The Mac app
-
-`tauri build` signs its installers with the Tauri key before anything else touches them. On a Mac that is too early: `sign-and-notarize.sh` then re-signs every
-Mach-O in the app with the Developer ID and notarises and staples it, which changes the bytes. The `Strata.app.tar.gz` and `.sig` that `tauri build` wrote hold the
-**unsigned, un-notarised** app, and the updater would install exactly that on a user's Mac. So the in-app Mac update is built from the finished app instead:
-
-1. `sign-and-notarize.sh <dmg> --updater-archive` (on the Mac) packs the signed, notarised, stapled `.app` into `Strata.app.tar.gz` (the app folder at the root, the layout
-   Tauri's bundler makes), unpacks it again and checks `codesign`, the staple and `spctl`. It never reads the Tauri key.
-2. Move the `.tar.gz` to the release PC and sign it there with `npx tauri signer sign -f <key> Strata.app.tar.gz` (or `TAURI_SIGNING_PRIVATE_KEY_PATH` and the password variable).
-   The key stays on the PC and in the owner's safe storage; nothing in this tree reads or stores it, and the Mac needs no node and no key.
-3. `feed_tool.py set-app-platform` checks that signature against the public key in `tauri.conf.json` over the exact archive bytes, checks the archive holds `<Name>.app` at its root,
-   and writes `url`, `signature`, `sha256` and `size` of the darwin entry. A signature that was made for the pre-notarisation file does not verify, so it cannot be published by mistake.
-4. `build-feed --app-json` and `verify-feed` as above. Upload the notarised `Strata.dmg`, `Strata.app.tar.gz`, and the `latest.json` from the feed folder (`app/latest.json`).
-
-**Until the fork holds its own Apple certificate** its Mac builds go out without a Developer ID and without notarisation: step 1 runs as
-`sign-and-notarize.sh <the built app> --updater-archive --dry-run`, which checks the app with an ad-hoc signature and packs the archive
-the same way, with no Apple account touched. The fork's Tauri key still signs the archive in step 2, so everything from step 3 on reads
-as written; the dmg warns on the first open and [docs/TROUBLESHOOTING.md](../docs/TROUBLESHOOTING.md) teaches the bypass. With a
+`packaging/mac/sign-and-notarize.sh` still signs and notarises Mac artifacts: `--terminal <archive>` for the Terminal
+archive, `--engine` for an engine package, and its `.app`/dmg paths for whatever desktop artifact an old release still
+points at. **Until the fork holds its own Apple certificate** its Mac builds go out without a Developer ID and without
+notarisation, with `--dry-run` running the checks with an ad-hoc signature and touching no Apple account; a downloaded
+archive may warn on the first open and [docs/TROUBLESHOOTING.md](../docs/TROUBLESHOOTING.md) teaches the bypass. With a
 certificate of our own, run the real procedure and the warning is gone.
-
-The Windows installer and the Linux AppImage need no extra step: their `.sig` files from `tauri build` are the ones to pass to `set-app-platform`. Re-signing the Mac app after the archive
-was made (a second `sign-and-notarize.sh` run) makes a new archive: sign and add it again.
 
 `build-feed` also writes `RELEASE/install-manifest.txt`, the file the one-line installers read: one line per Control package,
 `platform version url sha256 size`, taken from the `*.entry.json` files in `RELEASE/control`. The Control package is the Terminal that `install.sh` unpacks (it must hold `bin/deepstrata`).
@@ -220,23 +189,28 @@ a platform with no line gets "this release has no Terminal for <platform>". Uplo
 The feed is hosted as the files of a GitHub release of `ilfarpro/DeepStrata`. The built-in address is
 `https://github.com/ilfarpro/DeepStrata/releases/latest/download` (`strata_cli/update_cmd.py` `DEFAULT_FEED` adds `/strata-feed.json`; `install.sh`
 and `install.ps1` use the folder). GitHub assets are flat, so build the packages with `--url-prefix ""` and upload every file of the release folder
-as an asset: `strata-feed.json`, `strata-feed.json.sig`, `install-manifest.txt`, `install.sh`, `install.ps1`, the engine and Control archives and the
-app installer with `latest.json` (the Tauri updater endpoint). `STRATA_FEED` (installers) and `--feed` / `STRATA_UPDATE_FEED` (`strata update`) override the
+as an asset: `strata-feed.json`, `strata-feed.json.sig`, `install-manifest.txt`, `install.sh`, `install.ps1`, the engine and Control archives
+and the Terminal archives. `STRATA_FEED` (installers) and `--feed` / `STRATA_UPDATE_FEED` (`strata update`) override the
 address. Nothing in this tree uploads anything.
 
-Publish as a normal release (latest): a pre-release is not found by `latest/download`, so the installers, `strata update` and the app updater would get a 404. The `latest` release must carry every file listed above, so a later hotfix release repeats them all. The app updater reads
-`https://github.com/ilfarpro/DeepStrata/releases/latest/download/latest.json`.
+Publish as a normal release (latest): a pre-release is not found by `latest/download`, so the installers and `strata update` would get a 404.
+The `latest` release must carry every file listed above, so a later hotfix release repeats them all.
 
 ## Testing locally
 
 Everything above runs against a folder or a loopback server: `tests/terminal/test_update_feed.py` (signatures, hashes, downgrades, selection),
 `tests/terminal/test_updater.py` (end to end against a loopback HTTP feed with stub engines: update, test-start, switch; a failing test start
-keeps the old engine; an interrupted download resumes; rollback; Control; the app installer's minisign check), `apps/host/tests/component-updates.test.mjs`
+keeps the old engine; an interrupted download resumes; rollback; Control), `apps/host/tests/component-updates.test.mjs`
 (the Settings buttons). For a real engine on a box, build a package with `packaging/package_engine.py`, serve it from a local feed made by `packaging/make_local_feed.py`, and run `strata update --feed` against it.
 
 ## History / older measurements
 
 - **Keys:** the feed key and the Tauri updater key were created once and the feed key's public half was committed in `strata_control/update_keys.json`
   with the first signed release (0.2.0-beta). Terminals from before that build trust no key and refuse every feed.
-- **Engine-less installers:** an app update once carried an engine. The Windows and Linux installers now drop `engine-bundle`
-  (`tauri.update.conf.json`), so one `latest.json` entry per OS serves every card variant.
+- **Engine-less installers:** an app update once carried an engine. The Windows and Linux installers dropped `engine-bundle`,
+  so one `latest.json` entry per OS served every card variant.
+- **The desktop app and its updater:** up to 0.2.12 the feed carried an `app` member (Tauri's static updater JSON) and the shell
+  updated itself through a token-protected loopback bridge with the Tauri updater key. The member is gone from the feed format,
+  `feed_tool.py` no longer builds or edits it, and `update_keys.json` no longer trusts `app_minisign_public`; a current Terminal
+  still verifies and parses an old signed feed and ignores its `app` member. The old `latest.json` and installers stay on their
+  release pages for old installs to keep working.

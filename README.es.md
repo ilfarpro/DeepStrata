@@ -55,7 +55,7 @@ Recomendamos **primero ISTA-DASLab**, después **Unsloth** y otros proveedores, 
 <details>
 <summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b></summary>
 
-En la **aplicación de escritorio** y en el **Terminal**. Lo que no cabe en la memoria se lee desde tu SSD, así que hace falta mucho espacio libre en disco.
+En la **página del navegador** y en la **Terminal**. Lo que no cabe en la memoria se lee desde tu SSD, así que hace falta mucho espacio libre en disco.
 
 | Conjunto (ISTA-DAS) | Descarga | Espacio libre necesario |
 | --- | ---: | ---: |
@@ -90,16 +90,16 @@ Medido con el conjunto de 2.00 bpw en Strata 0.2.5. «Salida» es la velocidad d
 
 <a id="option-a-the-strata-app"></a>
 
-### Aplicación de escritorio
+### La página en el navegador
 
 **[Descargar Strata para Windows, Linux o Mac →](https://github.com/ilfarpro/DeepStrata/releases/latest)**
 
-Instala la aplicación, elige un modelo y empieza a chatear. Hay un instalador por sistema. En el primer arranque, la aplicación descarga el motor para tu tarjeta gráfica. [Ayuda con el instalador](docs/INSTALL.md#the-app).
+La página viene con la Terminal. Inicia un modelo con `deepstrata launch`, ejecuta `deepstrata ui` y el chat se abre en tu navegador. [Guía de la Terminal](docs/TERMINAL_LAUNCH.md).
 
-<sub>Archivos: `Strata-0.2.9-windows-x64-setup.exe` · `Strata-0.2.9-linux-x86_64.AppImage` · `Strata-0.2.9-macos-arm64.dmg`</sub>
+<sub>Archivos: `strata-terminal-0.2.9-windows-x86_64.zip` · `strata-terminal-0.2.9-linux-x86_64.tar.gz` · `strata-terminal-0.2.9-darwin-arm64.tar.gz`</sub>
 
 <p align="center">
-  <img src="docs/media/app-chat.png" width="900" alt="Aplicación de escritorio de Strata con un chat y una vista previa del código en vivo, una junto a otra">
+  <img src="docs/media/app-chat.png" width="900" alt="Strata en el navegador con un chat y una vista previa del código en vivo, una junto a otra">
   <br><sub>Chat, archivos y vista previa en vivo en una sola ventana.</sub>
 </p>
 

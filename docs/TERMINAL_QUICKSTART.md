@@ -62,7 +62,7 @@ deepstrata runtime restart --profile four-gpu --plan --output json
 deepstrata runtime restart --profile four-gpu
 ```
 
-The restart is an explicit operation. `profile set` alone does not restart or retune a running model. `runtime stop --profile four-gpu` stops only the owned instance; `q` in Monitor does not. The desktop app starts its models through the same runtime host on every system.
+The restart is an explicit operation. `profile set` alone does not restart or retune a running model. `runtime stop --profile four-gpu` stops only the owned instance; `q` in Monitor does not. The page starts its models through the same runtime host on every system.
 
 ## Check cards, calibrate and benchmark
 

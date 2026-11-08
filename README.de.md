@@ -55,7 +55,7 @@ Wir empfehlen **zuerst ISTA-DASLab**, danach **Unsloth** und andere Anbieter, so
 <details>
 <summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b></summary>
 
-In der **Desktop-App** und im **Terminal**. Was nicht in den Arbeitsspeicher passt, wird von deiner SSD gelesen. Darum brauchst du viel freien Speicherplatz.
+In der **Browser-Seite** und im **Terminal**. Was nicht in den Arbeitsspeicher passt, wird von deiner SSD gelesen. Darum brauchst du viel freien Speicherplatz.
 
 | Set (ISTA-DAS) | Download | Freier Speicherplatz nötig |
 | --- | ---: | ---: |
@@ -90,16 +90,16 @@ Unsicher, was passt? [Wähle ein Modell für deinen Computer](docs/MODELS.md#pic
 
 <a id="option-a-the-strata-app"></a>
 
-### Desktop-App
+### Die Seite im Browser
 
 **[Strata für Windows, Linux oder Mac herunterladen →](https://github.com/ilfarpro/DeepStrata/releases/latest)**
 
-Installiere die App, wähle ein Modell und leg mit dem Chat los. Es gibt einen Installer pro System. Beim ersten Start lädt die App die Engine für deine Grafikkarte herunter. [Hilfe zum Installer](docs/INSTALL.md#the-app).
+Die Seite kommt mit dem Terminal. Starte ein Modell mit `deepstrata launch`, führe `deepstrata ui` aus, und der Chat öffnet sich im Browser. [Terminal-Handbuch](docs/TERMINAL_LAUNCH.md).
 
-<sub>Dateien: `Strata-0.2.9-windows-x64-setup.exe` · `Strata-0.2.9-linux-x86_64.AppImage` · `Strata-0.2.9-macos-arm64.dmg`</sub>
+<sub>Dateien: `strata-terminal-0.2.9-windows-x86_64.zip` · `strata-terminal-0.2.9-linux-x86_64.tar.gz` · `strata-terminal-0.2.9-darwin-arm64.tar.gz`</sub>
 
 <p align="center">
-  <img src="docs/media/app-chat.png" width="900" alt="Strata-Desktop-App mit Chat und Live-Codevorschau nebeneinander">
+  <img src="docs/media/app-chat.png" width="900" alt="Strata im Browser mit Chat und Live-Codevorschau nebeneinander">
   <br><sub>Chat, Dateien und Live-Vorschau in einem Fenster.</sub>
 </p>
 

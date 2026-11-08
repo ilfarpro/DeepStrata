@@ -59,7 +59,7 @@ changes one thing at a time.
 
 ## 3. Install
 
-1. Use the Windows app (`Strata-<version>-windows-x64-setup.exe`) or the Terminal. The engine for this chip is the `windows-x86_64-hip-rdna3`
+1. Use the Terminal (install it from the release page, see [INSTALL.md](INSTALL.md)). The engine for this chip is the `windows-x86_64-hip-rdna3`
    package; the app or `deepstrata launch` downloads it on the first start, and `deepstrata update` keeps it current.
 2. Choose the model in the app, or `deepstrata launch --family qwen --model iq3_s`. With model files you already have, add
    `--model-path <folder>` (for IQ3_S the two shards are in one folder: shard 1 is the main model, shard 2 holds the per-layer embedding

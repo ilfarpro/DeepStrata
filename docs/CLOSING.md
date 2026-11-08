@@ -11,7 +11,7 @@ does not exit in time it is killed. After either, the port and the GPU memory ar
 |---|---|---|---|
 | **Foreground** | `deepstrata serve --profile NAME` (or `python serve/server.py`) | the terminal / the command | Ctrl+C, closing the window, `kill` |
 | **Background service** (on purpose) | `deepstrata runtime start --profile NAME` | nothing: it keeps serving after the terminal closes | `deepstrata runtime stop --profile NAME` |
-| **The Desktop app's engines** | the app (profiles `app-1`, `app-2`, ...) | the app: its window, its process, its host | closing the app, or the app's unload |
+| **The app's engines** | the app (profiles `app-1`, `app-2`, ...) | the app: its host process | `deepstrata ui --stop`, the page's **Quit Strata**, or the app's unload |
 
 The background service is a deliberate choice and stays one: `runtime start` starts an owner host that is not tied to the
 terminal that ran it. It is documented in `deepstrata runtime --help`. If you want it to follow a process, `--die-with-pid PID`
@@ -35,9 +35,8 @@ in that order instead of the engine dying under a request.
 | Logoff, shutdown | console logoff/shutdown event, then the job object | SIGHUP/SIGTERM from the session manager | same |
 | The server is killed (`taskkill /F`, `kill -9`, crash) | the engine is in a kill-on-close job object owned by the server: it ends at once | `PR_SET_PDEATHSIG` = SIGKILL, set before the engine starts, from one long-lived thread (the signal is tied to the thread that forks, not the process) | a watcher process holds a pipe to the server; when the server dies the watcher ends the engine after checking its PID and start time |
 | The owner host (`runtime start`) is killed | the job object holding the server tree ends it | the server's owner pipe closes: it gets SIGTERM and a clean stop, SIGKILL after the grace period | same |
-| The app is closed (window X, normal exit) | the host stops the app's engines through Control (drain, end), then exits; 60 s deadline, then the job object | same, no job object: the owners follow the host | same |
-| The app is killed, crashes, logoff | the job object around the app ends the host, Control, the owner host, the server and the engine | the host sees its parent gone within a second, stops the engines cleanly; each owner follows the host's PID (`--die-with-pid`) | same |
-| The app's host crashes | each owner sees the host's PID gone (about a second) and stops its engine, drained | same | same |
+| The app's host is stopped (`deepstrata ui --stop`, or **Quit Strata** on the page) | the host stops the app's engines through Control (drain, end), then exits; 60 s deadline, then the job object | same, no job object: the owners follow the host | same |
+| The app's host is killed (`taskkill /F`, `kill -9`), crashes or the user logs off | each owner follows the host's PID (`--die-with-pid`): it sees the host gone within about a second and stops its engine, drained | same | same |
 
 `strata_control/procs.py` is the identity rule behind every "is this still the process I started": PID **and** start time
 **and** command line, checked again at the moment of each signal. A PID alone is never signalled.
@@ -61,8 +60,8 @@ installation's engine, or any process whose parent is alive, is not. Set `STRATA
 
 ## One app, one or several engines
 
-The desktop app is a single instance (the Tauri single-instance plugin): launching it again focuses the window that is open
-and starts nothing, so two apps never fight over the `app-N` slots. One app can run several engines (for example one per GPU):
+The page has one host: running `deepstrata ui` again while the host is up opens the same page again and starts nothing, so
+two apps never fight over the `app-N` slots. One app can run several engines (for example one per GPU):
 every model the app loads gets its own profile `app-1`, `app-2`, ... under Control, each with its own owner, server and engine,
 and each is stopped with the app. Which GPU a model uses is the model's run config (`gpu`); the app starts one engine per
 loaded model. Choosing the card per model needs a control in the Models/Serving screens; there is none today (see the notes of
@@ -73,6 +72,5 @@ the `f-split-life` stream for what it would need).
 `tests/terminal/lifecycle_matrix.py` runs every case above with a fake engine package, or a real engine
 (`--config RUN.json --components DIR --vram`), and asserts after each: no process of the tree is left, the port is free, the
 runtime lease can be taken, the GPU memory returned. `tests/terminal/test_lifecycle_matrix.py` is the pytest wrapper (the
-cases that need a console window run with `STRATA_MATRIX_CONSOLE=1`). `apps/desktop/scripts/app-close-matrix.py` drives the
-installed Windows app (normal close, window X, killed app, host crash, second launch, two engines).
+cases that need a console window run with `STRATA_MATRIX_CONSOLE=1`).
 `tests/terminal/ssh_disconnect.py` drops a real ssh session on a Linux box.

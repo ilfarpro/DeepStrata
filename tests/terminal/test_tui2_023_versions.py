@@ -45,8 +45,9 @@ class VersionBump(unittest.TestCase):
         self.assertIn("Version 0.2.12, engine 0.1.58.", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))
         for name in ("README.md", "README.de.md", "README.es.md", "README.fr.md", "README.ja.md", "README.pl.md", "README.pt-BR.md", "README.zh-CN.md"):
             text = (ROOT / name).read_text(encoding="utf-8")
-            self.assertRegex(text, r"Strata-0[.]2[.][0-9]+-", name)       # (the restyled READMEs state the app version through the download buttons; their owner moves them to the release)
-            self.assertNotIn("Strata-0.2.2-", text, name)
+            self.assertRegex(text, r"strata-terminal-0[.]2[.][0-9]+-", name)   # (the READMEs state the version through the Terminal archive names; their owner moves them to the release)
+            self.assertNotIn("strata-terminal-0.2.2-", text, name)
+            self.assertNotIn("-macos-arm64.dmg", text, name)                   # the desktop installers are gone
 
     def test_version_prints_the_product_and_the_build(self):
         done = subprocess.run([sys.executable, str(ROOT / "strata.py"), "--version"], capture_output=True, text=True, cwd=str(ROOT),

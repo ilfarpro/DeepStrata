@@ -55,7 +55,7 @@ Najpierw polecamy **ISTA-DASLab**, potem **Unsloth** i innych dostawców — o i
 <details>
 <summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b></summary>
 
-W **aplikacji na komputer** i w **Terminalu**. To, co nie mieści się w pamięci, jest czytane z dysku SSD, więc potrzebujesz
+W **stronie przeglądarki** i w **Terminalu**. To, co nie mieści się w pamięci, jest czytane z dysku SSD, więc potrzebujesz
 dużo wolnego miejsca na dysku.
 
 | Zestaw (ISTA-DAS) | Do pobrania | Potrzebne wolne miejsce |
@@ -93,14 +93,13 @@ Nie wiesz, co się zmieści? [Wybierz model do swojego komputera](docs/MODELS.md
 
 <a id="option-a-the-strata-app"></a>
 
-### Aplikacja na komputer
+### Strona w przeglądarce
 
 **[Pobierz Stratę dla Windows, Linuxa lub Maca →](https://github.com/ilfarpro/DeepStrata/releases/latest)**
 
-Zainstaluj aplikację, wybierz model i zacznij rozmawiać. Dla każdego systemu jest jeden instalator. Przy pierwszym
-uruchomieniu aplikacja pobiera silnik dla twojej karty graficznej. [Pomoc z instalatorem](docs/INSTALL.md#the-app).
+Strona jest w zestawie z Terminalem. Uruchom model poleceniem `deepstrata launch`, wpisz `deepstrata ui`, a czat otworzy się w przeglądarce. [Przewodnik po Terminalu](docs/TERMINAL_LAUNCH.md).
 
-<sub>Pliki: `Strata-0.2.9-windows-x64-setup.exe` · `Strata-0.2.9-linux-x86_64.AppImage` · `Strata-0.2.9-macos-arm64.dmg`</sub>
+<sub>Pliki: `strata-terminal-0.2.9-windows-x86_64.zip` · `strata-terminal-0.2.9-linux-x86_64.tar.gz` · `strata-terminal-0.2.9-darwin-arm64.tar.gz`</sub>
 
 <p align="center">
   <img src="docs/media/app-chat.png" width="900" alt="Aplikacja Strata na komputer: czat i podgląd kodu na żywo obok siebie">

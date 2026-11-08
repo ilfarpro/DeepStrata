@@ -55,7 +55,7 @@ Nous recommandons **d'abord ISTA-DASLab**, puis **Unsloth** et d'autres fourniss
 <details>
 <summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b></summary>
 
-Dans l'**application de bureau** et dans le **Terminal**. Ce qui ne tient pas en mémoire est lu depuis votre SSD : il faut donc beaucoup d'espace disque libre.
+Dans la **page du navigateur** et dans le **Terminal**. Ce qui ne tient pas en mémoire est lu depuis votre SSD : il faut donc beaucoup d'espace disque libre.
 
 | Jeu (ISTA-DAS) | Téléchargement | Espace disque libre nécessaire |
 | --- | ---: | ---: |
@@ -90,16 +90,16 @@ Vous ne savez pas ce qui tient ? [Choisir un modèle pour votre ordinateur](docs
 
 <a id="option-a-the-strata-app"></a>
 
-### Application de bureau
+### La page dans le navigateur
 
 **[Télécharger Strata pour Windows, Linux ou Mac →](https://github.com/ilfarpro/DeepStrata/releases/latest)**
 
-Installez l'application, choisissez un modèle et commencez à discuter. Il y a un seul installateur par système. Au premier lancement, l'application télécharge le moteur de votre carte graphique. [Aide pour l'installateur](docs/INSTALL.md#the-app).
+La page est livrée avec le Terminal. Démarrez un modèle avec `deepstrata launch`, lancez `deepstrata ui`, et le chat s'ouvre dans votre navigateur. [Guide du Terminal](docs/TERMINAL_LAUNCH.md).
 
-<sub>Fichiers: `Strata-0.2.9-windows-x64-setup.exe` · `Strata-0.2.9-linux-x86_64.AppImage` · `Strata-0.2.9-macos-arm64.dmg`</sub>
+<sub>Fichiers: `strata-terminal-0.2.9-windows-x86_64.zip` · `strata-terminal-0.2.9-linux-x86_64.tar.gz` · `strata-terminal-0.2.9-darwin-arm64.tar.gz`</sub>
 
 <p align="center">
-  <img src="docs/media/app-chat.png" width="900" alt="Application de bureau Strata avec une discussion et un aperçu du code en direct côte à côte">
+  <img src="docs/media/app-chat.png" width="900" alt="Strata dans le navigateur avec une discussion et un aperçu du code en direct côte à côte">
   <br><sub>Discussion, fichiers et aperçu en direct dans une seule fenêtre.</sub>
 </p>
 

@@ -1,7 +1,7 @@
 # Install and build from a source checkout
 
 Use this guide to work on Strata's code or maintain a source-based installation. It is for developers.
-To just use Strata (version 0.2.5), install the [desktop app or the Terminal](INSTALL.md). Installed apps do not use `START-HERE.bat`.
+To just use Strata (version 0.2.5), install the [Terminal](INSTALL.md). A Terminal install does not use `START-HERE.bat`.
 
 The repository includes `START-HERE.bat`, `SETUP.bat`, `UPDATE.bat`, `setup.sh` and `update.sh`.
 Run them from a cloned or extracted **source folder**. They may install dependencies, prepare model files and
@@ -147,7 +147,7 @@ starting the model. A source ZIP cannot pull Git history: extract a newer source
 Preserve your configs and data location when moving between checkouts.
 
 If you changed engine code, rebuild it and verify the executable path again. The presence of updated source files
-is not evidence that a running engine contains those changes. Desktop and Terminal component updates are covered
+is not evidence that a running engine contains those changes. Terminal component updates are covered
 separately in [INSTALL.md](INSTALL.md#updating).
 
 ## Where things are stored
@@ -156,7 +156,7 @@ Source setup writes model run configs (`strata-<model>.json`), launch scripts (`
 logs in the checkout. Models, packs and draft data normally go in `Strata-data` beside it, or the location selected
 with `--data-dir`. Dependencies and build products stay in the source installation.
 
-These are source paths. The desktop app and installed Terminal use the [release data locations](INSTALL.md#where-things-are-stored).
+These are source paths. The installed Terminal uses the [release data locations](INSTALL.md#where-things-are-stored).
 Back up a config before editing it: setup can rewrite the fields it owns. Do not publish API keys or private paths in logs.
 
 ## Setup's questions

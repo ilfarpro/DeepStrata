@@ -46,7 +46,7 @@ and test-starts it before using it.
    "fits / tight / does not fit this computer". This is a warning, never a block. The n-gram table stays on your SSD and is
    not counted. `o` picks your own files (a folder or a `.gguf`).
 3. **Folder:** where model files are stored, with free space. For a model that is already installed, including one the
-   desktop app installed, it starts where the model is and lists only what is missing (the draft layer, about 5.2 GB; the
+   app installed, it starts where the model is and lists only what is missing (the draft layer, about 5.2 GB; the
    picture reader, 0.9 GB).
 4. **Context** (8K to 512K, with the extra memory each costs) and the memory format (`m`: 8-bit or 4-bit).
 5. **Pictures:** only for models that can read them. They are on by default (`--vision off` or "No" turns them off). The
@@ -182,8 +182,8 @@ Windows Terminal, Linux and macOS are never touched. `STRATA_GLYPHS=unicode|asci
 
 ## The page in a browser: `deepstrata ui`
 
-The address `deepstrata launch` prints is the API. The full page - Chat, Monitor, Models, Settings, the one the desktop app
-shows in its window - comes from the App Host, and `deepstrata ui` starts it for a terminal-served model: it answers on
+The address `deepstrata launch` prints is the API. The full page - Chat, Monitor, Models, Settings - comes from the App Host,
+and `deepstrata ui` starts it for a terminal-served model: it answers on
 `http://127.0.0.1:8891`, opens that in your browser and puts the serving model into the chat's model picker as a saved
 API connection named "Strata (strata launch)" (remove it in the page's Models settings).
 
@@ -197,8 +197,8 @@ API connection named "Strata (strata launch)" (remove it in the page's Models se
 | `--stop` | Stop the page's host; the model keeps serving. |
 
 Nothing is downloaded. When no built App Host is found (a source checkout builds one with
-`cd apps/host && npm ci && npm run build`; an installed Strata carries `host/`), the command says so and the desktop app
-remains the way to the page. Closing the tab keeps the host and the model serving; `deepstrata ui --stop` ends the host, and
+`cd apps/host && npm ci && npm run build`; an installed Strata carries `host/`), the command says so.
+Closing the tab keeps the host and the model serving; `deepstrata ui --stop` ends the host, and
 the page's own "Quit Strata" does the same. Stopping the model stays `deepstrata launch --stop`.
 
 ## Connect your apps: `deepstrata connect`
@@ -235,7 +235,7 @@ as the config does; OpenClaw needs Node 24.16 or newer.
 - the folder you name with `--install-dir` or `STRATA_INSTALL_DIR` (then only that one)
 - the Terminal's own folder
 - folders earlier installs remembered in `settings.json`
-- the desktop app's install folder, which the Terminal shares: `%LOCALAPPDATA%\Strata\install` on Windows,
+- the App Host's install folder, which the Terminal shares: `%LOCALAPPDATA%\Strata\install` on Windows,
   `$XDG_DATA_HOME/strata/install` (normally `~/.local/share/strata/install`) on Linux and macOS
 
 The data folder is the one you set, else the app's (`app-settings.json` beside its install folder, else a `Documents/Strata` that holds
@@ -261,5 +261,5 @@ The exit code is 0 and nothing is started.
 
 ## Limits
 
-- The model download uses `setup.py` in its control mode (no pip, no engine fetch, no compiler), as the desktop app does. It needs internet and room for the files.
+- The model download uses `setup.py` in its control mode (no pip, no engine fetch, no compiler). It needs internet and room for the files.
 - The Linux SYCL package updates through `deepstrata update`. Do not copy it into the components folder by hand.

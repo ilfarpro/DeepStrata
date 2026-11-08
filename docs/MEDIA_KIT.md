@@ -5,15 +5,16 @@ Use [AI_REFERENCE.md](AI_REFERENCE.md) for product facts and [README.md](../READ
 
 ## Short description
 
-Strata runs supported AI models on your own computer. Use its desktop app to chat and work with code and images,
-use its terminal app, or connect a coding tool. One installer per system (Windows, Linux, Mac). Strata's code is free and open source under the MIT license.
+Strata runs supported AI models on your own computer. Use its browser page to chat and work with code and images,
+use its terminal app, or connect a coding tool. One Terminal archive per system (Windows, Linux, Mac); it carries the page,
+which `deepstrata ui` opens in the browser. Strata's code is free and open source under the MIT license.
 
 Suggested opening: **“Run powerful AI on your own computer. Chat, code and work with images, locally.”**
 
 ## A short video outline
 
-1. **Show the desktop app.** A chat and a visible result explain the product quickly.
-2. **Show the choice of interfaces.** The desktop app for a visual workspace; the terminal app for keyboard-driven use.
+1. **Show the browser page.** A chat and a visible result explain the product quickly.
+2. **Show the choice of interfaces.** The browser page for a visual workspace; the terminal app for keyboard-driven use.
 3. **Show the three model families.** DeepSeekV4.1-Flash-1017, Qwen3.8-Flash-Next and Qwen3.6-35B-A3B.
    Explain the [availability limits](AI_REFERENCE.md#model-families): DeepSeek V4.1-Flash is in the app and the Terminal since 0.2.5, on NVIDIA RTX 30, 40 and 50 and the Radeon AI PRO R9700 (Linux).
 4. **Choose a model for the machine.** Prefer ISTA-DASLab, then Unsloth, Gyro and other providers where compatible.
@@ -34,7 +35,7 @@ establish a current default model or universal performance.
 | --- | --- | --- |
 | Logo, light background | [strata-lockup-light.svg](../apps/host/public/brand/strata-lockup-light.svg) | Strata |
 | Logo, dark background | [strata-lockup-dark.svg](../apps/host/public/brand/strata-lockup-dark.svg) | Strata |
-| Desktop app | [app-chat.png](media/app-chat.png) | Chat, files and a live preview in one window. The capture shows a Gyro model; do not relabel it as an ISTA or DeepSeek run. |
+| Browser page | [app-chat.png](media/app-chat.png) | Chat, files and a live preview in one page. The capture shows a Gyro model; do not relabel it as an ISTA or DeepSeek run. |
 | Terminal app | [terminal-monitor.png](media/terminal-monitor.png) | Model activity and hardware use. The capture shows a Gyro-S session; its live counters are not a standardized benchmark. |
 | Coding demo thumbnail | [pagoda-preview.webp](media/pagoda-preview.webp) | A voxel garden generated locally. |
 | Coding demo video | [Pagoda.mp4](https://github.com/Niko1221/Strata/releases/download/v0.1.10/Pagoda.mp4) | Existing 49-second demo, documented with an RTX 5070, IQ3_S and 128K context. Keep it separate from the GUI and TUI screenshots. |
@@ -45,7 +46,7 @@ establish a current default model or universal performance.
 - Use actual footage or label illustrations. Do not invent a successful install, generated answer or speed reading.
 - Keep the provider preference distinct from measured performance. The maintainer's collaboration with ISTA-DASLab
   explains the recommendation order; it does not prove a benchmark result.
-- DeepSeek V4.1-Flash runs in the desktop app and in the Terminal (0.2.5), on NVIDIA RTX 30, 40 and 50 and the Radeon AI PRO R9700 on Linux. Take its sets (1.75, 2.00 and 2.25 bpw), sizes and speeds from
+- DeepSeek V4.1-Flash runs in the browser page and in the Terminal (0.2.5), on NVIDIA RTX 30, 40 and 50 and the Radeon AI PRO R9700 on Linux. Take its sets (1.75, 2.00 and 2.25 bpw), sizes and speeds from
   [MODELS.md](MODELS.md#deepseek-v41-flash) and name the hardware. Do not invent quants or memory figures.
 - Do not promise “any PC,” “every model,” or identical results across GPUs. Follow the model and hardware guides.
 - For speed comparisons, use a source report with hardware, model, quantization, engine version and workload.

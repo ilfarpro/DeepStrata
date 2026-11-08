@@ -55,7 +55,7 @@
 <details>
 <summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b></summary>
 
-**デスクトップアプリ**と**ターミナル**で使えます。メモリに収まらない分は SSD から読み込むため、空きディスク容量がたくさん必要です。
+**ブラウザのページ**と**ターミナル**で使えます。メモリに収まらない分は SSD から読み込むため、空きディスク容量がたくさん必要です。
 
 | セット（ISTA-DAS） | ダウンロード | 必要な空き容量 |
 | --- | ---: | ---: |
@@ -90,16 +90,16 @@ Strata 0.2.5 で 2.00 bpw のセットを使って測定しました。「出力
 
 <a id="option-a-the-strata-app"></a>
 
-### デスクトップアプリ
+### ブラウザのページ
 
 **[Windows、Linux、Mac 用の Strata をダウンロード →](https://github.com/ilfarpro/DeepStrata/releases/latest)**
 
-アプリをインストールし、モデルを選んで、チャットを始めましょう。インストーラーはシステムごとに1つです。初回起動時に、アプリがお使いのグラフィックスカード用のエンジンをダウンロードします。[インストーラーのヘルプ](docs/INSTALL.md#the-app)。
+ページはTerminalに同梱されています。`deepstrata launch` でモデルを起動し、`deepstrata ui` を実行すると、チャットがブラウザで開きます。[Terminalガイド](docs/TERMINAL_LAUNCH.md)。
 
-<sub>ファイル: `Strata-0.2.9-windows-x64-setup.exe` · `Strata-0.2.9-linux-x86_64.AppImage` · `Strata-0.2.9-macos-arm64.dmg`</sub>
+<sub>ファイル: `strata-terminal-0.2.9-windows-x86_64.zip` · `strata-terminal-0.2.9-linux-x86_64.tar.gz` · `strata-terminal-0.2.9-darwin-arm64.tar.gz`</sub>
 
 <p align="center">
-  <img src="docs/media/app-chat.png" width="900" alt="チャットとライブのコードプレビューを並べて表示した Strata デスクトップアプリ">
+  <img src="docs/media/app-chat.png" width="900" alt="チャットとライブのコードプレビューを並べて表示した Strata（ブラウザ）">
   <br><sub>チャット、ファイル、ライブプレビューを1つのウィンドウで。</sub>
 </p>
 

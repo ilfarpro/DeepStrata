@@ -15,10 +15,10 @@ The target is Unsloth's 4-bit quantization of the same model the other packs use
 
 ## Quick start
 
-Run `strata launch` and choose **Qwen3.8-Flash-Next (Unsloth)**, or:
+Run `deepstrata launch` and choose **Qwen3.8-Flash-Next (Unsloth)**, or:
 
 ```sh
-strata launch --family unsloth --model UD-Q4_K_XL
+deepstrata launch --family unsloth --model UD-Q4_K_XL
 ```
 
 ## What setup does
@@ -210,7 +210,7 @@ same top 20 per position.
 Unsloth's `UD-IQ4_XS` at the same revision is in setup as a regular choice, the Unsloth family's first size:
 
 ```sh
-strata launch --family unsloth --model UD-IQ4_XS
+deepstrata launch --family unsloth --model UD-IQ4_XS
 ```
 
 It sits between IQ3_S and UD-Q4_K_XL. Its routed experts are IQ3_S gate/up (IQ4_XS in one layer) with IQ4_NL downs (Q8_0

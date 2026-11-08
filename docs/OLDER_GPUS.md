@@ -68,7 +68,7 @@ choice is made per model, by the oldest card that model runs on:
 - Every card the model uses is RTX 20 or newer: the ready-made CUDA 13 engine.
 - A card is Pascal or Volta: the CUDA 12 engine. Setup says so (`CUDA 12: sm_70 is older than CUDA 13 supports ...`).
 
-Release builds deliver engine components through the signed feed (`strata update`). For a source checkout, `--build` compiles with
+Release builds deliver engine components through the signed feed (`deepstrata update`). For a source checkout, `--build` compiles with
 a CUDA 12.x toolkit ([source installation](SOURCE_INSTALL.md)).
 
 ### Opting in
@@ -89,7 +89,7 @@ start (`--gpus`) moves that model to the CUDA 12 engine.
 
 `--cuda 12` is also the way to run Strata with an NVIDIA driver older than 580. The oldest driver the CUDA 12 engine runs on is the
 `min_driver` of its package (575.51 or newer at the moment, as in the Docker `cuda12` image, [DOCKER.md](DOCKER.md)). Setup reads it from
-the installed package or the signed update feed and says it in the "driver too old" stop; `strata update` enforces the same number. NVIDIA's
+the installed package or the signed update feed and says it in the "driver too old" stop; `deepstrata update` enforces the same number. NVIDIA's
 own table lets CUDA 12 programs start on older drivers (525 on Linux, 527 on Windows), but the packages are built with CUDA 12.9 and were
 not tested on such drivers, so Strata does not promise that range.
 

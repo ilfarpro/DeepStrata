@@ -3,7 +3,7 @@
 Share measurements from your own hardware so other users can judge how Strata
 might run on a similar machine. This guide suggests a report format and a pull
 request workflow; a single model, GPU, or context length is enough to contribute.
-There are two ways to measure. For results other people can compare with, run the **standard benchmark**: `strata bench run`
+There are two ways to measure. For results other people can compare with, run the **standard benchmark**: `deepstrata bench run`
 follows the draft protocol in [BENCHMARK_PROTOCOL.md](BENCHMARK_PROTOCOL.md) (fixed prompts, thinking on, the model card's
 sampling, twelve sanity checks, about 2 to 4 minutes after the model has loaded on a fast card, more on a slow one) and writes `results.json` with
 the hardware, versions and every request. For a quick look at your own machine, [`BENCH.bat` / `./bench.sh`](#run-the-benchmark)
@@ -77,15 +77,15 @@ and their limits. Report what you actually measured and label estimates separate
 ## Run the standard benchmark
 
 ```sh
-strata bench run --profile NAME --track default --track-notes "release 0.2.1, setup defaults"
-strata bench run --url http://127.0.0.1:8080          # a server that is already running
+deepstrata bench run --profile NAME --track default --track-notes "release 0.2.1, setup defaults"
+deepstrata bench run --url http://127.0.0.1:8080          # a server that is already running
 ```
 
 With `--profile` the command starts that profile's engine, waits for the model, runs the protocol and stops the engine. With `--url`
 it uses the server that is running. Start from a freshly loaded engine and close other programs that use the GPU: the
 protocol counts a second run against the same engine as reuse of the cache and marks it `nonconforming`. The command prints a
 summary when it ends and writes a folder `<date>-standard-<gpu>-<run id>` with `README.md`, `results.json`, `outputs.jsonl`,
-the settings, the chat template and, when it started the engine, the engine log. `strata bench report FOLDER` shows it again.
+the settings, the chat template and, when it started the engine, the engine log. `deepstrata bench report FOLDER` shows it again.
 
 A run is `complete`, `partial` (something was skipped or cancelled) or `nonconforming` (for example a remote server, a missing
 commit or model hash, or reused prompt text). A complete run can still fail sanity checks; low scores and slow hardware are valid
@@ -97,7 +97,7 @@ a result, follow [Submit and review](BENCHMARK_PROTOCOL.md#submit-and-review) in
 
 The simplest report is one command after setup. Windows: double-click `BENCH.bat`. Linux: `./bench.sh`. Or
 `python tools/strata_bench.py` from the Strata folder. Setup also offers it at the end of an interactive install
-(default no). The Terminal's `strata bench run` runs the standard benchmark (next section); its `--suite serving-smoke` and
+(default no). The Terminal's `deepstrata bench run` runs the standard benchmark (next section); its `--suite serving-smoke` and
 other serving suites ([TERMINAL.md](TERMINAL.md)) write JSON evidence for your own comparisons, not a report in this format.
 
 It starts the model with the settings you already have (the newest `strata-*.json`; `--config FILE` picks another one),
@@ -234,7 +234,7 @@ successes. A needle test measures recall on those inputs, not overall model qual
    per-run JSON or CSV and small scripts or prompts needed to repeat it. Use your
    own data format and document its fields and units. Keep large model files and
    generated packs out of the PR.
-4. Open a pull request against `Niko1221/Strata:main`. Summarize the hardware,
+4. Open a pull request against `ilfarpro/DeepStrata:main`. Summarize the hardware,
    model, configurations tested, and limitations. Keep a results-only submission
    separate from engine changes so reviewers can assess the measurements directly.
 

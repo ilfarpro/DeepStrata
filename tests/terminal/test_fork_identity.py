@@ -12,7 +12,10 @@ fails here instead of making the two installs fight over a folder, a port or an 
 Kept on purpose: the shared model folder `Documents/Strata` (MODEL_FOLDER, an installed model is
 never downloaded twice), the `STRATA_*` environment names (one process, no collision), the words
 people read, the engine binary names (strata, strata-dsv41, strata-vision: they live inside each
-product's own component folder) and the feed artifact names (they live inside our own release)."""
+product's own component folder) and the feed artifact names (they live inside our own release).
+
+The last class guards the documents: commands a person copies and runs name `deepstrata`, install
+and release addresses name our repository, and prose and history files keep saying Strata."""
 from __future__ import annotations
 
 import re
@@ -168,7 +171,8 @@ IDENTITY_MODULES = {"strata_control/fork_identity.py", "apps/host/server/fork-id
 LIVE_WEB_TOOLS = {"tools/trellis/make_corpus.py", "apps/host/scripts/agent2-tools-flow.mjs"}
 
 FORBIDDEN = {
-    "the upstream repository": re.compile(r"Niko1221/Strata"),
+    # not case-sensitive: the container registry namespace is lower-case (ghcr), and the scan must see that too
+    "the upstream repository": re.compile(r"Niko1221/Strata", re.IGNORECASE),
     "the original app identifier": re.compile(r"ai\.strata\.desktop"),
     "the original shell binary": re.compile(r"(?<!deep)strata-desktop"),
     # the home-store token as a path of its own (`'~/.strata'`, `$PROFILE\.strata`, `'/ … /.strata/'`).
@@ -228,6 +232,69 @@ class ProductCodeCarriesNoOriginalIdentity(unittest.TestCase):
                     line = text.count("\n", 0, m.start()) + 1
                     offenders.append(f"{rel}:{line}: {name} ({m.group(0)!r})")
         self.assertEqual(offenders, [], "product code names the original product where the two installs would collide:\n" + "\n".join(offenders))
+
+
+# ---------------------------------------------------------------------------------------------
+# the documents: a person copies a command or an install line and runs it (prose may say Strata)
+# ---------------------------------------------------------------------------------------------
+
+DOC_ROOT_FILES = ["README.md", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md"]      # README.*.md (translations) join the scan
+# records of upstream runs and releases: the addresses they carry are facts about what happened, not instructions
+DOC_HISTORY = re.compile(r"release-notes-|IMPLEMENTATION_STATUS")
+# documents that quote raw-engine command lines: `strata --serve`, `--pack`, `--version` there name the engine
+# binary, which keeps its name (DIVERGENCE.md, zone 11); only flag-form matches pass in these files
+RAW_ENGINE_DOCS = {"docs/AMD_HIP.md", "docs/BATCHING.md", "docs/GYRO.md", "docs/INTEL.md",
+                   "docs/NVFP4.md", "docs/KVA.md", "docs/work/QUALIFICATION-KIT.md"}
+# the saved-connection label the shipped code writes (LAUNCH_CONNECTION in strata_cli/ui_cmd.py): the doc must match the code
+DOC_LABEL = "Strata (strata launch)"
+DOC_ENGINE_VALUE = re.compile(r"--engine\s*$")          # `--engine strata`: the value is the engine binary's name
+# the Terminal's subcommands (strata_cli/cli.py add_parser names and aliases); `strata` before one of them is a command a person types
+DOC_SUBS = (r"launch|start|stop|serve|status|ui|connect|update|monitor|timeskip|tune|profiles?|presets|engines?|"
+            r"models|plan|bench|doctor|report|self-test|components|history|restart|rollback|cancel|repair-access|"
+            r"verify|validate|sessions|list|show|set|edit|create|delete|import|move|inspect|run|ops|calibrate|"
+            r"compare|code|use-config|--[a-z0-9-]+")
+DOC_CMD = re.compile(r"(?<![\w./-])strata(?= (?:" + DOC_SUBS + r"\b))")
+DOC_UPSTREAM_URL = re.compile(r"Niko1221/Strata", re.IGNORECASE)
+DOC_URL_KEPT = re.compile(r"github\.com/sponsors/Niko1221|Niko1221/Strata/pull/\d+|Pagoda\.mp4|fetched on 11 October 2026")
+DOC_OLD_FACTS = {
+    "the original page port": re.compile(r"\b8791\b"),
+    "the original shell port": re.compile(r"\b47831\b"),
+    "the original install path": re.compile(r"(?<!deep)bin/strata(?![\w-])|~/\.strata"),
+}
+
+
+def docs_files():
+    for rel in DOC_ROOT_FILES:
+        yield ROOT / rel
+    for path in sorted(ROOT.glob("README.*.md")):            # the translations carry the same copyable one-liners
+        yield path
+    yield from sorted((ROOT / "docs").rglob("*.md"))
+
+
+class DocsCarryForkCommands(unittest.TestCase):
+    """Commands inside code blocks and backticks name `deepstrata`, and install, release and issue addresses
+    name our repository (a 404 until our first release is accepted, and the ghcr images until they are published).
+    Prose keeps saying Strata; the history files keep the upstream addresses they recorded."""
+
+    def test_docs_name_the_fork_command_and_the_fork_addresses(self):
+        offenders = []
+        for path in docs_files():
+            rel = path.relative_to(ROOT).as_posix()
+            if DOC_HISTORY.search(rel) or not path.is_file():
+                continue
+            for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                for m in DOC_CMD.finditer(line):
+                    if (rel == "docs/TERMINAL_LAUNCH.md" and DOC_LABEL in line
+                            or rel in RAW_ENGINE_DOCS and line[m.end():].lstrip().startswith("--")
+                            or DOC_ENGINE_VALUE.search(line[:m.start()])):
+                        continue
+                    offenders.append(f"{rel}: a command says strata: …{line[max(0, m.start() - 40):m.end() + 50]}…")
+                if DOC_UPSTREAM_URL.search(line) and not DOC_URL_KEPT.search(line):
+                    offenders.append(f"{rel}: an address names the upstream repository: {line.strip()[:110]}")
+                for name, pattern in DOC_OLD_FACTS.items():
+                    if pattern.search(line):
+                        offenders.append(f"{rel}: {name} ({pattern.search(line).group(0)!r})")
+        self.assertEqual(offenders, [], "a reader would copy an original-product command or address from these docs:\n" + "\n".join(offenders))
 
 
 if __name__ == "__main__":

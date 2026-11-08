@@ -10,12 +10,12 @@ driver); results from other cards are community reports. The Mac and Windows bui
 
 ## Quick start
 
-Install the [Terminal](INSTALL.md#the-terminal), then point `strata launch` at the folder that holds the model's `.gguf` files
+Install the [Terminal](INSTALL.md#the-terminal), then point `deepstrata launch` at the folder that holds the model's `.gguf` files
 (the Qwen3.8-Flash-Next files from ISTA-DASLab, for example IQ3_S or IQ2_XS):
 
 ```sh
-strata launch --model-path /path/to/the/gguf/folder --plan    # shows what would happen, changes nothing
-strata launch --model-path /path/to/the/gguf/folder
+deepstrata launch --model-path /path/to/the/gguf/folder --plan    # shows what would happen, changes nothing
+deepstrata launch --model-path /path/to/the/gguf/folder
 ```
 
 The first launch does everything itself: it downloads the Intel engine package `linux-x86_64-sycl` from the signed feed, builds the
@@ -23,23 +23,23 @@ pack for your model from the GGUF files (a few minutes, once; it fetches llama.c
 internet that one time), writes the run settings and starts the server. Nothing is installed by hand.
 
 - **A PC with an NVIDIA or AMD card as well** uses that card by default, and `--plan` says the Intel cards exist. To use the Intel cards
-  add `--backend intel` once: the choice is remembered (in the settings file) for the next launch, `strata update` and the app's engine
-  check. `strata launch --backend auto` goes back to the PC's own choice. Nothing is refused either way.
+  add `--backend intel` once: the choice is remembered (in the settings file) for the next launch, `deepstrata update` and the app's engine
+  check. `deepstrata launch --backend auto` goes back to the PC's own choice. Nothing is refused either way.
 - **Models are not downloaded for Intel cards yet.** Give the folder with `--model-path`; Strata does not touch your files.
 - **The draft layer (MTP) is not built for Intel cards**, so answers are a little slower than on a card with the full setup. An
   existing `mtp/rt` folder in the data folder is used.
-- `strata doctor --live` checks the driver, the render group and the card, and `strata update --check` shows the engine package.
+- `deepstrata doctor --live` checks the driver, the render group and the card, and `deepstrata update --check` shows the engine package.
 
-On Linux, `strata update` (Terminal) and Settings > Update (app) download the Intel engine package for a PC
+On Linux, `deepstrata update` (Terminal) and Settings > Update (app) download the Intel engine package for a PC
 whose graphics card is made by Intel. One package serves Alchemist and Battlemage: the GPU code is compiled from SPIR-V at the
 first start, because the A-series cards have no FP64 units. The package carries oneAPI's runtime libraries. The Level Zero
 loader and the compute runtime stay the PC's own (see [What you need](#what-you-need)), and your user must be in the `render`
-group (`strata doctor` says so). It was tested on an Arc A750 and, in 0.2.10, on two Arc Pro B65 cards. The package is built by
+group (`deepstrata doctor` says so). It was tested on an Arc A750 and, in 0.2.10, on two Arc Pro B65 cards. The package is built by
 `packaging/build_sycl_linux.sh`.
 
 The source and container workflow ([INTEL.md](INTEL.md#setup)) still exists for building the engine yourself; the Terminal does not need it.
 
-Docker: the ready-made image is `ghcr.io/niko1221/strata:0.2.3-sycl`, published only for a release that carries a Linux Intel
+Docker: the ready-made image is `ghcr.io/ilfarpro/deepstrata:0.2.3-sycl`, published only for a release that carries a Linux Intel
 engine package. Otherwise [build the image yourself](DOCKER.md#build-it-yourself). The image needs prepared model files
 ([Docker: Intel Arc](DOCKER.md#intel-arc)).
 
@@ -51,8 +51,8 @@ engine package. Otherwise [build the image yourself](DOCKER.md#build-it-yourself
 - **The CPU and the model folder.** The CPU does not need AVX-512. A Ryzen 3000-5000 or an Intel Core 12th-14th generation runs the
   experts that do not fit on the card with AVX2 (measured on an A750 with a Ryzen 5 5600X, [INTEL.md](INTEL.md)). This applies to
   model folders that contain `native_experts.txt` (IQ3_XXS, IQ3_S, NVFP4, Unsloth). An older Q2_0 folder has no such file, and its
-  CPU kernel needs AVX-512. With that folder the engine stops with "this CPU cannot run the expert kernel", and `strata doctor`
-  warns about it before the start. Building the model folder again with `strata setup` (or `tools/iq_pack.py`) fixes it.
+  CPU kernel needs AVX-512. With that folder the engine stops with "this CPU cannot run the expert kernel", and `deepstrata doctor`
+  warns about it before the start. Building the model folder again with `deepstrata setup` (or `tools/iq_pack.py`) fixes it.
 - For a source build without Docker: **Intel oneAPI** with the DPC++ compiler (`icpx`, 2025.3 or newer) and **oneMKL**
   (about 5 GB), `cmake` 3.24+, `ninja`, `git`, Python 3. The build fetches ggml unless you point `STRATA_GGML_DIR` at a
   llama.cpp checkout.
@@ -68,10 +68,10 @@ engine package. Otherwise [build the image yourself](DOCKER.md#build-it-yourself
 
 ## Build with Docker (what `setup --backend sycl` uses)
 
-About 10 minutes the first time. From the checkout, called `Strata` here:
+About 10 minutes the first time. From the checkout, called `DeepStrata` here:
 
 ```sh
-cd Strata
+cd DeepStrata
 docker build --pull -t strata-sycl-dev sycl/tools     # once: about 6 minutes, a 13 GB image
 H=$(basename "$PWD")
 # Arc B-series: bmg-g31 (Pro B70), bmg-g21 (B580, B570, Pro B60). Arc A-series (Alchemist): leave out AOT (JIT) and use build-sycl

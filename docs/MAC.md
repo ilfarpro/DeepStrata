@@ -14,7 +14,7 @@ own engine, separate from the Qwen one described on this page.
 
 There are two ways in:
 
-- **The Strata app (`.dmg`) and the Terminal (`strata launch`).** The Metal engine comes ready-made: the `.dmg` has it inside and
+- **The Strata app (`.dmg`) and the Terminal (`deepstrata launch`).** The Metal engine comes ready-made: the `.dmg` has it inside and
   the Terminal fetches it as an engine component. Nothing is built on your Mac and you need no Command Line Tools. If macOS says
   the app is "damaged", see [Troubleshooting](TROUBLESHOOTING.md#the-desktop-app-and-the-terminal). How the builds are signed:
   [packaging/mac/README.md](../packaging/mac/README.md).
@@ -82,7 +82,7 @@ For everyday use follow [the app or Terminal installation](INSTALL.md). The comm
 builds the Metal engine locally.
 
 ```sh
-git clone https://github.com/Niko1221/Strata && cd Strata
+git clone https://github.com/ilfarpro/DeepStrata && cd DeepStrata
 ./setup.sh                 # asks the size; --yes takes the recommended answers
 ```
 
@@ -105,7 +105,7 @@ What the first run does (each step is skipped when it is already done):
 
 After that, `./setup.sh` or `./run-q2_0.sh` starts the model directly. The server is the same as on a PC: the OpenAI-compatible
 API on `http://127.0.0.1:8080/v1`, the Anthropic API on `/v1/messages`; the address itself is an API index, and
-`strata ui` opens the chat page (the App Host) in a browser.
+`deepstrata ui` opens the chat page (the App Host) in a browser.
 
 | Option | Meaning |
 | --- | --- |
@@ -117,9 +117,9 @@ API on `http://127.0.0.1:8080/v1`, the Anthropic API on `/v1/messages`; the addr
 | `--data-dir`, `--models-dir`, `--gguf-dir` | Where files go, or where yours are. |
 | `--setup`, `--no-start`, `--check`, `--build` | Choose another model or settings; install only; only check the Mac; build the engine again. |
 
-### The desktop app and `strata launch` on a Mac
+### The desktop app and `deepstrata launch` on a Mac
 
-The app and `strata launch` build nothing. The Metal engine comes ready-made as an engine component, from the update feed or
+The app and `deepstrata launch` build nothing. The Metal engine comes ready-made as an engine component, from the update feed or
 inside the app's installer. The model install is `setup.py` in its Control mode (`STRATA_CONTROL_INSTALL=1`). It downloads, or
 uses with `--gguf-dir`, and prepares the model files, and writes a run config whose engine is `component:strata-engine`. It does
 not run `metal/setup_mac.py`, needs no Command Line Tools, and writes the same Metal flags.

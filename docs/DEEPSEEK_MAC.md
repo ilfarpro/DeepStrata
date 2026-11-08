@@ -1,7 +1,7 @@
 # DeepSeek-V4.1-Flash on a Mac
 
 DeepSeek-V4.1-Flash runs on Apple Silicon Macs on its own Metal engine, `strata-dsv41`. It is a separate download from the
-Qwen engine: the app and `strata launch` fetch it the first time you pick DeepSeek. This page lists what it needs, what it did
+Qwen engine: the app and `deepstrata launch` fetch it the first time you pick DeepSeek. This page lists what it needs, what it did
 on the one Mac it was measured on, and what it cannot do yet.
 
 > **Short version:** a Mac with 64 GB of memory or more, macOS 15 or newer, and 260 to 280 GB of free disk on a fast drive.
@@ -24,8 +24,8 @@ In the app: Models, DeepSeek-V4.1-Flash, pick 2.00 bpw (the default) or 2.25 bpw
 In the Terminal:
 
 ```sh
-strata launch --family deepseek41 --model ist-das-2.00bpw --plan     # what it would do on this Mac
-strata launch --family deepseek41 --model ist-das-2.00bpw
+deepstrata launch --family deepseek41 --model ist-das-2.00bpw --plan     # what it would do on this Mac
+deepstrata launch --family deepseek41 --model ist-das-2.00bpw
 ```
 
 Setup downloads the set from Hugging Face (pinned revision, size and SHA-256 checked, resumable), builds the pack (a few MB),

@@ -21,6 +21,6 @@ The transport tests use an existing mock engine and scripted tool response. They
 
 ## Browser layout checks
 
-Rendering belongs to the chat page now (the App Host's, opened by `strata ui`), and its own layout checks live with it.
+Rendering belongs to the chat page now (the App Host's, opened by `deepstrata ui`), and its own layout checks live with it.
 What the server still owes is the transport, which the tests above cover without a GPU: with a configured image MCP
 fixture and the mock engine, a missing cache may remove the picture but must not prevent the next text turn.

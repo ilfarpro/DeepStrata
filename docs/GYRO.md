@@ -18,7 +18,7 @@ you care.
 ## Quick start
 
 ```sh
-strata launch --family gyro --model Gyro-S      # or Gyro-M
+deepstrata launch --family gyro --model Gyro-S      # or Gyro-M
 ```
 
 Setup downloads the pinned revision of the file (size and SHA-256 checked) and prepares the pack
@@ -114,7 +114,7 @@ together are short.
 the first-release files of Gyro-S and Gyro-M (same size as the pinned ones, different SHA-256). The pinned Gyro-S passes
 the same parity run (16 cases, 0 failures) and answers correctly through the server. It was not compared with CUDA.
 
-**Not tested by us:** a B-series card (`strata launch` says it is new and how to report a problem), two Arc cards (the
+**Not tested by us:** a B-series card (`deepstrata launch` says it is new and how to report a problem), two Arc cards (the
 second-card expert helper refuses a Gyro pack and says so) and an Arc on the xe driver. The Battlemage AOT build
 (`bmg-g31`) compiles with the trellis kernels but was not run.
 
@@ -181,7 +181,7 @@ Hadamard-folded pack. What a Mac needs, the measured speeds on a 32 GB Mac mini 
 ./setup.sh --family gyro --model Gyro-S
 ```
 
-The app and `strata launch` list it under Gyro models.
+The app and `deepstrata launch` list it under Gyro models.
 
 ## Install by hand
 

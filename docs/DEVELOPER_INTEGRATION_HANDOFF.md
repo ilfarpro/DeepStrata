@@ -25,7 +25,7 @@ Desktop calibration now creates an owner-only journal receipt before launching m
 
 The normal setup dependency list now excludes CMake and Ninja. A local engine or image-encoder compile installs only missing pinned helpers from `requirements-build.txt`; existing system tools can be used offline. The dependency boundary passed focused Python 3.10 and 3.11 tests, and 92 hardware-independent setup checks passed on macOS. `doctor` reports the optional Textual monitor as missing, pinned-version present or version-unverified without importing it into serving. A fresh ready-made-engine install and local compile still need Windows/Linux qualification.
 
-Foreground `strata serve --output jsonl` now emits versioned starting, ready, stopping, draining and stopped records while human diagnostics remain on stderr. The fake-engine subprocess test generated one response and checked JSON-only stdout and exit codes for both SIGTERM (0) and Ctrl-C (130). All 43 parser leaves offering human/JSON output expose `--json`; focused source and portable-client tests check the shortcut and streaming rejection. Both clients reject JSON monitor output without `--once` before opening a connection. `--quiet` suppresses successful human output, keeps failures on stderr and retains JSON/JSONL records; a fake-engine process test checked quiet JSONL serving through one generation request. The direct legacy server entry point retains its existing human output. Windows console-stop and real-engine lifecycle qualification remain open.
+Foreground `deepstrata serve --output jsonl` now emits versioned starting, ready, stopping, draining and stopped records while human diagnostics remain on stderr. The fake-engine subprocess test generated one response and checked JSON-only stdout and exit codes for both SIGTERM (0) and Ctrl-C (130). All 43 parser leaves offering human/JSON output expose `--json`; focused source and portable-client tests check the shortcut and streaming rejection. Both clients reject JSON monitor output without `--once` before opening a connection. `--quiet` suppresses successful human output, keeps failures on stderr and retains JSON/JSONL records; a fake-engine process test checked quiet JSONL serving through one generation request. The direct legacy server entry point retains its existing human output. Windows console-stop and real-engine lifecycle qualification remain open.
 
 The terminal renderer now clips sanitized remote labels by display cells and pads fixed columns with display width. Focused cases cover combining marks, CJK device and request labels, regional-indicator flags and joined emoji across 110-, 80-, 60- and 40-column layouts. Bidi controls remain excluded. This is a stdlib fallback; ambiguous-width rendering still depends on the operator's terminal.
 
@@ -56,7 +56,7 @@ Owner's UI controls           CLI operator commands          Monitor TUI
                                |
                     model pack + backend + telemetry
 
-Desktop Chat -------- shared harness session/approval service -------- strata code
+Desktop Chat -------- shared harness session/approval service -------- deepstrata code
 ```
 
 The source-run CLI and a trusted Desktop host can call the same typed runtime path through `strata_control.management`; see `docs/MANAGEMENT_PROTOCOL.md` for the one-shot local JSON contract. Desktop start must take the profile revision and source digest from `runtime.start.plan`; the bridge checks both before journaling and the owner host checks them again before engine launch. Reviewed Stop and Restart commands pin the owner and instance IDs shown by their plans, checked again inside the owner before drain. Restart also pins the candidate profile revision and source digest. The imported Node host now has an internal `native-runtime.mjs` child-process adapter and an opt-in `/api/native/runtime` route for one host-configured saved profile. Native mode shows Serving, Monitor, Models, Profile and Components. Serving presents owner status and reviewed Start/Stop/Restart/Verify; a 90-second single-use server-side plan pins the action. Verify also pins the reviewed owner and instance IDs, rechecked inside the owner before an optional one-token generation; loading an unloaded model is a separate explicit choice. Monitor reads bounded `/v1/telemetry` from the owned local instance, checks its instance ID and keeps the read-only key on the host. Components calls `components.inspect` through the same Python management bridge as the CLI, bounds fields before browser delivery and runs the host GPU probe only after a manual request. Models calls `models.installed`, `models.inspect` and `models.import.plan` through that bridge; the browser sees bounded report fields and never receives a claim of verified engine compatibility. Profile reads the saved profile and installed run configs, then uses a single-use server-side review; Python rechecks the old revision and source digest before saving, and the running instance remains unchanged until a separate reviewed restart. A changed source or edited config triggers an explicit source-change review in Serving before the owner drains the old instance. The route requires a loopback bind and local Host/Origin, and action POSTs need JSON plus a custom header. This is a local preview boundary, not audited Desktop authentication. With `STRATA_NATIVE_PROFILE` set, all prototype HTTP mutations and `/v1` inference are rejected, the prototype monitor sampler is not started, and `STRATA_REAL_ENGINE=1` is incompatible. Its separate browser profile store and remaining prototype views must be mapped or retired after parity checks. There is one lifecycle authority per runtime instance. Every operation has an instance/profile ID, owner, plan, progress events, result, cancellation policy and audit record. The UI and CLI are clients of that authority; neither builds a second installer or calls arbitrary shell strings from a browser request. A monitor credential grants `/v1/telemetry` only. An inference credential cannot install, calibrate or run commands. Partner hosts such as Unsloth own their registered Strata runtime lifecycle through the separate host adapter contract.
@@ -70,97 +70,97 @@ An owner should be able to choose a saved serving profile, edit its model/device
 **Proposed public grammar (target, not all implemented):**
 
 ```text
-strata profile list
-strata profile create four-gpu --from-config CONFIG.json
-strata profile show four-gpu --effective --output json
-strata profile edit four-gpu
-strata profile set four-gpu parallel=8 max_queue=32 queue_timeout=15 batch_telemetry=true
-strata profile set four-gpu parallel=8 --plan
-strata profile use-config four-gpu --from-config /absolute/path/next-model.json --plan
-strata profile use-config four-gpu --from-config /absolute/path/next-model.json --if-revision PROFILE_REVISION
-strata profile validate four-gpu
-strata profile history four-gpu
-strata profile rollback four-gpu --to REVISION
+deepstrata profile list
+deepstrata profile create four-gpu --from-config CONFIG.json
+deepstrata profile show four-gpu --effective --output json
+deepstrata profile edit four-gpu
+deepstrata profile set four-gpu parallel=8 max_queue=32 queue_timeout=15 batch_telemetry=true
+deepstrata profile set four-gpu parallel=8 --plan
+deepstrata profile use-config four-gpu --from-config /absolute/path/next-model.json --plan
+deepstrata profile use-config four-gpu --from-config /absolute/path/next-model.json --if-revision PROFILE_REVISION
+deepstrata profile validate four-gpu
+deepstrata profile history four-gpu
+deepstrata profile rollback four-gpu --to REVISION
 ```
 
 Read-only monitor connections are separate from serving profiles. They store a server root, an optional proxy prefix and a credential environment-variable **name**, never its value:
 
 ```text
-strata connection create work --url https://HOST --prefix /strata --credential-env STRATA_TELEMETRY_KEY
-strata connection set work prefix=/new-strata --plan
-strata connection set work prefix=/new-strata --if-revision CONNECTION_REVISION
+deepstrata connection create work --url https://HOST --prefix /strata --credential-env STRATA_TELEMETRY_KEY
+deepstrata connection set work prefix=/new-strata --plan
+deepstrata connection set work prefix=/new-strata --if-revision CONNECTION_REVISION
 strata config show --effective --connection work --output json
-strata status --connection work --output json
-strata monitor --connection work
+deepstrata status --connection work --output json
+deepstrata monitor --connection work
 strata logs --connection work --source runtime --follow --output jsonl
 ```
 
 Runtime and calibration:
 
 ```text
-strata runtime start --profile four-gpu --plan
-strata runtime start --profile four-gpu
-strata runtime restart --profile four-gpu --plan
-strata runtime restart --profile four-gpu --startup-wait 300
-strata runtime restart --profile four-gpu --allow-source-switch --plan
-strata runtime restart --profile four-gpu --allow-source-switch --if-profile-revision NEW_PROFILE_REVISION --if-source-sha256 CANDIDATE_SOURCE_SHA256 --if-owner-id CURRENT_OWNER_ID --if-instance-id CURRENT_INSTANCE_ID
-strata runtime restart --profile four-gpu --allow-source-migration --plan
-strata runtime restart --profile four-gpu --allow-source-migration --if-profile-revision PROFILE_REVISION --if-source-sha256 CANDIDATE_SOURCE_SHA256 --if-owner-id CURRENT_OWNER_ID --if-instance-id CURRENT_INSTANCE_ID
-strata runtime status --profile four-gpu --output json
-strata runtime verify --profile four-gpu --wait 300 --output json
-strata runtime verify --profile four-gpu --load --wait 300 --output json
-strata runtime stop --profile four-gpu --plan
-strata runtime stop --profile four-gpu --if-owner-id OWNER_ID --if-instance-id INSTANCE_ID
-strata runtime stop --profile four-gpu
+deepstrata runtime start --profile four-gpu --plan
+deepstrata runtime start --profile four-gpu
+deepstrata runtime restart --profile four-gpu --plan
+deepstrata runtime restart --profile four-gpu --startup-wait 300
+deepstrata runtime restart --profile four-gpu --allow-source-switch --plan
+deepstrata runtime restart --profile four-gpu --allow-source-switch --if-profile-revision NEW_PROFILE_REVISION --if-source-sha256 CANDIDATE_SOURCE_SHA256 --if-owner-id CURRENT_OWNER_ID --if-instance-id CURRENT_INSTANCE_ID
+deepstrata runtime restart --profile four-gpu --allow-source-migration --plan
+deepstrata runtime restart --profile four-gpu --allow-source-migration --if-profile-revision PROFILE_REVISION --if-source-sha256 CANDIDATE_SOURCE_SHA256 --if-owner-id CURRENT_OWNER_ID --if-instance-id CURRENT_INSTANCE_ID
+deepstrata runtime status --profile four-gpu --output json
+deepstrata runtime verify --profile four-gpu --wait 300 --output json
+deepstrata runtime verify --profile four-gpu --load --wait 300 --output json
+deepstrata runtime stop --profile four-gpu --plan
+deepstrata runtime stop --profile four-gpu --if-owner-id OWNER_ID --if-instance-id INSTANCE_ID
+deepstrata runtime stop --profile four-gpu
 
-strata engine calibrate --profile four-gpu --plan
-strata engine calibrate --profile four-gpu --measure --exclusive --out CALIBRATION_REPORT
-strata engine calibrate --profile four-gpu --review-result CALIBRATION_REPORT
-strata engine calibrate --profile four-gpu --apply-result CALIBRATION_REPORT --exclusive
-strata engine calibrate --profile four-gpu --review-rollback CALIBRATION_REPORT
-strata engine calibrate --profile four-gpu --rollback-result CALIBRATION_REPORT --exclusive
-strata doctor --profile four-gpu --components --output json
-strata doctor --profile four-gpu --live --output json
-strata components verify --profile four-gpu
-strata models list --installed --output json
-strata models inspect MODEL_ID --output json
-strata models list --served --connection work --output json
-strata models import /absolute/path/to/GGUF-directory --plan --output json
-strata bench run --profile four-gpu --require-managed-match --suite serving-smoke --concurrency 8 --out RESULTS
-strata bench run --profile four-gpu --suite parallel-overload-v1 --concurrency 48 --out OVERLOAD_RESULTS
-strata bench run --profile four-gpu --suite parallel-cancel-v1 --concurrency 8 --out CANCEL_RESULTS
-strata bench run --profile four-gpu --suite parallel-prefill-cancel-v1 --concurrency 8 --out PREFILL_CANCEL_RESULTS
-strata bench report RESULTS --output json
-strata bench compare BASELINE_RESULTS MONITORED_RESULTS --output json
-strata bench report RESULTS --output markdown --out NEW_REPORT.md
-strata bench compare BASELINE_RESULTS MONITORED_RESULTS --output markdown --out NEW_COMPARISON.md
+deepstrata engine calibrate --profile four-gpu --plan
+deepstrata engine calibrate --profile four-gpu --measure --exclusive --out CALIBRATION_REPORT
+deepstrata engine calibrate --profile four-gpu --review-result CALIBRATION_REPORT
+deepstrata engine calibrate --profile four-gpu --apply-result CALIBRATION_REPORT --exclusive
+deepstrata engine calibrate --profile four-gpu --review-rollback CALIBRATION_REPORT
+deepstrata engine calibrate --profile four-gpu --rollback-result CALIBRATION_REPORT --exclusive
+deepstrata doctor --profile four-gpu --components --output json
+deepstrata doctor --profile four-gpu --live --output json
+deepstrata components verify --profile four-gpu
+deepstrata models list --installed --output json
+deepstrata models inspect MODEL_ID --output json
+deepstrata models list --served --connection work --output json
+deepstrata models import /absolute/path/to/GGUF-directory --plan --output json
+deepstrata bench run --profile four-gpu --require-managed-match --suite serving-smoke --concurrency 8 --out RESULTS
+deepstrata bench run --profile four-gpu --suite parallel-overload-v1 --concurrency 48 --out OVERLOAD_RESULTS
+deepstrata bench run --profile four-gpu --suite parallel-cancel-v1 --concurrency 8 --out CANCEL_RESULTS
+deepstrata bench run --profile four-gpu --suite parallel-prefill-cancel-v1 --concurrency 8 --out PREFILL_CANCEL_RESULTS
+deepstrata bench report RESULTS --output json
+deepstrata bench compare BASELINE_RESULTS MONITORED_RESULTS --output json
+deepstrata bench report RESULTS --output markdown --out NEW_REPORT.md
+deepstrata bench compare BASELINE_RESULTS MONITORED_RESULTS --output markdown --out NEW_COMPARISON.md
 ```
 
 Operation recipes:
 
 ```text
-strata ops init --profile four-gpu
-strata ops list --profile four-gpu
-strata ops show restart --profile four-gpu
-strata ops edit restart --profile four-gpu
-strata ops set restart --profile four-gpu startup_wait_s=45
-strata ops plan restart --profile four-gpu
-strata ops run restart --profile four-gpu \
+deepstrata ops init --profile four-gpu
+deepstrata ops list --profile four-gpu
+deepstrata ops show restart --profile four-gpu
+deepstrata ops edit restart --profile four-gpu
+deepstrata ops set restart --profile four-gpu startup_wait_s=45
+deepstrata ops plan restart --profile four-gpu
+deepstrata ops run restart --profile four-gpu \
   --if-revision RECIPE_REV --if-profile-revision PROFILE_REV \
   --if-owner-id CURRENT_OWNER_ID --if-instance-id CURRENT_INSTANCE_ID \
   --if-source-sha256 CANDIDATE_SOURCE_SHA256
-strata ops run check --profile four-gpu
-strata ops set check --profile four-gpu live=true
-strata ops plan check --profile four-gpu
-strata ops run check --profile four-gpu
-strata ops set calibrate --profile four-gpu report_dir=/private/path/reports
-strata ops plan calibrate --profile four-gpu
-strata ops run calibrate --profile four-gpu --exclusive
-strata ops runs --profile four-gpu --limit 20 --output json
-strata ops result OPERATION_ID --profile four-gpu --output json
+deepstrata ops run check --profile four-gpu
+deepstrata ops set check --profile four-gpu live=true
+deepstrata ops plan check --profile four-gpu
+deepstrata ops run check --profile four-gpu
+deepstrata ops set calibrate --profile four-gpu report_dir=/private/path/reports
+deepstrata ops plan calibrate --profile four-gpu
+deepstrata ops run calibrate --profile four-gpu --exclusive
+deepstrata ops runs --profile four-gpu --limit 20 --output json
+deepstrata ops result OPERATION_ID --profile four-gpu --output json
 ```
 
-**Implemented now (source run):** `serve`, `status`, `monitor`, `logs` (bounded redacted request activity), saved `profile` edits/revisions/rollback, typed `ops` recipes with a bounded local recipe/direct-operation journal, `doctor`, `components verify`, local setup-config `models list --installed` and `models inspect MODEL_ID`, read-only `models list --served` and `models import PATH --plan`, calibration plan/measure/review/apply/rollback, `bench run`/`bench report`/`bench compare`, and POSIX `runtime` start/status/verify/restart/stop. The model commands read only top-level `strata-*.json` configs, include malformed candidates, and return local component presence separately from unverified engine compatibility. The served list reports only the current instance from telemetry. The import preview checks shard names, presence, bounded GGUF v3 architecture/tokenizer metadata, tensor-directory payload extents/overlaps and observed routed-expert encodings, then matches names to supported setup selections without adopting or copying files. A candidate selection still does not prove whole-file integrity, provenance, model-pack suitability or an engine load; actual adoption remains to be implemented. Serve previews settings. Optional `doctor --live` and `components verify --live` query a bounded NVIDIA host inventory and flag selected card indices that are absent. The typed `components.verify` recipe can save `live=true` for the same check. Card inventory and driver strings do not prove engine/backend compatibility, physical topology or model hashes; HIP and other live probes remain unqualified. The optional `max_queue` cap and `queue_timeout` deadline bound admitted calls and their wait for the first engine turn; the monitor shows the cap, rejections, deadline, timeout count, oldest wait and observed client-disconnect cancellations. The deadline requires a queue cap. Nonstreaming timeouts return HTTP 429; streams receive API-specific error events after headers. A disconnected serial request now leaves the bounded FIFO wait promptly. Calibration measures decode speed, then smoke-tests and saves the prior config and setup settings before apply. A separate rollback review checks exact applied-state hashes; rollback smoke-tests the previous config and restores both stores when they are unchanged. `--exclusive` remains an owner assertion. On POSIX, managed owner hosts and foreground `strata serve` hold a shared local activity lease; calibration measure, apply and rollback take its exclusive lease, scan owner records including uncertain state, and check the configured port. This prevents overlap among those new launch paths even on different ports. Direct legacy server launches, unrelated GPU processes and Windows control remain outside this lease. A calibration recipe only creates a new measurement report; review/apply/rollback remain separate explicit commands. The native Desktop Benchmarks screen now reviews an exact suite, concurrency, repeats, timeout, condition and new output directory against a loaded managed instance. A single-use review pins profile revision, source digest, owner and telemetry instance; execution rechecks them before calling the shared `bench.run` implementation. The screen polls a host job and opens the saved report, including failed and incomplete phase evidence. Reports retain the planned phase sequence; an interrupted or short run cannot claim success or enter a successful comparison. A malformed postflight telemetry response also leaves a failed report instead of a stale running record. A private phase progress record and the final report persist across a Desktop host restart. The browser session retains their path and can read them through the shared management bridge; the exact-run saved-profile lease check distinguishes a process still holding that output path from one that released it. Stale progress alone does not establish liveness or work advancing. Saved-profile CLI and Desktop benchmark runs share that local lease to refuse overlapping workloads. Exact-run operator cancellation and durable Desktop benchmark receipts are implemented locally; Windows recovery needs target qualification. The serving benchmark can export a local Markdown summary and a workload-checked comparison with explicit measurement limits; these exports omit the server address, credentials, prompts and answers and never publish automatically. The serving benchmark records client latency/TTFT, a short operator condition label, and sampled slots, groups, queues and devices without prompt/answer content. Read-only `bench compare` pairs saved runs only when suite, model, request fingerprints, concurrency, source digest and available reported environment agree. Its median phase deltas remain provisional. An opt-in `bench run --require-managed-match` checks the local POSIX owner host, saved profile/source revision, launch attestation, API endpoint and telemetry instance before and after the workload. A preflight mismatch refuses the workload; a postflight mismatch leaves a failed report. A successful managed report is labelled `managed_launch_checked`, while ordinary foreground/remote runs remain `unverified`. The checkpoint match is not continuous attestation, and monitor attachment, driver, engine and model hashes remain unverified. An explicit overload suite synchronizes up to 64 clients, separates expected rejections/timeouts from unexpected failures and checks recovery. The active/queued cancellation suite closes an active stream after first content and a queued stream behind occupied slots. A separate prefill cancellation suite closes a target only after correlated batch-slot telemetry shows partial prompt reading, while a companion decodes. Both check disconnect observation, companion completion, settled resources and recovery. The active/queued suite passed with mock and fake batched engines; the prefill suite passed with the fake batched engine. These source-run checks are not sustained four-card qualification. The POSIX host controls only its own child and restores the prior launch arguments after failed activation. After a hard host kill, its server receives an inherited-pipe parent-loss signal; a subsequent start verifies the host's lease is gone and the recorded child has exited before reclaiming stale private state. A missing/ambiguous ownership record or active socket still needs inspection. An owner can now point a saved profile to a separate run-config file with `profile use-config`, preview the source switch and restart with `--allow-source-switch` plus the candidate SHA-256. For an ordinary file switch, the old regular source must remain byte-for-byte unchanged for rollback. An in-place edit needs `--allow-source-migration` and the previewed candidate SHA-256: before drain the POSIX owner stores the running config bytes in its private directory, and failed activation relaunches from that snapshot without overwriting the edited file. A successful activation retires the snapshot. A hard-linked source remains disallowed; a changed candidate digest is rejected before drain. Start and restart verify the ready-file identity through authenticated local telemetry and a generation request with at least one completion token before reporting a loaded model ready; a deliberately lazy model is reported as unloaded without forcing a load. `runtime verify` rechecks an owned instance, and `--load` explicitly tests an unloaded model. These checks use a local API key in memory and put no generated text in the operation journal; the optional API monitor can capture the fixed probe request. A one-token smoke check does not establish answer quality or sustained throughput. The managed POSIX host now compares a private server-reported MAC of the config bytes and launch arguments with the launch it requested before reporting ready. This binds the running server to that launch, but does not prove model-file hashes, GPU topology or post-start external changes. **Still target:** Windows owner IPC/ACL, journal coverage for remaining direct management commands and the shared Desktop service, sustained hardware overload qualification and signed cross-platform release packaging. No real-model or four-card result exists.
+**Implemented now (source run):** `serve`, `status`, `monitor`, `logs` (bounded redacted request activity), saved `profile` edits/revisions/rollback, typed `ops` recipes with a bounded local recipe/direct-operation journal, `doctor`, `components verify`, local setup-config `models list --installed` and `models inspect MODEL_ID`, read-only `models list --served` and `models import PATH --plan`, calibration plan/measure/review/apply/rollback, `bench run`/`bench report`/`bench compare`, and POSIX `runtime` start/status/verify/restart/stop. The model commands read only top-level `strata-*.json` configs, include malformed candidates, and return local component presence separately from unverified engine compatibility. The served list reports only the current instance from telemetry. The import preview checks shard names, presence, bounded GGUF v3 architecture/tokenizer metadata, tensor-directory payload extents/overlaps and observed routed-expert encodings, then matches names to supported setup selections without adopting or copying files. A candidate selection still does not prove whole-file integrity, provenance, model-pack suitability or an engine load; actual adoption remains to be implemented. Serve previews settings. Optional `doctor --live` and `components verify --live` query a bounded NVIDIA host inventory and flag selected card indices that are absent. The typed `components.verify` recipe can save `live=true` for the same check. Card inventory and driver strings do not prove engine/backend compatibility, physical topology or model hashes; HIP and other live probes remain unqualified. The optional `max_queue` cap and `queue_timeout` deadline bound admitted calls and their wait for the first engine turn; the monitor shows the cap, rejections, deadline, timeout count, oldest wait and observed client-disconnect cancellations. The deadline requires a queue cap. Nonstreaming timeouts return HTTP 429; streams receive API-specific error events after headers. A disconnected serial request now leaves the bounded FIFO wait promptly. Calibration measures decode speed, then smoke-tests and saves the prior config and setup settings before apply. A separate rollback review checks exact applied-state hashes; rollback smoke-tests the previous config and restores both stores when they are unchanged. `--exclusive` remains an owner assertion. On POSIX, managed owner hosts and foreground `deepstrata serve` hold a shared local activity lease; calibration measure, apply and rollback take its exclusive lease, scan owner records including uncertain state, and check the configured port. This prevents overlap among those new launch paths even on different ports. Direct legacy server launches, unrelated GPU processes and Windows control remain outside this lease. A calibration recipe only creates a new measurement report; review/apply/rollback remain separate explicit commands. The native Desktop Benchmarks screen now reviews an exact suite, concurrency, repeats, timeout, condition and new output directory against a loaded managed instance. A single-use review pins profile revision, source digest, owner and telemetry instance; execution rechecks them before calling the shared `bench.run` implementation. The screen polls a host job and opens the saved report, including failed and incomplete phase evidence. Reports retain the planned phase sequence; an interrupted or short run cannot claim success or enter a successful comparison. A malformed postflight telemetry response also leaves a failed report instead of a stale running record. A private phase progress record and the final report persist across a Desktop host restart. The browser session retains their path and can read them through the shared management bridge; the exact-run saved-profile lease check distinguishes a process still holding that output path from one that released it. Stale progress alone does not establish liveness or work advancing. Saved-profile CLI and Desktop benchmark runs share that local lease to refuse overlapping workloads. Exact-run operator cancellation and durable Desktop benchmark receipts are implemented locally; Windows recovery needs target qualification. The serving benchmark can export a local Markdown summary and a workload-checked comparison with explicit measurement limits; these exports omit the server address, credentials, prompts and answers and never publish automatically. The serving benchmark records client latency/TTFT, a short operator condition label, and sampled slots, groups, queues and devices without prompt/answer content. Read-only `bench compare` pairs saved runs only when suite, model, request fingerprints, concurrency, source digest and available reported environment agree. Its median phase deltas remain provisional. An opt-in `bench run --require-managed-match` checks the local POSIX owner host, saved profile/source revision, launch attestation, API endpoint and telemetry instance before and after the workload. A preflight mismatch refuses the workload; a postflight mismatch leaves a failed report. A successful managed report is labelled `managed_launch_checked`, while ordinary foreground/remote runs remain `unverified`. The checkpoint match is not continuous attestation, and monitor attachment, driver, engine and model hashes remain unverified. An explicit overload suite synchronizes up to 64 clients, separates expected rejections/timeouts from unexpected failures and checks recovery. The active/queued cancellation suite closes an active stream after first content and a queued stream behind occupied slots. A separate prefill cancellation suite closes a target only after correlated batch-slot telemetry shows partial prompt reading, while a companion decodes. Both check disconnect observation, companion completion, settled resources and recovery. The active/queued suite passed with mock and fake batched engines; the prefill suite passed with the fake batched engine. These source-run checks are not sustained four-card qualification. The POSIX host controls only its own child and restores the prior launch arguments after failed activation. After a hard host kill, its server receives an inherited-pipe parent-loss signal; a subsequent start verifies the host's lease is gone and the recorded child has exited before reclaiming stale private state. A missing/ambiguous ownership record or active socket still needs inspection. An owner can now point a saved profile to a separate run-config file with `profile use-config`, preview the source switch and restart with `--allow-source-switch` plus the candidate SHA-256. For an ordinary file switch, the old regular source must remain byte-for-byte unchanged for rollback. An in-place edit needs `--allow-source-migration` and the previewed candidate SHA-256: before drain the POSIX owner stores the running config bytes in its private directory, and failed activation relaunches from that snapshot without overwriting the edited file. A successful activation retires the snapshot. A hard-linked source remains disallowed; a changed candidate digest is rejected before drain. Start and restart verify the ready-file identity through authenticated local telemetry and a generation request with at least one completion token before reporting a loaded model ready; a deliberately lazy model is reported as unloaded without forcing a load. `runtime verify` rechecks an owned instance, and `--load` explicitly tests an unloaded model. These checks use a local API key in memory and put no generated text in the operation journal; the optional API monitor can capture the fixed probe request. A one-token smoke check does not establish answer quality or sustained throughput. The managed POSIX host now compares a private server-reported MAC of the config bytes and launch arguments with the launch it requested before reporting ready. This binds the running server to that launch, but does not prove model-file hashes, GPU topology or post-start external changes. **Still target:** Windows owner IPC/ACL, journal coverage for remaining direct management commands and the shared Desktop service, sustained hardware overload qualification and signed cross-platform release packaging. No real-model or four-card result exists.
 
 `profile edit` and `ops edit` use the configured editor on temporary JSON copies; validation and atomic replacement protect saved revisions. Invalid drafts remain available for repair. `profile set` and `ops set` supply typed edits and no-write previews. Recipe history and rollback are implemented locally. The developer must connect Desktop to the same schema and authority. Effective previews must show provenance, executable/argv and effects. The current preview covers local serving and recipe operations. The local journal records recipe runs and saved-profile direct runtime start/verify/restart/stop and calibration measure/apply/rollback with typed intent, start/end events and compact results; unfinished records have unverified completion. Explicit run-config path calibration and Desktop still need the shared lifecycle authority and journal.
 
@@ -225,7 +225,7 @@ One acceptance scenario should run mixed short and long requests at a recorded p
 | Desktop Serving / Monitor | Same versioned telemetry used by terminal; API connection details | Show batch group occupancy, in-flight/occupied/waiting/queued counts and four per-card readings without invented stage mappings. |
 | CLI | Scriptable typed operations above | Same validation and results as UI, with stable exit codes and clean JSON/JSONL. |
 | TUI monitor | Read-only telemetry, request/group/device panes | Show operation status from telemetry if exposed, but never execute a restart/calibration from a monitor key. Offer copyable CLI guidance when useful. |
-| `strata code` | Shared harness session and approval service | Local workspace/tool authority is separate from remote inference credentials. |
+| `deepstrata code` | Shared harness session and approval service | Local workspace/tool authority is separate from remote inference credentials. |
 
 Terminal styling should match the supplied UI's restrained green/neutral hierarchy and terminology. The terminal font is user-controlled; no font installation is required. The current wide, four-stage, sampled-batching, 80-column serving, recent-detail and slot-detail previews under `Strata-TUI-CLI/docs/terminal-previews/`, plus the six-view screenshots in `output/terminal-screenshots/`, use fixture values and are not hardware results. The six-view captures use the dark theme with color enabled; the actual monitor still honors `NO_COLOR` when set by an operator.
 
@@ -237,7 +237,7 @@ Terminal styling should match the supplied UI's restrained green/neutral hierarc
 2. **Shared runtime and profile contract.** Extract pure validate/start from `setup.py` and `serve/server.py`; define profile schema and effective-value resolver. Preserve legacy launchers and APIs. Add owner-only management access, operation journal and ready/instance identity.
 3. **Operator operations.** Implement profile edit/validate, restart, calibration plan/apply, doctor/components and benchmark hooks as typed operations. Split `setup.py` calibration measurement from its current update/config-write/start side effects. Add atomic config revisions and rollback.
 4. **Front-end wiring.** Connect the supplied UI's Tuning, Overview, Models and Serving screens to the same operation and telemetry contracts. Connect the milestone CLI to management and package the TUI independently. Integrate the supplied TUI only after comparing behavior and dependencies; do not ship two terminal frameworks.
-5. **Harness and release.** Wire the supplied DeepSeek-derived harness to Desktop and `strata code` with shared sessions/approvals. Build verified Desktop and lean Server distributions and optional components. Keep host-native runtime work in its own adapter milestone.
+5. **Harness and release.** Wire the supplied DeepSeek-derived harness to Desktop and `deepstrata code` with shared sessions/approvals. Build verified Desktop and lean Server distributions and optional components. Keep host-native runtime work in its own adapter milestone.
 6. **Qualification.** Run clean Windows/Linux installs, offline starts, management permissions, interruption/rollback and hardware tests. On the intended 4 x RTX 6000 host, record exact card generation, driver, model and topology; compare a defined mixed workload with and without the monitor attached.
 
 ### Required developer PR evidence

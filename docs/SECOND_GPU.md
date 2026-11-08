@@ -1,8 +1,8 @@
 # CUDA1-3 expert caches and the peer tier (experimental)
 
 This page is for people who tune the engine by hand and want a second, third or fourth card to hold extra experts. These are
-experimental engine settings. For ordinary multi-GPU use in the app or `strata launch`, see [MULTI_GPU.md](MULTI_GPU.md). The
-settings go into the run config (`strata-*.json`) as `"args"` entries; they are engine flags, not `strata launch` flags.
+experimental engine settings. For ordinary multi-GPU use in the app or `deepstrata launch`, see [MULTI_GPU.md](MULTI_GPU.md). The
+settings go into the run config (`strata-*.json`) as `"args"` entries; they are engine flags, not `deepstrata launch` flags.
 
 > **On this page:** [How it works](#how-it-works) · [Helper caches](#helper-caches) · [Faster helper decode](#faster-helper-decode---remote-expert-opt) ·
 > [Peer tier](#peer-tier---peer-device) · [Resident RAM mode](#the-resident-ram-mode-with-the-helper-caches) ·

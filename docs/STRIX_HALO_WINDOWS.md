@@ -7,17 +7,17 @@ build, the toolchain and the opt-in switches are on [STRIX_HALO.md](STRIX_HALO.m
 
 The structure of this page comes from the first Windows guide for this PC, written by HaiYunChuang (pull request #3029). It measured
 engines 0.1.41 to 0.1.47 with a hand-made configuration (`--mmap-experts`, a list of switches, a batch file). Since then the app and
-`strata launch` have taken over most of that, so this version describes the 0.2.7 install and every number in it was measured again.
+`deepstrata launch` have taken over most of that, so this version describes the 0.2.7 install and every number in it was measured again.
 
 ## 1. What this PC reaches
 
 Measured on 2026-10-26 on a GMKtec NucBox EVO-X2 (Ryzen AI Max+ 395, 128 GB shared memory: a 64 GB BIOS carve-out for the graphics chip
 and 64 GB that Windows sees; Windows 11 Pro, AMD Adrenalin 26.10.1 / driver 32.0.32015.7029). Strata was the 0.2.7 release candidate
-(Terminal and engine 0.1.51 built from commit `3e468f5de`, ROCm 10.2.0a20260930). The server was started with `strata launch` and
+(Terminal and engine 0.1.51 built from commit `3e468f5de`, ROCm 10.2.0a20260930). The server was started with `deepstrata launch` and
 nothing else was set by hand; the speeds come from `tools/strata_bench.py` against the running server (three runs per test, medians,
 the engine's own timings; the model is loaded before the clock starts). The numbers can still move before the release is cut.
 
-**Qwen3.8-Flash-Next IQ3_S** (`strata launch --family qwen --model iq3_s`; 131,072 tokens of context, int8 KV, pictures on):
+**Qwen3.8-Flash-Next IQ3_S** (`deepstrata launch --family qwen --model iq3_s`; 131,072 tokens of context, int8 KV, pictures on):
 
 | Test | Result |
 | --- | --- |
@@ -28,7 +28,7 @@ the engine's own timings; the model is loaded before the clock starts). The numb
 | 32K prompt | **792 tok/s** (40.6 s) |
 | Coding-agent session, 6 turns | 69% of the prompt came from the conversation cache; answers 47 tok/s; 4.5 s to the first token per turn |
 
-**DeepSeek V4.1-Flash 2.00 bpw** (`strata launch --family deepseek41 --model ist-das-2.00bpw`, Faster mode, the drafter on; the 4K row is
+**DeepSeek V4.1-Flash 2.00 bpw** (`deepstrata launch --family deepseek41 --model ist-das-2.00bpw`, Faster mode, the drafter on; the 4K row is
 the default 8K context, the others 64K context with `--context 64k`):
 
 | Test | Result |
@@ -60,15 +60,15 @@ changes one thing at a time.
 ## 3. Install
 
 1. Use the Windows app (`Strata-<version>-windows-x64-setup.exe`) or the Terminal. The engine for this chip is the `windows-x86_64-hip-rdna3`
-   package; the app or `strata launch` downloads it on the first start, and `strata update` keeps it current.
-2. Choose the model in the app, or `strata launch --family qwen --model iq3_s`. With model files you already have, add
+   package; the app or `deepstrata launch` downloads it on the first start, and `deepstrata update` keeps it current.
+2. Choose the model in the app, or `deepstrata launch --family qwen --model iq3_s`. With model files you already have, add
    `--model-path <folder>` (for IQ3_S the two shards are in one folder: shard 1 is the main model, shard 2 holds the per-layer embedding
    table and must stay a separate file).
 3. The first start took about 20 minutes on the measured PC with the model files already on disk: the engine package (158 MB), the
    check of the 84 GB of model files, the picture reader (0.9 GB), the draft layer (about 5 GB) and the one-time pack. The next start
    took under two minutes.
 
-What `strata launch` wrote for IQ3_S, with no switches of mine (these are the settings to copy if you drive the engine by hand):
+What `deepstrata launch` wrote for IQ3_S, with no switches of mine (these are the settings to copy if you drive the engine by hand):
 
 ```
 --expert-cache auto --prefill auto --spec 4 --spec-min-p 0.5 --mtp <draft layer>
@@ -104,7 +104,7 @@ environment and the package's `rocm/bin` folder on the library path.
   about 12.8 GiB of prompt buffers.
 - `--mmap-experts` is not needed. The first Windows guide found that without it the pinned expert arena used up the graphics memory
   budget and decode fell to 28 tok/s on engine 0.1.41; the engine on this page sizes the cache from the shared pool and reaches every slot.
-- DeepSeek runs in "Faster" mode here: 5 of 6 experts per word. The app and `strata launch` say so; the quality change is small.
+- DeepSeek runs in "Faster" mode here: 5 of 6 experts per word. The app and `deepstrata launch` say so; the quality change is small.
 
 **`STRATA_SH_STREAM` (the shared expert on its own stream) is off by default on Windows `gfx1151` in 0.2.7, because it is slower there.** It stays
 on by default on Linux `gfx1151`, where it was measured to help ([STRIX_HALO.md](STRIX_HALO.md)). The first Windows guide found the Windows
@@ -127,7 +127,7 @@ The answers stay the same: on the same PC and build I ran five fixed greedy prom
 4,091-token prompt and a 16,383-token prompt; 895 generated token ids) through the engine four times, with the switch on, off, on, off. The
 token ids were identical in all four runs for every prompt.
 
-What 0.2.7 does: on Windows `gfx1151` the engine no longer turns the switch on by itself. To turn it back on, use `strata launch ...
+What 0.2.7 does: on Windows `gfx1151` the engine no longer turns the switch on by itself. To turn it back on, use `deepstrata launch ...
 --set STRATA_SH_STREAM=1` (or put `STRATA_SH_STREAM=1` in the environment of an engine you start by hand); a value you set is always kept.
 `STRATA_DEFAULTS=026` brings back everything 0.2.6 did, including the switch on. This is one model, one PC and short answers; DeepSeek was
 not tested with it, and Linux `gfx1151` has not been measured against it.
@@ -135,7 +135,7 @@ not tested with it, and Linux `gfx1151` has not been measured against it.
 ## 5. Traps
 
 1. **Keep RAM free.** Qwen IQ3_S held 49 GB of 63.6 GB. A browser with many tabs, or a second model, is enough to push the PC into paging.
-2. **Do not run two engines.** One model at a time on this PC; `strata launch --status` shows what is serving, `strata stop` ends it.
+2. **Do not run two engines.** One model at a time on this PC; `deepstrata launch --status` shows what is serving, `deepstrata stop` ends it.
 3. **The graphics driver.** The 2025-03 driver failed at 32K context for DeepSeek. The measured driver is Adrenalin 26.10.1 (32.0.32015.7029).
 4. **If Windows resets the driver** (screen flicker, the engine dies mid-answer), see the driver-reset entry in
    [TROUBLESHOOTING.md](TROUBLESHOOTING.md#amd-cards).
@@ -145,11 +145,11 @@ not tested with it, and Linux `gfx1151` has not been measured against it.
 ## 6. Reproduce it
 
 ```
-strata launch --family qwen --model iq3_s            # then, from a source checkout:
+deepstrata launch --family qwen --model iq3_s            # then, from a source checkout:
 python tools/strata_bench.py --url http://127.0.0.1:8080 --runs 3 --long
 ```
 
-`--long` adds the 32K prompt. For DeepSeek add `--context 64k` to `strata launch` first; the default 8K context skips the 16K prompt and
+`--long` adds the 32K prompt. For DeepSeek add `--context 64k` to `deepstrata launch` first; the default 8K context skips the 16K prompt and
 the agent session.
 
 

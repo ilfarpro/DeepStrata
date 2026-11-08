@@ -2,7 +2,7 @@
 
 Version 0.2.12, engine 0.1.58. The public model families are DeepSeekV4.1-Flash-1017,
 Qwen3.8-Flash-Next and Qwen3.6-35B-A3B. DeepSeek V4.1-Flash runs in the app and in the Terminal
-(`strata launch --family deepseek41 --model ist-das-2.00bpw`; sets in
+(`deepstrata launch --family deepseek41 --model ist-das-2.00bpw`; sets in
 [docs/MODELS.md](docs/MODELS.md#deepseek-v41-flash)). Read **[docs/AI_REFERENCE.md](docs/AI_REFERENCE.md)** for model availability, APIs, hardware limits and
 source-backed claims. Articles and videos should use **[docs/MEDIA_KIT.md](docs/MEDIA_KIT.md)**.
 
@@ -14,17 +14,17 @@ existing executable defaults may differ, so inspect the plan and choose the fami
 Strata has three parts:
 
 - **The app** (`apps/desktop`, the Tauri shell; `apps/host`, the Node host and the web UI). It is for people who do
-  not want a terminal. One installer per system ([latest release](https://github.com/Niko1221/Strata/releases/latest)):
+  not want a terminal. One installer per system ([latest release](https://github.com/ilfarpro/DeepStrata/releases/latest)):
   `Strata-0.2.9-windows-x64-setup.exe`, `Strata-0.2.9-linux-x86_64.AppImage`, `Strata-0.2.9-macos-arm64.dmg`.
   The Windows and Linux installers carry no engine: the app downloads the engine for the graphics card on first
   start, or installs a file the user already has. The Mac dmg keeps its small Metal engine inside.
-- **The Terminal** (`strata.py`, `strata_cli/`, `strata_control/`): the `strata` command. It sets up a model, serves
+- **The Terminal** (`strata.py`, `strata_cli/`, `strata_control/`): the `deepstrata` command. It sets up a model, serves
   it and watches it. Agents use this part.
 - **The engine and the server** (`src/`, `include/`, `metal/`, `sycl/` for the C++/CUDA/HIP/SYCL/Metal engine;
   `serve/` for the Python server with an OpenAI- and Anthropic-compatible API; the chat page comes from the App Host, and
-  `strata ui` opens it in a browser). `setup.py`, started by
+  `deepstrata ui` opens it in a browser). `setup.py`, started by
   `START-HERE.bat` or `setup.sh`, is setup from a source checkout, for developers. The release paths are the
-  installer and `strata launch`.
+  installer and `deepstrata launch`.
 
 ## Installing Strata for a user
 
@@ -35,32 +35,32 @@ short version is:
 1. Install the Terminal. It needs no administrator rights.
 
    ```sh
-   curl -fsSL https://github.com/Niko1221/Strata/releases/latest/download/install.sh -o install.sh && sh install.sh                  # Linux, Mac
-   irm https://github.com/Niko1221/Strata/releases/latest/download/install.ps1 | iex                         # Windows PowerShell
+   curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh                  # Linux, Mac
+   irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex                         # Windows PowerShell
    ```
 
-   On Windows, open a new terminal afterwards so that `strata` is on the PATH.
+   On Windows, open a new terminal afterwards so that `deepstrata` is on the PATH.
 2. Check what would happen. Nothing is changed:
 
    ```sh
-   strata launch --plan --family qwen --model q2_0
+   deepstrata launch --plan --family qwen --model q2_0
    ```
 
 3. Set up and serve without questions. It downloads the engine for the card and the model (tens of GB), starts the
    server, prints the addresses and returns. The server keeps running.
 
    ```sh
-   strata launch --family qwen --model q2_0 --yes --no-tui
+   deepstrata launch --family qwen --model q2_0 --yes --no-tui
    ```
 
-   Useful flags (all of them: `strata launch --help`): `--family`, `--model-path` (files the user already has),
+   Useful flags (all of them: `deepstrata launch --help`): `--family`, `--model-path` (files the user already has),
    `--data-dir`, `--context 32k|64k|128k`, `--vision off|on|gpu|cpu`, `--parallel N`, `--gpu 0,1`,
    `--access local|lan|cloudflare|tailscale`, `--port`, `--api-key-env NAME`, `--new-key`, `--save-preset NAME`,
-   `--speed faster|full` (DeepSeek), `--output json`. `strata launch --status` shows what is serving, `strata stop` stops it
-   (the same as `strata launch --stop`), and `strata launch --show-key` prints the API key. `strata start` is a shorter
-   word for `strata launch`: every flag works the same on it.
-4. Connect the user's apps: `strata connect` lists them, `strata connect <app> --check` sends one prompt and one tool
-   call the way that app does. For a chat page in the browser run `strata ui` (the App Host's full page; `--stop` ends
+   `--speed faster|full` (DeepSeek), `--output json`. `deepstrata launch --status` shows what is serving, `deepstrata stop` stops it
+   (the same as `deepstrata launch --stop`), and `deepstrata launch --show-key` prints the API key. `deepstrata start` is a shorter
+   word for `deepstrata launch`: every flag works the same on it.
+4. Connect the user's apps: `deepstrata connect` lists them, `deepstrata connect <app> --check` sends one prompt and one tool
+   call the way that app does. For a chat page in the browser run `deepstrata ui` (the App Host's full page; `--stop` ends
    the page, the model keeps serving).
 
 Keep the server on `127.0.0.1` unless the user asks for more. Beyond it an API key is recommended: `--access lan` makes one for you, and `--no-api-key` serves without one (a warning, never a refusal; on a public tunnel the warning is stronger). Source setup (`START-HERE.bat`, `setup.sh`) is the fallback for a developer or for a system with no release package; it is

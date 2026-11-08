@@ -25,7 +25,7 @@ It is not the same thing as [Tools from MCP servers](DETAILS.md#tools-from-mcp-s
 This is an optional **source-checkout tool**. It is not required to install the released app or Terminal.
 For normal agent-assisted installation, use [AI_SETUP.md](AI_SETUP.md).
 
-You need a copy of Strata: the zip from GitHub, or `git clone https://github.com/Niko1221/Strata`. Below,
+You need a copy of Strata: the zip from GitHub, or `git clone https://github.com/ilfarpro/DeepStrata`. Below,
 `C:\Users\you\Strata` (Windows) and `/home/you/Strata` (Linux) stand for that folder. Use `python3` on Linux. On
 Windows, use `py` if `python` is not on your PATH.
 

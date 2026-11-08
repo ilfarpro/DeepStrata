@@ -19,18 +19,18 @@ the driver it needs and the limits.
 
 ## Quick start
 
-Use the [current release](https://github.com/Niko1221/Strata/releases/latest). You do not need to build ROCm for a packaged install.
+Use the [current release](https://github.com/ilfarpro/DeepStrata/releases/latest). You do not need to build ROCm for a packaged install.
 
 | System | What to install | Engine variant |
 | --- | --- | --- |
-| Linux | `Strata-0.2.9-linux-x86_64.AppImage` (it downloads the engine on first start), or `strata launch` | `linux-x86_64-hip-halo` |
-| Windows | `Strata-0.2.9-windows-x64-setup.exe` (it downloads the engine on first start), or `strata launch` | `windows-x86_64-hip-rdna3` |
+| Linux | `Strata-0.2.9-linux-x86_64.AppImage` (it downloads the engine on first start), or `deepstrata launch` | `linux-x86_64-hip-halo` |
+| Windows | `Strata-0.2.9-windows-x64-setup.exe` (it downloads the engine on first start), or `deepstrata launch` | `windows-x86_64-hip-rdna3` |
 
 Packaged engines carry the matching hipBLASLt tuning table for gfx1151 and select it on their own. Setup recognizes `gfx1151` and
 PCI ID `1002:1586`; other integrated Radeon chips have separate support limits. Unified memory is counted once. Setup does not
 change BIOS or kernel settings. The manual Linux toolchain below is for reproduction and builds, not a prerequisite for the app.
 
-DeepSeek V4.1-Flash comes with its own engine package on Windows and needs nothing extra: pick the model and the app or `strata launch`
+DeepSeek V4.1-Flash comes with its own engine package on Windows and needs nothing extra: pick the model and the app or `deepstrata launch`
 downloads it ([DeepSeek on Strix Halo](#deepseek-v41-flash)).
 
 On Windows, [STRIX_HALO_WINDOWS.md](STRIX_HALO_WINDOWS.md) has the speeds measured on 0.2.7 with Qwen IQ3_S and DeepSeek, how memory is used and the traps.
@@ -61,13 +61,13 @@ build of that day and the DeepSeek stream's own test harness (before the 0.2.7 D
 | 32K prompt | about 177 tokens/s |
 | Stability | 100-request, 1-hour (243 requests) and 8-hour 32K (646 requests) soaks passed on the engine line this package is built from |
 
-Measured again on 2026-10-26 on the same box with the 0.2.7 release candidate (f-027-int2 `3e468f5de`, engine 0.1.51), installed through `strata launch` from a local
+Measured again on 2026-10-26 on the same box with the 0.2.7 release candidate (f-027-int2 `3e468f5de`, engine 0.1.51), installed through `deepstrata launch` from a local
 signed test feed, 2.00 bpw, Faster mode, DSpark auto, the default 8K context, `tools/strata_bench.py` through the server (three fresh prompts of 4,125
 tokens, 24 new tokens; chat is the median of nine answers of up to 100 tokens). One change at a time, to see which one moved the 4K prompt:
 
 | Setup on the 0.2.7 candidate | 4K prompt (tok/s) | Chat decode (tok/s) |
 | --- | ---: | ---: |
-| what `strata launch` writes (`--prefill-chunk 16384`) | 214-226 | 12.1-13.6 |
+| what `deepstrata launch` writes (`--prefill-chunk 16384`) | 214-226 | 12.1-13.6 |
 | `--prefill-chunk 8192` | 229 (214-234) | 14.9 (12.0-18.2) |
 | `--prefill-chunk 8192` and `DS4_DEFAULTS=026` (the 0.2.6 DeepSeek defaults) | 139 (133-144) | 13.7 (11.9-22.0) |
 | `--prefill-chunk 1024` and `DS4_DEFAULTS=026` | 133 (129-136) | 14.2 (12.3-22.1) |
@@ -142,7 +142,7 @@ llama.cpp's `ggml` sources are pinned by this repository, and CMake fetches the 
 `STRATA_GGML_DIR` at a checkout of exactly that revision.
 
 ```sh
-git clone https://github.com/Niko1221/Strata.git && cd Strata
+git clone https://github.com/ilfarpro/DeepStrata.git && cd DeepStrata
 cmake -S . -B build-halo -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DSTRATA_ENABLE_HIP=ON -DSTRATA_ENABLE_CUDA=OFF -DSTRATA_PREFILL_MMQ=ON \
   -DCMAKE_HIP_ARCHITECTURES=gfx1151 \

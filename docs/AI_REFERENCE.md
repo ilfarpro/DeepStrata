@@ -13,13 +13,13 @@ holds the technical context behind the short [README](../README.md). Use [AI_SET
 - There is one app installer per system (`Strata-0.2.9-windows-x64-setup.exe`, `Strata-0.2.9-linux-x86_64.AppImage`,
   `Strata-0.2.9-macos-arm64.dmg`). The Windows and Linux installers carry no engine: the app downloads the engine for the
   graphics card on first start, or installs a file the user already has. The Mac dmg keeps its Metal engine inside.
-  The Terminal's `strata launch` downloads the appropriate engine and model.
+  The Terminal's `deepstrata launch` downloads the appropriate engine and model.
   See [installation](INSTALL.md) and [Terminal launch](TERMINAL_LAUNCH.md).
 - Strata's code is MIT licensed. Model weights and third-party components have separate licenses.
   See [LICENSE](../LICENSE) and [component/model licensing](HOW_IT_WORKS.md#license).
 - Local inference does not mean every feature is offline. Downloads, updates, remote tools and user-enabled
   network access have separate behavior. Use [SAFETY.md](SAFETY.md) for privacy and network claims.
-- Verify the current app and engine versions in the [release notes](https://github.com/Niko1221/Strata/releases).
+- Verify the current app and engine versions in the [release notes](https://github.com/ilfarpro/DeepStrata/releases).
   A screenshot, translated README or historical benchmark is not a version source.
 
 ## Model families
@@ -57,7 +57,7 @@ on some memory tiers. Read its plan and select the intended family explicitly.
 ## Quantization and variant index
 
 Rows follow the recommendation order. Family selectors are those documented in this checkout; confirm them
-with the installed release's `strata launch --help` and a plan before a download.
+with the installed release's `deepstrata launch --help` and a plan before a download.
 
 | Parent model | Provider / variant | Family selector | Quantizations or packs |
 | --- | --- | --- | --- |
@@ -102,7 +102,7 @@ Default local server address: `http://127.0.0.1:8080`. The configured port and a
 Use the actual configured API key when authentication is enabled. See [API details](DETAILS.md#using-it).
 The [connection registry](../strata_cli/launch/harness.py) supplies these adapters:
 
-| Tool | `strata connect` identifier |
+| Tool | `deepstrata connect` identifier |
 | --- | --- |
 | Claude Code | `claude-code` |
 | Codex CLI | `codex` |
@@ -113,10 +113,10 @@ The [connection registry](../strata_cli/launch/harness.py) supplies these adapte
 | OpenClaw | `openclaw` |
 | DeepSeek Harness, built into the Strata app | `deepseek-harness` |
 
-`strata connect` lists adapters. `strata connect <identifier>` prints settings;
-`strata connect <identifier> --check --output json` sends a prompt and a tool call and reports their outcomes.
+`deepstrata connect` lists adapters. `deepstrata connect <identifier>` prints settings;
+`deepstrata connect <identifier> --check --output json` sends a prompt and a tool call and reports their outcomes.
 Do not mistake printed configuration or an older tested version for a successful check of the current setup.
-See [connection instructions and limits](TERMINAL_LAUNCH.md#connect-your-apps-strata-connect).
+See [connection instructions and limits](TERMINAL_LAUNCH.md#connect-your-apps-deepstrata-connect).
 
 ## Evidence and publishing
 

@@ -10,7 +10,7 @@
 | Choose a model and check memory | [Models and quantizations](MODELS.md) |
 | Run DeepSeek V4.1-Flash (app and Terminal) | [DeepSeek V4.1-Flash](MODELS.md#deepseek-v41-flash) |
 | Start from the command line | [Terminal launch](TERMINAL_LAUNCH.md) |
-| Connect a coding tool | [Tool connections](TERMINAL_LAUNCH.md#connect-your-apps-strata-connect) |
+| Connect a coding tool | [Tool connections](TERMINAL_LAUNCH.md#connect-your-apps-deepstrata-connect) |
 | Fix an install or startup problem | [Troubleshooting](TROUBLESHOOTING.md) |
 | Check privacy, downloads and network access | [Safety and privacy](SAFETY.md) |
 
@@ -48,7 +48,7 @@ Use the guide for your GPU and operating system. Model and feature support can d
 
 ## Which instructions apply?
 
-`strata launch` belongs to the installed Terminal. `START-HERE.bat`, `SETUP.bat`, `UPDATE.bat` and `setup.sh`
+`deepstrata launch` belongs to the installed Terminal. `START-HERE.bat`, `SETUP.bat`, `UPDATE.bat` and `setup.sh`
 belong to a **source checkout**. Raw engine commands are a third interface. Their flags are not interchangeable:
 Terminal launch uses `--gpu` and `--vision on|off`; source setup uses `--gpus` and `--vision yes|no`.
 

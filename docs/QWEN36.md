@@ -10,18 +10,18 @@ architecture). It runs on NVIDIA and AMD cards. The Intel Arc and Mac engines do
 
 ## Quick start
 
-Pick it in the app's model list, in `strata launch` or in setup:
+Pick it in the app's model list, in `deepstrata launch` or in setup:
 
 ```sh
-strata launch --family qwen36 --model ud-q4_k_xl
-strata launch --family qwen36 --model ud-q4_k_xl --vision on --parallel 2
+deepstrata launch --family qwen36 --model ud-q4_k_xl
+deepstrata launch --family qwen36 --model ud-q4_k_xl --vision on --parallel 2
 ```
 
 | Option | Effect |
 | --- | --- |
 | `--vision on\|off\|gpu\|cpu` | Terminal: pictures and which reader. Source setup uses `--vision yes\|no\|gpu\|cpu` and `--vision-tokens N`. |
 | `--parallel N` | How many requests are answered at once, 1 to 8. Source setup has the same option. |
-| `--prefill 512` | Engine flag in the config's `args`, not a `strata launch` option: the prompt chunk size ([Prompt chunk](#prompt-chunk)). |
+| `--prefill 512` | Engine flag in the config's `args`, not a `deepstrata launch` option: the prompt chunk size ([Prompt chunk](#prompt-chunk)). |
 
 ## Pictures
 

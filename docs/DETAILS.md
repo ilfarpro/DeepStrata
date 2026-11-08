@@ -17,7 +17,7 @@ engine and is covered in [MODELS.md](MODELS.md); nothing below applies to it unl
 > [Troubleshooting](#troubleshooting) · [How it works](#how-it-works) · [Credits](#credits-and-licenses) ·
 > [History](#history--older-measurements)
 
-**Which flags go where.** `strata launch` has its own flags (`strata launch --help`). The engine and server flags below go
+**Which flags go where.** `deepstrata launch` has its own flags (`deepstrata launch --help`). The engine and server flags below go
 in the `"args"` list of `strata-<model>.json` (source setup writes it) or on the `serve/server.py` command line.
 `START-HERE.bat`, `SETUP.bat`, `./setup.sh` and `run-<model>` exist only in a [source checkout](SOURCE_INSTALL.md). An
 installed app has none of them.
@@ -33,7 +33,7 @@ installed app has none of them.
      -d '{"model": "strata", "messages": [{"role": "user", "content": "Write a haiku about GPUs."}], "max_tokens": 512}'
    ```
 
-3. Point your app at `http://127.0.0.1:8080/v1` with any API key, or run `strata connect` to list the apps Strata can configure.
+3. Point your app at `http://127.0.0.1:8080/v1` with any API key, or run `deepstrata connect` to list the apps Strata can configure.
 4. Change a setting by editing `strata-<model>.json` and restarting. Setup rewrites the file when you run it again and
    keeps the keys it does not manage.
 
@@ -106,14 +106,14 @@ for IQ3_XXS and keep its context at 128K or less). With 48 GB only Q2_0 and IQ2_
 
 [ISTA-DASLab's expert-pruned release](https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF) keeps 256 of
 each layer's 512 experts (10 still active per token), chosen on code, agent and vision data. Shard 1 is 29.6 GB (23 GB of
-experts in RAM), so it runs on 32 GB of RAM. Images work. Install it with `strata launch --family coder`
+experts in RAM), so it runs on 32 GB of RAM. Images work. Install it with `deepstrata launch --family coder`
 (from a source checkout: `START-HERE.bat --setup --family coder`). Details: [MODELS.md](MODELS.md#coder).
 
 ### Or: Swift 1.5 (a fine-tune that thinks shorter)
 
 [Swift 1.5](https://huggingface.co/ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF) is UkisAI's fine-tune. It has the same
 architecture and speed as the original, its own vision encoder, and thinks for fewer tokens. Its authors recommend IQ2_XS.
-The license is the Swift Open License 1.0. Install it with `strata launch --family swift --model iq2_xs`
+The license is the Swift Open License 1.0. Install it with `deepstrata launch --family swift --model iq2_xs`
 (from a source checkout: `START-HERE.bat --setup --family swift --model IQ2_XS`). Details: [MODELS.md](MODELS.md#swift-15).
 
 <a id="experimental-unsloths-ud-q4_k_xl"></a>
@@ -129,7 +129,7 @@ A 4-bit quantization of the same model (111 GB, 72 GiB of experts). Install it w
 ## Windows
 
 On Windows the source wrapper is `START-HERE.bat` ([source installation](SOURCE_INSTALL.md#from-source-windows)). For a
-released app, run its installer and open Strata from the Start menu. For the Terminal, use `strata launch`. Watch the
+released app, run its installer and open Strata from the Start menu. For the Terminal, use `deepstrata launch`. Watch the
 setup plan and the startup log for what is actually chosen on your machine, and see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 if a component is missing.
 
@@ -463,7 +463,7 @@ print(r.choices[0].message.content)
 ### Thinking levels: none, low, medium, high
 
 The model thinks before it answers (streamed as `reasoning_content`; Anthropic: `thinking` blocks). Choose how much per request
-in a chat app (the desktop app, or `strata ui` in a browser), in `chat.py` (`/think low`) or over the API:
+in a chat app (the desktop app, or `deepstrata ui` in a browser), in `chat.py` (`/think low`) or over the API:
 
 | API | How |
 | --- | --- |
@@ -708,7 +708,7 @@ tables per token). The scaling is fixed for the whole run, because the KV cache 
   }
   ```
 
-  Set `limit.context` to the context you chose in setup and keep `limit.output` well under it. `strata connect` writes
+  Set `limit.context` to the context you chose in setup and keep `limit.output` well under it. `deepstrata connect` writes
   configurations for these apps for you.
 - **Codex CLI:** [below](#the-responses-api-and-codex-cli).
 
@@ -762,7 +762,7 @@ in a RAM copy, as much as the RAM available at the start allows after a headroom
   fell to 0.9 GiB during the copy. `STRATA_RESIDENT_HEADROOM_GIB`, when set, decides the headroom instead of both (testers).
 - With W = 0 nothing about the fallback changes: the full system is used, the arena whenever it fits, with no margin, and the copy leaves
   the safety headroom. The explicit modes (`--resident-budget-gib N`, `--resident-experts`) leave `max(W, their own 4 GiB)`.
-- The app's "Leave 20% for my work" passes W = clamp(ceil(0.2 x RAM in GB), 5, 8) as `STRATA_RAM_KEEP_GIB` in the run config's env (not as the flag, so an older engine chosen in the Engine tab, which ignores an env variable, still starts); `strata serve` and full performance pass nothing.
+- The app's "Leave 20% for my work" passes W = clamp(ceil(0.2 x RAM in GB), 5, 8) as `STRATA_RAM_KEEP_GIB` in the run config's env (not as the flag, so an older engine chosen in the Engine tab, which ignores an env variable, still starts); `deepstrata serve` and full performance pass nothing.
 - `STRATA_ARENA_FALLBACK_RESIDENT=0` keeps the plain file source for the fallback (testers).
 
 Snapshots hold running state, checkpoints, used K/V pages and draft-layer K/V. They add host RAM, not VRAM. Oldest parked entries
@@ -809,13 +809,13 @@ curl -X POST "http://127.0.0.1:8080/slots/0?action=restore" -H "Content-Type: ap
   only for this feature. Exact token replay across restarts is not guaranteed: expert residency and CPU/GPU rounding can
   change later output.
 
-### The page: `strata ui` (Chat, Monitor, About)
+### The page: `deepstrata ui` (Chat, Monitor, About)
 
 The server's address is API-only: `http://127.0.0.1:8080/` answers a short index of the endpoints (this is where the old
 Chat, Images, Monitor and About page lived). The full interface is the App Host's - the same page the desktop app shows
-in its own window - and from a terminal you reach it with `strata ui`: it starts the App Host on this computer, opens the
+in its own window - and from a terminal you reach it with `deepstrata ui`: it starts the App Host on this computer, opens the
 page in your browser and puts the serving model into the chat's model picker as an API model. Closing the tab keeps the
-model serving; `strata ui --stop` ends the page's host, `strata launch --stop` the model.
+model serving; `deepstrata ui --stop` ends the page's host, `deepstrata launch --stop` the model.
 
 What the old page could do now belongs to the App Host's UI (`apps/host`), which the desktop app and the installers
 ship: saved chats with search, LaTeX math (KaTeX), previews of the HTML and SVG an answer writes, its own settings and
@@ -828,7 +828,7 @@ Off by default, because it keeps prompts and answers in memory. Turn it on with 
 `serve/server.py --api-monitor`; otherwise the two endpoints answer 404. `GET /api/requests` returns summaries - active
 and queued requests with load, queue, first-token and decode timings - and `GET /api/requests?id=<id>` one request with
 its bodies, output and separate reasoning and response bodies. The page that showed these at `/api-monitor` went with
-the served page (`strata ui` has its own live Monitor); the
+the served page (`deepstrata ui` has its own live Monitor); the
 monitor keeps the newest 100 requests in memory until restart, 262,144 characters per field, with visible truncation flags.
 Headers are not recorded. Treat the history as sensitive when Strata is reachable from a network, and set an API key.
 
@@ -947,7 +947,7 @@ uses only Python's standard library. Config snippets for every client, the tool 
 
 Qwen3.8-Flash-Next has a vision encoder (`mmproj-Qwen3.8-Flash-Next-BF16.gguf`, 0.9 GB). Qwen3.6-35B-A3B reads pictures the
 same way with its own `mmproj-F16.gguf` ([QWEN36.md](QWEN36.md)). Pictures are **on by default** wherever a model can read
-them. The app, `strata launch` and setup use one rule for the reader:
+them. The app, `deepstrata launch` and setup use one rule for the reader:
 
 | Graphics memory | Default reader | Cost |
 | --- | --- | --- |
@@ -955,7 +955,7 @@ them. The app, `strata launch` and setup use one rule for the reader:
 | 24 GB or more | The card's reader, started by the first picture and stopped after 120 s without one (NVIDIA, one GPU) | 0.1-0.5 s per picture (up to 1,024 image tokens) once it runs, 1.2-1.4 s more for the first picture after a stop. It holds about 1.3 GB of VRAM only while pictures are being read; a start with no room is read on the CPU. On AMD, Intel and a Mac the reader stays on the card as before. |
 | Mac | The GPU (Metal) | Whatever its memory. |
 
-Switch pictures off with `--vision no` (or "No" in the app and `strata launch`), or pick the reader with `--vision gpu` or
+Switch pictures off with `--vision no` (or "No" in the app and `deepstrata launch`), or pick the reader with `--vision gpu` or
 `--vision cpu`. Setup downloads the encoder and puts a small helper (`strata-vision`, from llama.cpp's `mtmd` library) beside
 the engine. Where no reader exists, pictures stay off and the screen says so (the Intel Arc engine has none yet). On AMD the
 card's reader is `strata-vision-hip`; if it cannot start, the server starts the CPU reader and prints one line ([AMD_HIP.md](AMD_HIP.md)).
@@ -1058,7 +1058,7 @@ them on your own card.
 | `STRATA_PW_WITH_BATCH=1` | CUDA/HIP layer split with `--pipeline-windows 2` and `--batch` slots | A request that is alone keeps the pipelined windows beside the batch slots; batch windows run without them. | 2x RTX A6000 IQ3_S: lone request +14% on code, +9% on a file rewrite, +3% on a long decode; two requests at once not slower. The second verifier takes about 270 MiB of the first card. |
 | `STRATA_MTP_ROOM_MIN=TOKENS` | CUDA, `--serve` with `--mtp`, no `--batch` | A request that reads at least TOKENS prompt tokens uses the draft layer's 512 decode-only experts (about 675 MiB) as extra ring slots while it is read, then gets them back. | The author measured +17 to +23% prompt on an 8 GB RTX 2060 SUPER; on a P100 limited to 8 GB (ring 8 to 311 slots) it gave +0.5% (CPU share off) and nothing with defaults. Off by default. |
 | `STRATA_IQ_MT_MIN=1`, `STRATA_IQ3S_MT1=1` | CPU | See [Draft layer](#draft-layer) (reproducible output; the second gives IQ3_S the multi-token kernel for one token on Alder Lake and later without AVX-512). | |
-| `STRATA_ROUTE_PRIOR`, `STRATA_ROUTE_RESIDENT`, `STRATA_ROUTE_RESIDENT_MTP` | CUDA | Routing changes that add speed and also add KL. | Off by default. `STRATA_ROUTE_PRIOR=1.5` makes the router prefer experts that are already on the card; it is the one worth trying, on a discrete NVIDIA card of 13 GiB or less (an RTX 3060 12 GB, IQ3_XXS: story +15%, code +37% decode against off). It is an opt-in because it can repeat itself and give weaker results in long agent sessions (#4402; our own check on that card: out of 10 agent tasks 4.5 passed on average over 4 runs at 1.5, against 5.6 over 7 runs with the prior off, where the off runs alone ranged from 4 to 6; a stronger setting, 2.0, showed copy and code defects). Recommended for a 12 GB card used mostly for chat and short answers, not for long agent runs. 0.2.7 turned 1.5 on by itself on those cards and 0.2.8 took that back (owner decision of 2026-10-29): with nothing set, the engine routes exactly as 0.2.6 did (the same as `STRATA_ROUTE_PRIOR=0` and as `STRATA_DEFAULTS=026`). Turn it on: the Expert-settings row "Faster answers on 12 GB NVIDIA cards" (it writes `STRATA_ROUTE_PRIOR=1.5`; shown only for a discrete NVIDIA card of 13 GiB or less), `strata launch --set STRATA_ROUTE_PRIOR=1.5`, or the variable itself. Any value you set wins on every card; it is never on by itself. |
+| `STRATA_ROUTE_PRIOR`, `STRATA_ROUTE_RESIDENT`, `STRATA_ROUTE_RESIDENT_MTP` | CUDA | Routing changes that add speed and also add KL. | Off by default. `STRATA_ROUTE_PRIOR=1.5` makes the router prefer experts that are already on the card; it is the one worth trying, on a discrete NVIDIA card of 13 GiB or less (an RTX 3060 12 GB, IQ3_XXS: story +15%, code +37% decode against off). It is an opt-in because it can repeat itself and give weaker results in long agent sessions (#4402; our own check on that card: out of 10 agent tasks 4.5 passed on average over 4 runs at 1.5, against 5.6 over 7 runs with the prior off, where the off runs alone ranged from 4 to 6; a stronger setting, 2.0, showed copy and code defects). Recommended for a 12 GB card used mostly for chat and short answers, not for long agent runs. 0.2.7 turned 1.5 on by itself on those cards and 0.2.8 took that back (owner decision of 2026-10-29): with nothing set, the engine routes exactly as 0.2.6 did (the same as `STRATA_ROUTE_PRIOR=0` and as `STRATA_DEFAULTS=026`). Turn it on: the Expert-settings row "Faster answers on 12 GB NVIDIA cards" (it writes `STRATA_ROUTE_PRIOR=1.5`; shown only for a discrete NVIDIA card of 13 GiB or less), `deepstrata launch --set STRATA_ROUTE_PRIOR=1.5`, or the variable itself. Any value you set wins on every card; it is never on by itself. |
 | `STRATA_HOST_CORE=last\|sibling` (or `--host-core`) | Windows | `last` puts the host thread on the last physical core, away from the core that gets the GPU's interrupts. `sibling` keeps it on the first core's other hardware thread, so the workers keep every core. The default `first` leaves a hybrid CPU as it is. | One layer-split box went from a ±6% swing to steady and 8% faster. |
 | `--pool-affinity measure` | Hybrid CPUs, native packs | Times the `all` and `p-cores` layouts at start (about a second) and takes the faster. The measurement is taken once; where the E-cores' speed changes while the engine runs, `--pool-affinity p-cores` is the steady choice. | |
 | `STRATA_KEEP_EMPTY_TURNS=1`, `STRATA_TOPK_STREAM=0` | | See [TROUBLESHOOTING.md](TROUBLESHOOTING.md). | |
@@ -1201,7 +1201,7 @@ thread of every core first. The engine reads the pairing from the system (Window
 showing only the first logical processors busy does not mean the pool is misplaced. The CPU picture encoder is a separate process
 that the OS places.
 
-`--pool-cores LIST` (or `STRATA_POOL_CORES=LIST`, `"pool_cores": "2,4,6,8"` in the config, or `strata launch --pool-cores 2,4,6,8`)
+`--pool-cores LIST` (or `STRATA_POOL_CORES=LIST`, `"pool_cores": "2,4,6,8"` in the config, or `deepstrata launch --pool-cores 2,4,6,8`)
 pins the workers to exactly these logical processors, in this order. Use it to leave cores for other programs, use one chiplet
 or test a layout. The list is numbers, ranges and `first-last:step` (`0,2,4,6`, `2-14:2`), as Task Manager and `lscpu` show them.
 The worker count is the length of the list; `--pool-workers N` takes the first N entries. Nothing is refused. The engine warns
@@ -1304,7 +1304,7 @@ never changed. `STRATA_ROUTE_PRIOR` raises KL and is an opt-in again in 0.2.8 (0
 | --- | --- |
 | `the NVIDIA driver is too old` | Update the driver, restart, run setup again. |
 | Python or the build tools could not be installed | Install what it names (links are printed), then run it again. Everything already done is kept. |
-| `port 8080 is already in use` | Strata is already running, or another program uses the port: `strata launch --port 8081` (source checkout: `START-HERE.bat --port 8081`). |
+| `port 8080 is already in use` | Strata is already running, or another program uses the port: `deepstrata launch --port 8081` (source checkout: `START-HERE.bat --port 8081`). |
 | `cudaHostRegister ... out of memory` in the log | Normal on Windows: the engine pins the experts in per-layer slices instead. A problem only if the load then fails. |
 | `ExpertCache: cudaMalloc(...) failed: out of memory` although VRAM is free | Windows' page file is off or tiny. Every allocation on the card is also charged to Windows' commit (RAM + page file). Set a fixed page file size, the same initial and maximum (for example 65536 MB), and restart. The engine retries with a smaller cache, and setup warns about a page file under 4 GB. |
 | The first start takes minutes, or the PC freezes for a few minutes | The engine is reading 34-55 GB into RAM, pinning part of it and sizing the expert cache. Wait. The second start is faster while the files are in the OS cache. Still frozen after 10 minutes: restart, close other programs, or pick a smaller size. |
@@ -1322,7 +1322,7 @@ never changed. `STRATA_ROUTE_PRIOR` raises KL and is an opt-in again in 0.2.8 (0
 | `the engine said nothing for ... s during the request` | The engine and the server lost step. The server ends the engine after `engine_silence_s` (300 by default), the request ends with an error and the next request starts the engine again. If it repeats, add the end of the engine log to issue #481. |
 | `the engine said nothing for ... s and used no CPU or disk in that time (frozen ...)` | A quicker version of the check above for an engine that stopped, not slowed: after 90 s the server ends it. `STRATA_ENGINE_STALL_S=180` sets the time, `0` turns it off (needs `psutil`, which setup installs). |
 | The desktop app or the Terminal could not find an engine, or a Mac says an app is "damaged" | [TROUBLESHOOTING.md](TROUBLESHOOTING.md#the-desktop-app-and-the-terminal). |
-| Anything else | The engine log is `strata-<model>.log` in this folder. In the app: Settings, Engine, Diagnostics, View logs, Save logs. In the Terminal: `strata doctor`. |
+| Anything else | The engine log is `strata-<model>.log` in this folder. In the app: Settings, Engine, Diagnostics, View logs, Save logs. In the Terminal: `deepstrata doctor`. |
 
 ---
 
@@ -1375,7 +1375,7 @@ Strata itself: [MIT](../LICENSE). The model files are not part of it; their lice
   licence stay in `docs/media/assets` (`OFL.txt`) for the README's figures. Its
   Monitor tab started from @code-martin's dashboard idea (PR #22).
   Math is drawn by [KaTeX](https://katex.org) (MIT): first in the served page, now in the App Host's UI, which the page went to
-  (`strata ui`). The chat page's wide-window layout, svg/html preview, math, Load/Unload, saved
+  (`deepstrata ui`). The chat page's wide-window layout, svg/html preview, math, Load/Unload, saved
   chats, edit and rewind came from PRs #3176 (@mnott), #1628 (@thoives), #2972 and #2974 (@CC-David-CC), #3550 (@sakuumomo), #1787 (@Scotty-Hudson) and
   #2615 (@uppet), and the rewind choice and sending while answering from issues #3823 and #4004 (@xvcezrqpbxtpzblrt);
   these features live in the App Host's page now.

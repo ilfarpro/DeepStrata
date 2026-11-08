@@ -3,10 +3,10 @@
 Use this guide when a user asks an AI agent to install Strata (version 0.2.5). There are two release routes. Pick
 one; do not start from a source checkout.
 
-- **The Terminal and `strata launch`** (below). This is the route for an agent that has a shell.
+- **The Terminal and `deepstrata launch`** (below). This is the route for an agent that has a shell.
 - **The desktop app.** One installer per system: `Strata-0.2.9-windows-x64-setup.exe`,
   `Strata-0.2.9-linux-x86_64.AppImage`, `Strata-0.2.9-macos-arm64.dmg`, from the
-  [latest release](https://github.com/Niko1221/Strata/releases/latest). The Windows and Linux installers carry no
+  [latest release](https://github.com/ilfarpro/DeepStrata/releases/latest). The Windows and Linux installers carry no
   engine: on first start the app shows the engine for the user's graphics card and downloads it, or installs a file the
   user already has ("I already have the file"). Details: [INSTALL.md](INSTALL.md).
 
@@ -23,7 +23,7 @@ Model availability, provider preference and API details are in [AI_REFERENCE.md]
   2.00 bpw (257 GB) and 2.25 bpw (274 GB), and for a 12 GB card it needs 46 to 64 GB of RAM. The context is 8K.
   `--speed faster|full` (or `--full-quality`) chooses how many experts it uses per word; Faster is the default on a
   PC with 16 GB of graphics memory or less. Print the plan first:
-  `strata launch --plan --family deepseek41 --model ist-das-2.00bpw`.
+  `deepstrata launch --plan --family deepseek41 --model ist-das-2.00bpw`.
 - Check the **chosen pack's** memory and disk needs. Do not reuse a Flash-Next estimate for every family.
   Unified memory is one pool, not RAM plus VRAM. A completed download does not establish that a model can run.
 - Keep the default local-only access. Share the server over a network only when the user asks; recommend an API key
@@ -39,17 +39,17 @@ installs into the user's home folder. The engine and model are acquired during l
 **Linux / Mac:**
 
 ```sh
-curl -fsSL https://github.com/Niko1221/Strata/releases/latest/download/install.sh -o install.sh && sh install.sh
+curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
 ```
 
 **Windows PowerShell:**
 
 ```powershell
-irm https://github.com/Niko1221/Strata/releases/latest/download/install.ps1 | iex
+irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
 ```
 
 Open a new terminal on Windows. On Linux and Mac, use the full executable path printed by the installer if
-`~/.local/bin` is not on PATH. Confirm with `strata --version` and `strata launch --help`.
+`~/.local/bin` is not on PATH. Confirm with `deepstrata --version` and `deepstrata launch --help`.
 Do not search for `START-HERE.bat` in the installed app or Terminal: it is not part of them.
 
 ## 3. Select a compatible pack and inspect the plan
@@ -70,7 +70,7 @@ These are choices, not an instruction to install every row. The full list and me
 [MODELS.md](MODELS.md). For example, inspect the ISTA-DASLab Q2_0 plan:
 
 ```sh
-strata launch --family qwen --model q2_0 --context 32k --plan --output json
+deepstrata launch --family qwen --model q2_0 --context 32k --plan --output json
 ```
 
 Check the resolved family, model, storage folder, context, picture reader and missing downloads. If the plan names
@@ -82,7 +82,7 @@ engine, but model preparation still has special requirements: [INTEL_ARC.md](INT
 After the plan matches the user's computer and requested setup:
 
 ```sh
-strata launch --family qwen --model q2_0 --context 32k --yes --no-tui
+deepstrata launch --family qwen --model q2_0 --context 32k --yes --no-tui
 ```
 
 `--no-tui` prints the address and returns after startup while the server continues in the background. Keep the
@@ -103,13 +103,13 @@ Useful options:
 | `--restart` | Replace an already running launch with different settings; interrupts active answers |
 
 `--yes` does not authorize a restart by itself. When a model is already running, inspect its state before using
-`--restart` or `--stop`. Use `strata launch --help` for the installed release's full list.
+`--restart` or `--stop`. Use `deepstrata launch --help` for the installed release's full list.
 
 ## 5. Verify the running service
 
 ```sh
-strata launch --status
-strata doctor --live
+deepstrata launch --status
+deepstrata doctor --live
 ```
 
 Check the printed address and model, then query `/health` and `/v1/models` at that address. With the default port:
@@ -135,9 +135,9 @@ without starting it when no usable engine is available. Report that as downloade
 ## 6. Connect a tool
 
 ```sh
-strata connect
-strata connect opencode
-strata connect opencode --check --output json
+deepstrata connect
+deepstrata connect opencode
+deepstrata connect opencode --check --output json
 ```
 
 The first command lists adapters; the second prints settings; the third sends a prompt and tool-call check. Use the
@@ -146,7 +146,7 @@ user's authorization. Printed configuration and a previous vendor test are not a
 
 - OpenAI-compatible clients: use the printed server address plus `/v1`.
 - Anthropic-compatible clients: use the server root; the client adds `/v1/messages`.
-- Use the actual API key when enabled. Tool identifiers and limits: [connection guide](TERMINAL_LAUNCH.md#connect-your-apps-strata-connect).
+- Use the actual API key when enabled. Tool identifiers and limits: [connection guide](TERMINAL_LAUNCH.md#connect-your-apps-deepstrata-connect).
 - Flash-Next's template defaults to thinking on with `xhigh` effort; `high` maps to `xhigh`. Requests, shared Chat
   settings and run-config settings can override defaults. Do not assert a sampling configuration without inspecting it.
 
@@ -155,18 +155,18 @@ user's authorization. Printed configuration and a previous vendor test are not a
 Tell the user which model is running, where its files are, its address, how the tool check went, and any limitations.
 
 ```sh
-strata launch --preset NAME
-strata launch --status
-strata stop
-strata update --check
+deepstrata launch --preset NAME
+deepstrata launch --status
+deepstrata stop
+deepstrata update --check
 ```
 
-Stop active models before `strata update`. Very old Terminals require rerunning the installer; see
+Stop active models before `deepstrata update`. Very old Terminals require rerunning the installer; see
 [updating](INSTALL.md#updating). Show credentials only to the intended user; redact them from shared logs and reports.
 
 ## 8. Source-only and unsupported setups
 
 A source build is a separate workflow: [SOURCE_INSTALL.md](SOURCE_INSTALL.md). `START-HERE.bat`, `SETUP.bat`,
 `UPDATE.bat`, `setup.sh` and generated `run-<model>` scripts belong to that workflow. Do not pass their flags to
-`strata launch`, promise a source build will support an unknown model, or describe a source-only command as an
+`deepstrata launch`, promise a source build will support an unknown model, or describe a source-only command as an
 installed-app command. If a required backend or artifact is missing, say exactly what is missing.

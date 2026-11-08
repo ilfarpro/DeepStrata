@@ -15,8 +15,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Niko1221/Strata/releases/latest"><img src="https://img.shields.io/github/v/release/Niko1221/Strata?label=download&color=0ab887" alt="Télécharger Strata"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Niko1221/Strata" alt="Licence MIT"></a>
+  <a href="https://github.com/ilfarpro/DeepStrata/releases/latest"><img src="https://img.shields.io/github/v/release/ilfarpro/DeepStrata?label=download&color=0ab887" alt="Télécharger Strata"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ilfarpro/DeepStrata" alt="Licence MIT"></a>
   <a href="https://github.com/sponsors/Niko1221"><img src="https://img.shields.io/badge/Sponsor-EA4AAA?logo=githubsponsors&logoColor=fff" alt="Soutenir Strata sur GitHub Sponsors"></a>
   <a href="https://buymeacoffee.com/strataengine"><img src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?logo=buymeacoffee&logoColor=000" alt="Soutenir Strata sur Buy Me a Coffee"></a>
 </p>
@@ -66,7 +66,7 @@ Dans l'**application de bureau** et dans le **Terminal**. Ce qui ne tient pas en
 Fonctionne sur les NVIDIA RTX 30, 40 et 50 (Windows et Linux) et sur l'AMD Radeon AI PRO R9700 (Linux). L'installation télécharge les fichiers et le moteur DeepSeek, puis démarre le modèle.
 
 ```sh
-strata launch --family deepseek41 --model ist-das-2.00bpw --plan
+deepstrata launch --family deepseek41 --model ist-das-2.00bpw --plan
 ```
 
 Mesuré avec le jeu 2.00 bpw sur Strata 0.2.5. « Sortie » est la vitesse de la réponse, « Prompt » la vitesse à laquelle Strata lit votre texte.
@@ -78,7 +78,7 @@ Mesuré avec le jeu 2.00 bpw sur Strata 0.2.5. « Sortie » est la vitesse de la
 | 1x Radeon AI PRO R9700, 251 GB de RAM | 21 à 25 tokens/s | 320 à 360 tokens/s (8K) |
 | 4x Radeon AI PRO R9700 | 74 à 77 tokens/s | 400 à 450 tokens/s (8K) |
 
-[Mémoire, disque et détails](docs/DEEPSEEK41.md) · [Notes de version](https://github.com/Niko1221/Strata/releases)
+[Mémoire, disque et détails](docs/DEEPSEEK41.md) · [Notes de version](https://github.com/ilfarpro/DeepStrata/releases)
 
 </details>
 
@@ -92,7 +92,7 @@ Vous ne savez pas ce qui tient ? [Choisir un modèle pour votre ordinateur](docs
 
 ### Application de bureau
 
-**[Télécharger Strata pour Windows, Linux ou Mac →](https://github.com/Niko1221/Strata/releases/latest)**
+**[Télécharger Strata pour Windows, Linux ou Mac →](https://github.com/ilfarpro/DeepStrata/releases/latest)**
 
 Installez l'application, choisissez un modèle et commencez à discuter. Il y a un seul installateur par système. Au premier lancement, l'application télécharge le moteur de votre carte graphique. [Aide pour l'installateur](docs/INSTALL.md#the-app).
 
@@ -107,7 +107,7 @@ Installez l'application, choisissez un modèle et commencez à discuter. Il y a 
 
 ### Application Terminal
 
-Vous préférez le terminal ? Installez Strata, puis lancez **`strata launch`**.
+Vous préférez le terminal ? Installez Strata, puis lancez **`deepstrata launch`**.
 
 <details open>
 <summary><b>Commandes d'installation</b></summary>
@@ -115,19 +115,19 @@ Vous préférez le terminal ? Installez Strata, puis lancez **`strata launch`**.
 **Linux / Mac**
 
 ```sh
-curl -fsSL https://github.com/Niko1221/Strata/releases/latest/download/install.sh -o install.sh && sh install.sh
+curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
 ```
 
 **Windows PowerShell**
 
 ```powershell
-irm https://github.com/Niko1221/Strata/releases/latest/download/install.ps1 | iex
+irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
 ```
 
 Sous Windows, ouvrez ensuite un nouveau terminal. Puis :
 
 ```sh
-strata launch
+deepstrata launch
 ```
 
 Suivez les invites pour télécharger et démarrer un modèle. [Guide du Terminal](docs/TERMINAL_LAUNCH.md).
@@ -162,7 +162,7 @@ Suivez les invites pour télécharger et démarrer un modèle. [Guide du Termina
 
 **Claude Code · Codex CLI · OpenCode · oh-my-pi · pi.dev · Hermes Agent · OpenClaw**, et d'autres via les API compatibles OpenAI et Anthropic.
 
-Lancez **`strata connect`** pour voir la configuration de votre outil. [Guide de connexion](docs/TERMINAL_LAUNCH.md#connect-your-apps-strata-connect).
+Lancez **`deepstrata connect`** pour voir la configuration de votre outil. [Guide de connexion](docs/TERMINAL_LAUNCH.md#connect-your-apps-deepstrata-connect).
 
 <a id="guides"></a>
 <a id="how-fast-is-it"></a>
@@ -171,7 +171,7 @@ Lancez **`strata connect`** pour voir la configuration de votre outil. [Guide de
 
 ## Aide
 
-[Tous les guides](docs) · [Dépannage](docs/TROUBLESHOOTING.md) · [Signaler un bogue](https://github.com/Niko1221/Strata/issues/new/choose) ·
+[Tous les guides](docs) · [Dépannage](docs/TROUBLESHOOTING.md) · [Signaler un bogue](https://github.com/ilfarpro/DeepStrata/issues/new/choose) ·
 [Benchmarks](docs/COMMUNITY_BENCHMARKS.md) · [Comment ça marche](docs/HOW_IT_WORKS.md) · [Contribuer](CONTRIBUTING.md)
 
 ## Soutenir Strata

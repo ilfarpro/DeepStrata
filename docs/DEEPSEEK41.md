@@ -10,10 +10,10 @@ The 508 GB set is for a computer with several graphics cards and a lot of RAM. I
 
 Unsloth's UD-Q4_K_XL (501 GB) is the same model with the dense weights in Q8_0 instead of BF16: the same MXFP4 experts and the same
 n-gram table, 9 GB of dense weights instead of 17 and 298 GB of weights instead of 306. It has not been run here yet, so its quality
-is not measured against the original: `--check` and `strata launch --plan` size it from its exact file sizes, and the 508 GB set's
+is not measured against the original: `--check` and `deepstrata launch --plan` size it from its exact file sizes, and the 508 GB set's
 measured speed is the closest guide. Its nine shards sit in the repository's `UD-Q4_K_XL/` folder and the engine packs them whole, as
-it does the Q8 set's. The name is also the name of a Qwen file of Unsloth: `strata launch --model ud-q4_k_xl` starts the Qwen file it
-always started, and DeepSeek's set is named with its family (`strata launch --family deepseek41 --model UD-Q4_K_XL`).
+it does the Q8 set's. The name is also the name of a Qwen file of Unsloth: `deepstrata launch --model ud-q4_k_xl` starts the Qwen file it
+always started, and DeepSeek's set is named with its family (`deepstrata launch --family deepseek41 --model UD-Q4_K_XL`).
 
 ## Where it goes
 
@@ -24,7 +24,7 @@ always started, and DeepSeek's set is named with its family (`strata launch --fa
 | n-gram table (Engram) | 202.8 GB | the SSD. A few rows are read for each word it writes. It is not counted in RAM, but a slow disk slows every word, so keep the model files on an NVMe drive |
 
 Measured on the four R9700 cards: 6,197 experts (116.5 GB) in graphics memory, 9,163 (172.3 GB) on the CPU, which needs about that
-much free RAM to stay cached. `strata launch --plan` and `setup.py --check` work this out for your cards and RAM
+much free RAM to stay cached. `deepstrata launch --plan` and `setup.py --check` work this out for your cards and RAM
 (`strata_control/dsv41_fit.py`; it predicted 6,240 experts on the R9700 box).
 
 With less memory than that, part of the CPU's experts are read from the SSD while the model answers. It runs, slowly. A card
@@ -48,7 +48,7 @@ perplexity +7.3% (code +3.2%, agent work +2.2%). IQ1_M: perplexity +21% (KL 0.21
 
 **Two layouts of the same sets.** Setup downloads the four-shard files (`...-0000N-of-00004.gguf`, the Hugging Face revision `cb02422c`). On 27 October 2026
 ISTA-DASLab re-split the three sets: five shards each (`...-0000N-of-00006.gguf`; shard 1 is 5.8 MB of metadata and has no tensors) and the Engram file as the
-sixth shard of the split. Strata takes either from files you already have (`--gguf-dir`, `--model-path`, "Use a local GGUF" in the app, `strata models import`),
+sixth shard of the split. Strata takes either from files you already have (`--gguf-dir`, `--model-path`, "Use a local GGUF" in the app, `deepstrata models import`),
 checks their size and SHA-256, and packs them. The same goes for the four-shard files whose first shard ISTA-DASLab re-published on 26 October with a larger
 chat template. What differs in the six-shard files: the two Engram tables are one tensor (the same bytes), the Engram gate is stored already folded (q times k),
 the attention output matrix is one 2-D tensor instead of a 3-D one, and there is a routing bias for picture tokens. The packs are the same size and the engine
@@ -87,7 +87,7 @@ and its 7 GB of experts take the graphics memory); the RAM store sizes itself. L
 ## The ISTA-DAS Coder
 
 ISTA-DAS's coding version of this model: in every layer 192 of the 384 routed experts are kept and the other 192 removed (the router, the experts and the routing biases are half as wide; every
-other tensor is the 2.00 set's, with the same types). `strata launch --model ista-das-coder` (or "ISTA-DAS Coder" in the app's version list). Download 191 GB: 72 GB of model, the 111 GB n-gram
+other tensor is the 2.00 set's, with the same types). `deepstrata launch --model ista-das-coder` (or "ISTA-DAS Coder" in the app's version list). Download 191 GB: 72 GB of model, the 111 GB n-gram
 table (the same file the other sets use, downloaded once) and the 8 GB drafter; the picture file is the one every DeepSeek set shares. Where it comes from, the commit, the file names and their
 SHA-256 are in one file, `data/dsv41/coder-set.json` (`python tools/dsv41/pin_coder.py OWNER/REPO` writes it from the Hub). Its hot-expert profile is its own (`data/dsv41/profile-coder.bin`, made from the engine's routing over 519,422
 tokens of the calibration texts): a profile counted on 384 experts is not read by it (the engine checks the file's size).
@@ -142,8 +142,8 @@ every default path stay as they are either way; the file lists and the layer-by-
 ./setup.sh --family deepseek41 --model UD-Q4_K_XL        # Unsloth's 4-bit XL set: 501 GB, its own n-gram table (not run here yet)
 ./setup.sh --family deepseek41 --model UD-Q8_K_XL        # Unsloth's 508 GB set, for hundreds of GB of RAM or several cards
 ./setup.sh --family deepseek41 --gguf-dir DIR            # files you already have: the shards (or the folder with 2.00bpw / 2.25bpw / UD-Q8_K_XL inside); the Engram and drafter are looked for beside them
-strata launch --model ist-das-2.00bpw --plan             # where it would go on this computer, nothing changed
-strata launch --model-path DIR --model ist-das-2.00bpw   # start from files you already have
+deepstrata launch --model ist-das-2.00bpw --plan             # where it would go on this computer, nothing changed
+deepstrata launch --model-path DIR --model ist-das-2.00bpw   # start from files you already have
 ```
 
 Setup needs `strata-dsv41` next to the engine (or `STRATA_DSV41_EXE`) and says so before it downloads anything. Build it with
@@ -183,7 +183,7 @@ time (a picture is encoded in 0.19 s the first time, 0.08 s the next, 0 s when i
 program took the reserve's room), the experts' last slots on the first GPU are lent to the tower for that picture turn, as they are to a long prompt, and read
 back from the model files afterwards (35 experts, 117 ms on an RTX A6000 with 59 MiB free; the picture is read right and the next one is not slower). It stays
 on the card on a GPU that shares the PC's memory (Mac, GB10, Strix Halo), and with `--vision-resident`. The server decodes each picture, brings it to a size the tower takes (both sides a multiple of 42, at most 1024 image
-tokens) and hands it to the engine; it needs Pillow for that (`python -m pip install pillow`; setup installs it). `--vision no` in `strata launch`
+tokens) and hands it to the engine; it needs Pillow for that (`python -m pip install pillow`; setup installs it). `--vision no` in `deepstrata launch`
 (or `--vision off` for the engine) turns them off; a request with a picture then gets a 400 that says so.
 
 ## Several conversations at once (`--parallel`)
@@ -193,14 +193,14 @@ or a few people on one server. Ask for it where you start the model:
 
 | Where | How |
 | --- | --- |
-| `strata launch` | `strata launch --family deepseek41 --model ist-das-2.25bpw --parallel 4`; `--save-preset NAME` keeps the number for the next start. The guided screens have the same choice in the Parallel step. |
-| `strata serve` | `strata serve --profile NAME --parallel 4`, or `"parallel": 4` in the run config. |
+| `deepstrata launch` | `deepstrata launch --family deepseek41 --model ist-das-2.25bpw --parallel 4`; `--save-preset NAME` keeps the number for the next start. The guided screens have the same choice in the Parallel step. |
+| `deepstrata serve` | `deepstrata serve --profile NAME --parallel 4`, or `"parallel": 4` in the run config. |
 | the app | Expert settings, "Concurrent requests" (the setting the other models have). |
 | Docker | `PARALLEL=4`. |
 
 `--plan` with the flag says what it does and what it was measured on. A number above 8 is run as 8. If the graphics cards cannot hold the buffers of every
 conversation, the engine runs as many as they can hold and says so in its log (`the graphics memory holds the buffers of N conversations ... running N at once`). A DeepSeek
-engine from before the flag answers one request at a time; `strata launch` says so and goes on, and `strata update` fetches the newer engine.
+engine from before the flag answers one request at a time; `deepstrata launch` says so and goes on, and `deepstrata update` fetches the newer engine.
 
 What it does:
 
@@ -218,17 +218,17 @@ What it does:
 
 Where it was run: Linux, with 4 Radeon AI PRO R9700 (gfx1201), 1 R9700, 2 RTX A6000 (sm_86) and a DGX Spark (sm_121). Not run: Windows (the engine builds with it, a
 Windows run has not been done), a Mac (Metal; the code adds no Metal kernel of its own, nothing has started it there), Ryzen AI Max, cards under 24 GB, other AMD
-families. `strata launch` warns for these and still starts. If the engine stops at the start or an answer looks wrong, start without `--parallel`.
+families. `deepstrata launch` warns for these and still starts. If the engine stops at the start or an answer looks wrong, start without `--parallel`.
 
 ## Speed: Faster or Full quality
 
 DeepSeek picks 6 experts for every word it writes. **Faster** uses 5 of them (engine flag `--experts 5`): a small quality change, usually not noticeable, and answers come sooner. It is the default on a PC whose graphics cards total 16 GiB or less, and on an integrated GPU such as Strix Halo: the engine decides that itself (`--experts auto`), and Strata passes `--experts` only when you choose. **Full quality** uses all 6 (`--experts 6`).
 
-The choice needs the DeepSeek engine 0.1.50 or newer (0.1.49.2 does not take `--experts`); with an older engine the step and the plan line are left out and nothing is passed. In `strata launch` the guided screens have a Speed step for DeepSeek; with flags use `--speed faster|full`, or `--full-quality` in scripts. `strata launch --plan` shows which one this PC gets.
+The choice needs the DeepSeek engine 0.1.50 or newer (0.1.49.2 does not take `--experts`); with an older engine the step and the plan line are left out and nothing is passed. In `deepstrata launch` the guided screens have a Speed step for DeepSeek; with flags use `--speed faster|full`, or `--full-quality` in scripts. `deepstrata launch --plan` shows which one this PC gets.
 
 ## Tuning
 
-`strata launch --tune quick` (or `thorough`, or the Tuning screen) works for DeepSeek with its own short tuner, `tools/dsv41/tune.py`. It starts
+`deepstrata launch --tune quick` (or `thorough`, or the Tuning screen) works for DeepSeek with its own short tuner, `tools/dsv41/tune.py`. It starts
 the engine a few times on a fixed short question and measures the answer speed: the standard settings first, then the DSpark drafter forced on,
 then a shorter draft block (3), then one CPU thread for each physical core (thorough also tries every logical thread). A setting is kept only for a
 gain of more than 5%, and the result is written into the launch's settings. Expect about 5 to 10 minutes (each run loads the model, which takes
@@ -237,7 +237,7 @@ says so. The RAM store (`--ssd-cache`) sizes itself when the model starts, so th
 
 ## The engine package
 
-DeepSeek's engine, `strata-dsv41`, is a separate download from the Strata engine: when you choose DeepSeek, setup (or `strata launch`) fetches the
+DeepSeek's engine, `strata-dsv41`, is a separate download from the Strata engine: when you choose DeepSeek, setup (or `deepstrata launch`) fetches the
 package for your computer from the signed update feed (resumable, signature and every file checked) and installs it in `engine-dsv41/` beside
 `engine/`. The Qwen engine's files are never changed. If the feed has no package for your graphics card, setup says so in plain words and stops before
 anything big is downloaded. The Windows AMD package (`...-windows-x86_64-hip-rdna3`) carries the ROCm 10.2 runtime and the
@@ -250,7 +250,7 @@ the release page: the file is named `strata-dsv41-<version>-<system>-<backend>-<
 graphics card). Check it against `SHA256SUMS.txt` on the release page if you like. Then give it to Strata in either of two ways:
 
 ```
-strata launch --model ist-das-2.00bpw --dsv41-package PATH-TO-THE-FILE
+deepstrata launch --model ist-das-2.00bpw --dsv41-package PATH-TO-THE-FILE
 python setup.py --family deepseek41 --dsv41-package PATH-TO-THE-FILE
 ```
 

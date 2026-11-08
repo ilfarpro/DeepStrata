@@ -10,7 +10,7 @@ the same model the other packs use.
 ## Quick start
 
 ```sh
-strata launch --family unsloth --model UD-Q6_K_XL
+deepstrata launch --family unsloth --model UD-Q6_K_XL
 ```
 
 Setup keeps every expert in RAM from about 118 GB of RAM. Below that it asks and keeps a RAM budget, as for UD-Q4_K_XL

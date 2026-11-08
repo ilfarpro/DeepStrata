@@ -1,4 +1,4 @@
-# `strata launch`: set up, serve and watch
+# `deepstrata launch`: set up, serve and watch
 
 This page is for anyone who uses the installed Terminal. One command chooses a model, tunes it, starts serving and
 opens a monitor. It also connects your coding apps. Text previews of the screens are in
@@ -7,35 +7,35 @@ opens a monitor. It also connects your coding apps. Text previews of the screens
 ## Quick start
 
 1. Install the Terminal with the one-line command in [INSTALL.md](INSTALL.md#the-terminal).
-2. Run `strata launch` and follow the screens, or run a command without screens:
+2. Run `deepstrata launch` and follow the screens, or run a command without screens:
 
 ```sh
-strata launch --plan --family qwen --model q2_0            # what would happen; nothing changes
-strata launch --family qwen --model q2_0 --yes --no-tui    # download, serve, print the address, return
-strata launch --status                                     # what is serving now
-strata stop                                                # stop it (the same as strata launch --stop)
+deepstrata launch --plan --family qwen --model q2_0            # what would happen; nothing changes
+deepstrata launch --family qwen --model q2_0 --yes --no-tui    # download, serve, print the address, return
+deepstrata launch --status                                     # what is serving now
+deepstrata stop                                                # stop it (the same as deepstrata launch --stop)
 ```
 
-`strata launch --help` lists every flag with examples. An unknown model or flag gets a plain message with the closest match.
-`strata start` is a shorter word for `strata launch`: every flag works the same on it, and `strata stop` is `strata launch --stop` on its own.
+`deepstrata launch --help` lists every flag with examples. An unknown model or flag gets a plain message with the closest match.
+`deepstrata start` is a shorter word for `deepstrata launch`: every flag works the same on it, and `deepstrata stop` is `deepstrata launch --stop` on its own.
 
 ## Install (one line)
 
 Linux and Mac:
 
 ```sh
-curl -fsSL https://github.com/Niko1221/Strata/releases/latest/download/install.sh -o install.sh && sh install.sh
+curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
 ```
 
 Windows PowerShell (then open a new terminal):
 
 ```powershell
-irm https://github.com/Niko1221/Strata/releases/latest/download/install.ps1 | iex
+irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
 ```
 
-More in [INSTALL.md](INSTALL.md#the-terminal). The installer needs no administrator rights and puts `strata` on your PATH.
+More in [INSTALL.md](INSTALL.md#the-terminal). The installer needs no administrator rights and puts `deepstrata` on your PATH.
 How far to trust a piped installer is in [SECURITY.md](../SECURITY.md). The engine (the part that talks to your graphics
-card) comes with the first model: `strata launch` fetches the one for your card from the same release, checks its signature
+card) comes with the first model: `deepstrata launch` fetches the one for your card from the same release, checks its signature
 and test-starts it before using it.
 
 ## The screens
@@ -59,13 +59,13 @@ and test-starts it before using it.
    command line skips tuning unless you add `--tune`.
 8. **Advanced** (optional): every engine setting with its default, tuned value and your value. You can edit, reset, or add a
    setting by name (checked against the engine's own list, with a warning instead of a refusal). It also shows the exact command and
-   the matching `strata launch` flags.
+   the matching `deepstrata launch` flags.
 9. **Access:** this computer only (127.0.0.1), your network (LAN address and key), a Cloudflare quick tunnel (needs `cloudflared`)
    or Tailscale (needs it installed and connected). Also the port and an API key. Beyond this computer a key is recommended:
    Strata makes one, and `t` turns it off. Without a key the server still starts and warns that anyone who can reach the port
    can use the model and its tools; `--no-api-key` does the same without screens, and the warning is stronger on a Cloudflare tunnel.
 10. **Save as preset** and launch. Downloads show progress, then the engine starts and the monitor opens. No browser page
-    opens unless you pass `--open` (`strata ui` opens the full page whenever you want it).
+    opens unless you pass `--open` (`deepstrata ui` opens the full page whenever you want it).
 
 Keys: arrows choose, Enter goes on, Esc goes back, `?` explains the screen, `q` leaves.
 
@@ -75,14 +75,14 @@ line, `--gpu-roles 1=main,0=helper` does the same ([MULTI_GPU.md](MULTI_GPU.md))
 ## Flags
 
 ```sh
-strata launch --preset "IQ3_XXS 128K"                                  # a saved preset (opens the monitor)
-strata launch --family qwen --model iq3_xxs --context 128k --parallel 4 --vision off --tune quick \
+deepstrata launch --preset "IQ3_XXS 128K"                                  # a saved preset (opens the monitor)
+deepstrata launch --family qwen --model iq3_xxs --context 128k --parallel 4 --vision off --tune quick \
               --access lan --port 8080 --save-preset "Office" --no-tui
-strata launch --model-path /data/models/IQ3_XXS --no-tui               # files you already have
-strata launch --preset Office --set prefill=65536 --set STRATA_PIN_BY_NEED=1 --no-tui
-strata launch --family qwen --model q2_0 --context 64k --restart --no-tui
-strata launch --list-presets
-strata launch --show-key
+deepstrata launch --model-path /data/models/IQ3_XXS --no-tui               # files you already have
+deepstrata launch --preset Office --set prefill=65536 --set STRATA_PIN_BY_NEED=1 --no-tui
+deepstrata launch --family qwen --model q2_0 --context 64k --restart --no-tui
+deepstrata launch --list-presets
+deepstrata launch --show-key
 ```
 
 | Flag | What it does |
@@ -107,22 +107,22 @@ strata launch --show-key
 | `--no-tui` | No screens: serve, print the address and return. |
 | `--yes` | No questions. It never restarts a running model. |
 | `--restart` | Stop a model that is serving other choices (or holds the port), then start these. |
-| `--open` | Open the server's address in the browser once it serves (the API index; the chat page is `strata ui`). |
+| `--open` | Open the server's address in the browser once it serves (the API index; the chat page is `deepstrata ui`). |
 | `--plan` | Show what would happen and exit. It lists the model, context, picture setting and what would download (0 when everything is here). |
 | `--feed URL\|DIR` | The signed update feed. Default: `STRATA_UPDATE_FEED` or the project's. |
 | `--output human\|json` | Output format. |
 | `--status`, `--stop`, `--show-key` | Show, stop, or print the key of the running launch (add `--preset NAME` to pick one). |
 
 Presets are small files in `launch-presets/` beside the profiles folder. A run uses the shared profile `launch-<name>` and the shared
-tuning presets (`strata presets`), so the app sees them too.
+tuning presets (`deepstrata presets`), so the app sees them too.
 
 **Which value an engine option has.** The run config of a launch (`launch/<name>.json` in the state folder) is built again at every launch. For each
-option the first of these four that has it wins, and the file, `strata status` and the engine's command line show the same value:
+option the first of these four that has it wins, and the file, `deepstrata status` and the engine's command line show the same value:
 
 1. **Explicit launch values:** what this command line says (`--set draft-conf=0.35`, `--context`, ...). They hold for this launch and any launch given the same flags
    (a saved preset keeps its `--set` values). Leave a flag out next time and it is gone. `--set KEY=off` removes the option.
 2. **Persisted overrides:** the options you set by hand: `user_args` in the model's run config and changes you made to `args` in the launch's file since it was written.
-3. **Calibrated values:** what `strata engine calibrate --apply-result` measured for this model and context (`calibrated` in the file). A different model or context drops them.
+3. **Calibrated values:** what `deepstrata engine calibrate --apply-result` measured for this model and context (`calibrated` in the file). A different model or context drops them.
 4. **Auto:** what setup and the policies generate (drafter confidence from the card, cards, memory fit).
 
 The Auto drafter policy rebuilds its options at every start and keeps only layers 1 and 2, so `--set draft-conf=0.35` and `--set spec=3` reach the engine as given.
@@ -131,15 +131,15 @@ The Auto drafter policy rebuilds its options at every start and keeps only layer
 **Launching while a model is serving.** The same choices restart nothing and print the running addresses. Different choices
 (another context, pictures, access, or another model on the same port) make the screens ask once, "Restart the model with these
 settings? Answers in progress stop." With `--no-tui` the command refuses with one line naming the running model, its port and settings. Add
-`--restart` or run `strata stop` first. A different `--port` runs beside the first server; two big models may not fit in graphics memory together, and the launch says so.
+`--restart` or run `deepstrata stop` first. A different `--port` runs beside the first server; two big models may not fit in graphics memory together, and the launch says so.
 
 ## DeepSeek V4.1-Flash
 
 DeepSeek V4.1-Flash runs in the Terminal and in the app, on NVIDIA RTX 30, 40 and 50 (Windows and Linux) and on the Radeon AI PRO R9700 (Linux). Hardware, sizes and speeds are in [MODELS.md](MODELS.md#deepseek-v41-flash).
 
 ```sh
-strata launch --plan --family deepseek41 --model ist-das-2.00bpw
-strata launch --family deepseek41 --model ist-das-2.00bpw
+deepstrata launch --plan --family deepseek41 --model ist-das-2.00bpw
+deepstrata launch --family deepseek41 --model ist-das-2.00bpw
 ```
 
 | Model name | Download |
@@ -150,7 +150,7 @@ strata launch --family deepseek41 --model ist-das-2.00bpw
 | `ud-q8_k_xl` | 508 GB |
 
 - The context is 8192 tokens (8K), the size the engine was checked at.
-- `--speed faster|full` picks how many of the model's 6 experts it uses per word. Faster uses 5 (a small quality change, usually not noticeable) and is the default on a PC with 16 GB of graphics memory or less and on PCs whose graphics share the computer's memory. Full uses all 6. `--full-quality` is the same as `--speed full`. Both need DeepSeek engine 0.1.50 or newer, which `strata launch` fetches. The engine's own flag is `--experts N`.
+- `--speed faster|full` picks how many of the model's 6 experts it uses per word. Faster uses 5 (a small quality change, usually not noticeable) and is the default on a PC with 16 GB of graphics memory or less and on PCs whose graphics share the computer's memory. Full uses all 6. `--full-quality` is the same as `--speed full`. Both need DeepSeek engine 0.1.50 or newer, which `deepstrata launch` fetches. The engine's own flag is `--experts N`.
 - It answers one request at a time. `--parallel 2` to `8` answers that many conversations at the same time (off unless you ask); `--plan --parallel 4` says what it does and the numbers it was measured with, and [DEEPSEEK41.md](DEEPSEEK41.md#several-conversations-at-once---parallel) has the rest.
 - It reads pictures (on by default) with the engine's own vision tower, loaded with the model; `--vision off` turns them off. Setup fetches the tower's weights (mmproj-BF16.gguf, 1 GB) with the other shared files and packs them with the model.
 - `--tune` runs DeepSeek's own short tuner (drafter on or off, CPU threads), not the Qwen tuner.
@@ -163,7 +163,7 @@ The monitor has seven views. Press `1` to `7` or use the arrow keys.
 
 | Key | View |
 | --- | --- |
-| 1 | Overview: model state, speed, GPU load, VRAM, temperature, power, PCIe, CPU, disk, context fill, experts in VRAM, system RAM, recent requests. It reads the server's `/metrics`, like the Monitor on the `strata ui` page. |
+| 1 | Overview: model state, speed, GPU load, VRAM, temperature, power, PCIe, CPU, disk, context fill, experts in VRAM, system RAM, recent requests. It reads the server's `/metrics`, like the Monitor on the `deepstrata ui` page. |
 | 2 to 6 | Serving, Requests, Engine, Hardware, Logs |
 | 7 | Connect: the address, the key (hidden until `k`) and the setup for each app |
 
@@ -180,17 +180,17 @@ With two or more cards the Overview shows the busiest card's load, all cards' me
 and draws the full look. Otherwise it draws a solid-block look and shows one line suggesting Windows Terminal. Nothing is saved and
 Windows Terminal, Linux and macOS are never touched. `STRATA_GLYPHS=unicode|ascii|solid` forces a look.
 
-## The page in a browser: `strata ui`
+## The page in a browser: `deepstrata ui`
 
-The address `strata launch` prints is the API. The full page - Chat, Monitor, Models, Settings, the one the desktop app
-shows in its window - comes from the App Host, and `strata ui` starts it for a terminal-served model: it answers on
-`http://127.0.0.1:8791`, opens that in your browser and puts the serving model into the chat's model picker as a saved
+The address `deepstrata launch` prints is the API. The full page - Chat, Monitor, Models, Settings, the one the desktop app
+shows in its window - comes from the App Host, and `deepstrata ui` starts it for a terminal-served model: it answers on
+`http://127.0.0.1:8891`, opens that in your browser and puts the serving model into the chat's model picker as a saved
 API connection named "Strata (strata launch)" (remove it in the page's Models settings).
 
 | Flag | Meaning |
 | --- | --- |
-| `--port N` | The port the page is served on (default 8791, or `STRATA_PORT`). |
-| `--url URL` | The API address of a server that did not come from `strata launch`. |
+| `--port N` | The port the page is served on (default 8891, or `STRATA_PORT`). |
+| `--url URL` | The API address of a server that did not come from `deepstrata launch`. |
 | `--host-dir DIR` | An App Host folder other than the one found: it needs its `server/index.mjs` and built `dist`. |
 | `--node EXE` | The Node runtime (24.12 or newer) other than the one on the PATH. |
 | `--no-browser` | Print the address instead of opening the browser. |
@@ -198,19 +198,19 @@ API connection named "Strata (strata launch)" (remove it in the page's Models se
 
 Nothing is downloaded. When no built App Host is found (a source checkout builds one with
 `cd apps/host && npm ci && npm run build`; an installed Strata carries `host/`), the command says so and the desktop app
-remains the way to the page. Closing the tab keeps the host and the model serving; `strata ui --stop` ends the host, and
-the page's own "Quit Strata" does the same. Stopping the model stays `strata launch --stop`.
+remains the way to the page. Closing the tab keeps the host and the model serving; `deepstrata ui --stop` ends the host, and
+the page's own "Quit Strata" does the same. Stopping the model stays `deepstrata launch --stop`.
 
-## Connect your apps: `strata connect`
+## Connect your apps: `deepstrata connect`
 
-`strata connect` lists OpenCode, Codex CLI, Claude Code, oh-my-pi (`omp`), pi, Hermes Agent, OpenClaw and the DeepSeek Harness
+`deepstrata connect` lists OpenCode, Codex CLI, Claude Code, oh-my-pi (`omp`), pi, Hermes Agent, OpenClaw and the DeepSeek Harness
 (built into the app).
 
 ```sh
-strata connect opencode           # print the file and environment, with address, key, model and context filled in
-strata connect opencode --write   # write it after asking; anything replaced is backed up
-strata connect opencode --check   # send one prompt and one tool call the way that app does
-strata connect opencode --check --output json
+deepstrata connect opencode           # print the file and environment, with address, key, model and context filled in
+deepstrata connect opencode --write   # write it after asking; anything replaced is backed up
+deepstrata connect opencode --check   # send one prompt and one tool call the way that app does
+deepstrata connect opencode --check --output json
 ```
 
 | Flag | What it does |
@@ -230,7 +230,7 @@ as the config does; OpenClaw needs Node 24.16 or newer.
 
 ## Models you already have
 
-`strata models list` looks in these places (one function, `strata_control/discovery.py`):
+`deepstrata models list` looks in these places (one function, `strata_control/discovery.py`):
 
 - the folder you name with `--install-dir` or `STRATA_INSTALL_DIR` (then only that one)
 - the Terminal's own folder
@@ -241,20 +241,20 @@ as the config does; OpenClaw needs Node 24.16 or newer.
 The data folder is the one you set, else the app's (`app-settings.json` beside its install folder, else a `Documents/Strata` that holds
 models), else Strata's default.
 
-`strata models import PATH --plan` recognises the Gyro-S and Gyro-M files (TQK6/TQK7 and TQ2_T experts) and every file set setup
+`deepstrata models import PATH --plan` recognises the Gyro-S and Gyro-M files (TQK6/TQK7 and TQ2_T experts) and every file set setup
 installs, also under another name when the header matches. It says which run config, prepared pack, draft layer and picture reader
 already exist. Nothing is copied or moved.
 
 ## When there is no engine for this computer
 
-`strata launch` does not refuse. It says "Strata couldn't find an engine for this computer" with the reason, asks whether to go on
+`deepstrata launch` does not refuse. It says "Strata couldn't find an engine for this computer" with the reason, asks whether to go on
 (Enter means yes; `--yes` skips the question), downloads the model, and ends with a message that names the problem and the next step.
 The exit code is 0 and nothing is started.
 
 ## Intel Arc and cards of different makes
 
 - **Intel Arc:** the Terminal downloads the released Linux SYCL engine, but its model preparation for Arc is a container build that it does not
-  run. If the model's files and prepared pack are already on disk, `strata launch` writes the run settings itself. Otherwise it reports the preparation problem. Use
+  run. If the model's files and prepared pack are already on disk, `deepstrata launch` writes the run settings itself. Otherwise it reports the preparation problem. Use
   [Intel setup](INTEL_ARC.md) for the preparation route.
 - **Mixed makes:** one engine drives the cards of one make (CUDA: NVIDIA, HIP: AMD). Only those cards are offered, and a model is never
   split across makes. Two models at once, one per make, is not supported. If the other make has the bigger card, you get one line saying so.
@@ -262,4 +262,4 @@ The exit code is 0 and nothing is started.
 ## Limits
 
 - The model download uses `setup.py` in its control mode (no pip, no engine fetch, no compiler), as the desktop app does. It needs internet and room for the files.
-- The Linux SYCL package updates through `strata update`. Do not copy it into the components folder by hand.
+- The Linux SYCL package updates through `deepstrata update`. Do not copy it into the components folder by hand.

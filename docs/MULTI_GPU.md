@@ -9,17 +9,17 @@ several cards. NVIDIA is described here; AMD limits and measurements are in [AMD
 
 ## Using it
 
-**Desktop app:** choose Main, Helper or Off for each card. **Terminal:** run `strata launch` and use the Cards step, or name
+**Desktop app:** choose Main, Helper or Off for each card. **Terminal:** run `deepstrata launch` and use the Cards step, or name
 the cards:
 
 ```sh
-strata launch --gpu 0,1
-strata launch --gpu-roles 1=main,0=helper     # cards you do not name are Off
+deepstrata launch --gpu 0,1
+deepstrata launch --gpu-roles 1=main,0=helper     # cards you do not name are Off
 ```
 
 Choose a model that fits the combined memory. A split can add capacity without adding speed.
 
-**Source checkout only:** `START-HERE.bat` and `./setup.sh` have their own card picker. Their flags are not `strata launch` flags:
+**Source checkout only:** `START-HERE.bat` and `./setup.sh` have their own card picker. Their flags are not `deepstrata launch` flags:
 
 | Source setup flag | Meaning |
 | --- | --- |
@@ -52,11 +52,11 @@ Every card has one of three roles.
 
 The Main card is the last card in the engine's order. The first card runs the first layers and, by default, the picture reader.
 
-**Recommended roles** (the same rule in the app, `strata launch` and setup; `strata_control/gpu_roles.py`):
+**Recommended roles** (the same rule in the app, `deepstrata launch` and setup; `strata_control/gpu_roles.py`):
 
 - The faster card is Main. Speed is multiprocessors x max clock. Cards within 5% count as the same card, and the one with more memory wins, then the lower number. Of two identical cards the highest number is Main. A card with clearly more memory beats a faster one that is at least half as fast.
 - Every other card starts as Helper, except a card with 8 GB or less when a bigger card is present (Off; with only 8 GB cards the second one is a Helper), built-in graphics beside a card with memory of its own (Off), and a card the engine cannot run (Off).
-- A role is one click (app), one key (`strata launch`: M, H, O; R restores the recommendation) or one line (above).
+- A role is one click (app), one key (`deepstrata launch`: M, H, O; R restores the recommendation) or one line (above).
 
 Only a few things are warned about, one short line each: built-in graphics as Main, a card the engine cannot run, and too
 little memory for the chosen setup. All cards Off is allowed. The CUDA, HIP and SYCL engines cannot start without a card and
@@ -87,7 +87,7 @@ estimated 2 GB of its own buffers.
   with `--gpus` (or `--gpu`, `--cuda 12`) and then run the experimental CUDA 12 engine ([OLDER_GPUS.md](OLDER_GPUS.md)).
 - A card with less than 8 GB of VRAM together with others, because each card holds a copy of the dense weights and its own
   prompt buffers. If you name it with `--gpus`, setup states the risk and asks (`--yes` goes ahead).
-- Intel GPUs in a split, and a mix of NVIDIA and AMD cards. An engine drives one make of card. The app, `strata launch` and setup
+- Intel GPUs in a split, and a mix of NVIDIA and AMD cards. An engine drives one make of card. The app, `deepstrata launch` and setup
   offer only the cards the engine can drive, and say so when the other make has the bigger card. AMD cards share a model among
   themselves: `./setup.sh --backend hip --gpus 1,0` ([AMD_HIP.md](AMD_HIP.md)).
   A prompt read on one card and an answer made on another, with the session handed over in RAM, is a different opt-in: [SPLIT_SERVE.md](SPLIT_SERVE.md).
@@ -123,7 +123,7 @@ the most room. The startup log prints the choice:
 
 ```
 strata generate: layer split auto: K=19 - the caches hold 11767 of 12288 profiled pairs (fullest device 100%)
-strata serve: layer split: layers 0-18 (CUDA0), 19-47 (CUDA1), one hand-off per window
+deepstrata serve: layer split: layers 0-18 (CUDA0), 19-47 (CUDA1), one hand-off per window
 ```
 
 **Card order with `auto`:** the faster card goes last, because the last stage runs the head, the draft layer and the verify, and
@@ -232,7 +232,7 @@ greedy answers as before (5 of 5 hashes); a card that holds only part of them ha
 A later stage also keeps 256 MiB free for what it allocates after its cache (cuBLAS, the MMQ pool, as the single card has done since 0.2.7): two 16 GB cards used to start and then
 run out of memory in the first long prompt. `STRATA_SPILL_OFF=1` turns every step off; `STRATA_DEFAULTS=026` keeps the 0.2.6 reserve.
 
-When a start still ends because a card ran out of memory, `strata launch` and the server repeat it once without a drafter (never with the MTP in place of DFlash2, which takes more
+When a start still ends because a card ran out of memory, `deepstrata launch` and the server repeat it once without a drafter (never with the MTP in place of DFlash2, which takes more
 memory), and the last line shown is the engine's own reason.
 
 ## Limits

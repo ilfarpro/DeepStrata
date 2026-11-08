@@ -2,62 +2,62 @@
 
 This page is for anyone whose install or startup fails, or whose answers go wrong. Find your symptom below. Each entry gives one fix.
 Start from the route you installed: [desktop app or Terminal](INSTALL.md), or [source checkout](SOURCE_INSTALL.md).
-The normal release uses the app or `strata launch` and needs no `.bat` file. Detailed engine errors are in the
+The normal release uses the app or `deepstrata launch` and needs no `.bat` file. Detailed engine errors are in the
 [engine reference](DETAILS.md#troubleshooting).
 
 **Quick check.** Run these and keep the output for a bug report:
 
 ```sh
-strata --version
-strata doctor --live
-strata launch --status
+deepstrata --version
+deepstrata doctor --live
+deepstrata launch --status
 ```
 
 ## The desktop app and the Terminal
 
 **I cannot find `START-HERE.bat` or `SETUP.bat`.**
-Open the installed Strata app, or run `strata launch`. Those wrappers are in the source repository and are not the
+Open the installed Strata app, or run `deepstrata launch`. Those wrappers are in the source repository and are not the
 startup path for the app. For a fresh desktop install, download the one installer for your system
 (`Strata-0.2.9-windows-x64-setup.exe`, `Strata-0.2.9-linux-x86_64.AppImage` or `Strata-0.2.9-macos-arm64.dmg`), not a
 `strata-engine-…` archive.
 
-**`strata` is not found.**
+**`deepstrata` is not found.**
 On Windows, open a new PowerShell window after installing. On Linux or Mac, use the full path the installer printed,
-normally `~/.local/bin/strata`, and add `~/.local/bin` to PATH if needed. Check `strata --version`.
+normally `~/.local/bin/deepstrata`, and add `~/.local/bin` to PATH if needed. Check `deepstrata --version`.
 
 **A warning says Strata "couldn't find an engine for this computer".**
 The engine is the part that talks to your graphics card. Strata only warns and still downloads the model, and the model
 files stay on your computer, but the model may not run until the right engine is installed. The usual reasons are that
 no engine is installed yet and the update source has none for your card, that the engine found is for another make of
 card, or that the graphics driver is too old. In the app, open Settings, then Engine. In the Terminal, the message names
-the next step: run `strata update` and start again. Run `strata doctor --live` and `strata update --check` to see the
+the next step: run `deepstrata update` and start again. Run `deepstrata doctor --live` and `deepstrata update --check` to see the
 selected GPU and driver, and check the [backend guide](INSTALL.md#what-you-need). Supported paths include Apple Silicon and
 Intel Arc on Linux, so do not assume every machine without an NVIDIA or AMD discrete card is unsupported. If the computer
 has no graphics card Strata can use (only an Intel UHD or Iris chip, a virtual machine, or Windows on ARM), Strata says so
-and there is nothing to install. Verify `strata launch --status` and `/health` before calling the installation successful.
+and there is nothing to install. Verify `deepstrata launch --status` and `/health` before calling the installation successful.
 
 **"This model needs a newer engine." (the app), or a button called Update engine.**
 Some models need an engine newer than the one installed: Gyro needs 0.1.45.1 or newer, NVFP4 needs 0.1.44, and NVFP4
 (NVIDIA, trained for FP4) needs 0.1.45. Minimum versions vary by model and backend, so check the model guide and the
 installed engine, not only the app version. In the app, open Settings, then Engine, and press Update engine. It asks
-first, keeps your model files and settings, and wants running models unloaded. In the Terminal: `strata update --check`
-says what would change, `strata update` installs it (it switches to the new engine only after a test start). If the engine
+first, keeps your model files and settings, and wants running models unloaded. In the Terminal: `deepstrata update --check`
+says what would change, `deepstrata update` installs it (it switches to the new engine only after a test start). If the engine
 you installed is the newest and the message stays, the update source has no newer engine for your card yet; report the
 missing combination.
 
-**An update says it succeeded but `strata --version` is still old.**
-The Terminal switches to the updated Control on the next command, so run `strata --version` again. If it is still old,
+**An update says it succeeded but `deepstrata --version` is still old.**
+The Terminal switches to the updated Control on the next command, so run `deepstrata --version` again. If it is still old,
 run the one-line installer once more; it keeps models and settings. The app, Control and engine have separate version
-numbers; see [updating](INSTALL.md#updating) and the [release notes](https://github.com/Niko1221/Strata/releases).
+numbers; see [updating](INSTALL.md#updating) and the [release notes](https://github.com/ilfarpro/DeepStrata/releases).
 
 **A new engine misbehaves after an update.**
-Stop the model, then use the app's rollback control or `strata components rollback`. An update keeps the engine it
+Stop the model, then use the app's rollback control or `deepstrata components rollback`. An update keeps the engine it
 replaced (one generation, about 210 MiB). Source-checkout engines use a separate rollback workflow, in `engine\.previous`:
 `python setup.py --rollback-engine` puts the old one back and keeps the newer one there, so run it again to go forward
 (#670). It is described in [source setup](SOURCE_INSTALL.md).
 
 **On a Mac: "Strata is damaged and can't be opened", "cannot be opened", or "unidentified developer".**
-Check first that the download is for Apple Silicon and that macOS is 15 or newer ([Mac installation](MAC.md#the-desktop-app-and-strata-launch-on-a-mac)).
+Check first that the download is for Apple Silicon and that macOS is 15 or newer ([Mac installation](MAC.md#the-desktop-app-and-deepstrata-launch-on-a-mac)).
 Nothing is wrong with the file if the message is only about the developer: macOS marks everything a browser downloads, and
 only lets a marked program run if Apple has checked it. Strata's release builds are checked by Apple ("notarised"): drag
 Strata onto Applications and open it; the first time, macOS asks "Are you sure you want to open it?" and you press Open. A
@@ -80,9 +80,9 @@ Make the downloaded file executable. It may need FUSE 2 (`libfuse2` on Ubuntu 22
 package names vary by distribution). Without FUSE, run the file with `--appimage-extract-and-run`. For a crash log,
 run it with `--save-logs`; see [Logs and bug reports](#logs-and-bug-reports).
 
-**Checking what is installed: `strata doctor`.**
+**Checking what is installed: `deepstrata doctor`.**
 It is a read-only check of the installed engine parts (it changes nothing): which engine and helper files a saved model
-needs, and whether they are there. `strata doctor --live` also asks the computer which graphics cards it sees and compares
+needs, and whether they are there. `deepstrata doctor --live` also asks the computer which graphics cards it sees and compares
 them with the cards the model is set to use; `--output json` prints the same as data. Put its output into a bug report.
 
 ## While installing or starting
@@ -94,7 +94,7 @@ don't close the window.** The next starts are much faster. Still frozen after 10
 programs (browsers use a lot of RAM) and try again. If it keeps happening, pick a smaller size (Q2_0 or IQ2_XS).
 
 **A download stopped.**
-Retry it in the app, or rerun the same `strata launch` command. Completed model-download steps are reused. Check
+Retry it in the app, or rerun the same `deepstrata launch` command. Completed model-download steps are reused. Check
 free space and the error message. For an interrupted Terminal installer, rerun the install command. Only a source
 checkout uses `START-HERE.bat` / `./setup.sh` to resume source setup; it continues where it stopped.
 
@@ -115,7 +115,7 @@ Large models need time to check files, prepare packs and fill memory. A first la
 no fixed startup time. The engine reads 34-55 GB into RAM, and the second start is faster while the files are in the OS
 cache. Watch progress and the engine log. If memory pressure is high, close memory-heavy programs and try a
 smaller model or context. DeepSeek V4.1-Flash needs 46 GB of RAM at least ([model page](MODELS.md#deepseek-v41-flash));
-`strata launch --plan --family deepseek41 --model ist-das-2.00bpw` shows what your computer is missing.
+`deepstrata launch --plan --family deepseek41 --model ist-das-2.00bpw` shows what your computer is missing.
 Started from Task Scheduler, a start can be 24x slower: see [Running it at startup](DETAILS.md#running-it-at-startup-task-scheduler).
 On Linux the engine asks the kernel to read the model files ahead (a cold start went from ~920 s to 70 s on one PC);
 `STRATA_READ_AHEAD=0` turns that off. With transparent huge pages on `always`, the arena does not ask for `MADV_HUGEPAGE`
@@ -124,10 +124,10 @@ on top (a fragmented machine spent minutes compacting memory, #771); `STRATA_NO_
 **The NVIDIA driver is too old.**
 Use the driver required by the engine package. CUDA 13 needs driver 580 or newer; older cards use the
 [CUDA 12 route](OLDER_GPUS.md). Update it (NVIDIA App or [nvidia.com/drivers](https://www.nvidia.com/drivers)), restart the
-PC if needed, then open the app or rerun `strata launch`.
+PC if needed, then open the app or rerun `deepstrata launch`.
 
 **Port 8080 is already in use, or I changed a running model's settings.**
-Strata may already be running: check `strata launch --status`. To replace your existing launch, rerun the intended command
+Strata may already be running: check `deepstrata launch --status`. To replace your existing launch, rerun the intended command
 with `--restart`; it stops current answers. To run beside it, choose another port, for example `--port 8081`, if memory
 permits (source checkout: `START-HERE.bat --port 8081`). Only an address that is really taken says "already in use". Any
 other reason (Windows keeps the port reserved, or the config's `"host"` is not an address of this PC) is printed as what
@@ -140,7 +140,7 @@ memory copy that grows with the context). Without it the expert cache gets that 
 it off for one model: in the app, the model's Drafting setting in Expert settings; in the Terminal:
 
 ```sh
-strata launch --family qwen --model q2_0 --context 32k --mtp off
+deepstrata launch --family qwen --model q2_0 --context 32k --mtp off
 ```
 
 (older Terminals: `--set mtp=off --set spec-min-p=off`); by hand, add `"mtp": false` to the model's `strata-<model>.json`.
@@ -157,7 +157,7 @@ touches the file. To undo one, delete it from both `args` and `user_args`. A val
 supported overrides.
 
 Two things the app still chooses itself: the context size, KV type, picture reading and draft layer. Set them in the Models
-screen or with the matching `strata launch` flags, or `"mtp": false` (draft layer). The app keeps the earlier file as
+screen or with the matching `deepstrata launch` flags, or `"mtp": false` (draft layer). The app keeps the earlier file as
 `strata-<model>.json.bak`. Inspect the effective config rather than assuming a saved preference was applied.
 
 **The app keeps more graphics memory free than I want (decode is slower than in 0.1.45).**
@@ -172,7 +172,7 @@ memory stays; a card that also draws the desktop can freeze or slow to a few tok
 
 **Pictures are refused, or slow.**
 "this server was started without the vision encoder": the model was set up for text only (someone chose "No", or the engine
-has no picture reader). Switch pictures on in the app or on the Pictures step of `strata launch` (`--vision on|gpu|cpu`);
+has no picture reader). Switch pictures on in the app or on the Pictures step of `deepstrata launch` (`--vision on|gpu|cpu`);
 in a source checkout run setup again with `--vision yes` (or `--vision gpu` / `--vision cpu`). Pictures are on by default
 wherever a model can read them, and `--vision off` (source setup: `--vision no`) turns them off; that is different from
 optional [image generation](IMAGES.md). The reader runs on the CPU under 24 GB of graphics memory and on the card from
@@ -188,7 +188,7 @@ On a clean Windows 11, Smart App Control refuses programs that are not signed, a
 `strata-vision.exe` are not signed yet (#735). Verify that the file is from the official release and that the message names
 a Strata component. The choices are to turn Smart App Control off (Windows Security > App & browser control > Smart App
 Control settings; it cannot be turned back on without a reset of Windows) or, if only the image encoder is blocked, to run
-without pictures: `strata launch --vision off` (source checkout: `START-HERE.bat --setup --vision no`), which lets text
+without pictures: `deepstrata launch --vision off` (source checkout: `START-HERE.bat --setup --vision no`), which lets text
 requests run. Do not disable system-wide protection as a routine fix, and include the blocked file and the exact message in
 a bug report. Feed signatures and Windows code signing are different checks.
 
@@ -232,7 +232,7 @@ engine by itself. If it keeps happening, close other programs or pick a smaller 
 Check system logs for an out-of-memory kill first. Then check `ulimit -R`. If it prints 0 (or any number), the desktop
 session sets a real-time CPU limit: the audio system (PipeWire) does that when rtkit is not installed, and every program
 started from the desktop inherits it. The kernel can then end a program with signal 9 and no message. Install `rtkit`, or
-start Strata outside the session's limits, for example `systemd-run --user --collect -p LimitRTTIME=infinity -- strata serve ...`.
+start Strata outside the session's limits, for example `systemd-run --user --collect -p LimitRTTIME=infinity -- deepstrata serve ...`.
 Strata prints a warning at start when it sees this limit.
 
 **The prompt exceeds the context.**
@@ -299,7 +299,7 @@ lists every card it found and whether Strata can use it.
 
 **The engine stops at start with the card's name, its architecture and the build's list.**
 The engine was compiled for another card (for example after moving the Strata folder to another PC). Update the engine
-(`strata update`), or in a source checkout run `./setup.sh --setup --backend hip`: it compiles the engine for this card's
+(`deepstrata update`), or in a source checkout run `./setup.sh --setup --backend hip`: it compiles the engine for this card's
 architecture.
 
 **On Windows the engine exits with `0xC0000005` in `amdhip64_7.dll` before it prints anything (#654).**
@@ -359,7 +359,7 @@ overwrite local branches or edits just to make `git pull` succeed.
 - **App:** Settings → Engine → Diagnostics → View logs → Save logs. It writes one text file,
   `strata-diagnostics-<date>.txt`, into your Downloads folder and shows where. It holds the engine's messages, the failed
   steps and the end of each model's server log.
-- **Terminal:** include `strata --version`, `strata doctor --live`, `strata launch --status`, and the relevant log excerpt.
+- **Terminal:** include `deepstrata --version`, `deepstrata doctor --live`, `deepstrata launch --status`, and the relevant log excerpt.
 - **Windows app crash:** if the app closes right after you start it, it shows a message with the reason and writes
   `desktop-crash-<date>.log` in `%LOCALAPPDATA%\Strata\logs`; Save logs includes it, and so can you, by hand.
 - **Linux app crash:** if the window crashes or will not open, run the AppImage with `--save-logs` in a terminal; it writes
@@ -368,6 +368,6 @@ overwrite local branches or edits just to make `git pull` succeed.
 
 Look through a log before you send it, and never send an API key. Include model and quantization, OS, GPU/VRAM, RAM,
 driver, install route (app, Terminal or the installer), Strata and engine versions, exact command, expected result and
-actual error. Open an [issue](https://github.com/Niko1221/Strata/issues) and attach the log. Follow
+actual error. Open an [issue](https://github.com/ilfarpro/DeepStrata/issues) and attach the log. Follow
 [CONTRIBUTING.md](../CONTRIBUTING.md). The full table of error messages, with the older engine fixes, is in the
 [details](DETAILS.md#troubleshooting).

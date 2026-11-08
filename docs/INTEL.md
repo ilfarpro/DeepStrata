@@ -18,7 +18,7 @@ On Ubuntu 24.04 or newer, with Intel's GPU driver installed (`ls /dev/dri` shows
 ```sh
 sudo apt install docker.io git
 sudo usermod -aG docker,render $USER     # log out and in; `docker ps` must work without sudo
-cd Strata
+cd DeepStrata
 docker build --pull -t strata-sycl-dev sycl/tools                 # once, about 6 minutes, 13 GB
 # build the engine: see "How to build it", then
 ./setup.sh --backend sycl [setup's options, e.g. --model IQ3_S --context 32768 --port 8085]
@@ -57,7 +57,7 @@ llama.cpp SYCL image), so the PC needs no oneAPI. From the checkout (the folder 
 `/work`):
 
 ```sh
-cd Strata
+cd DeepStrata
 docker build --pull -t strata-sycl-dev sycl/tools     # once: about 6 minutes, a 13 GB image
 H=$(basename "$PWD")
 ```
@@ -313,8 +313,8 @@ the GPU reader.
   has run it on a card of 24 GB or more.
 - **Known risk on Battlemage.** The first picture on the Arc Pro B70 (engine 0.1.45, IQ3_S, CPU reader) logged an xe engine
   reset (ccs + bcs) and `Fault response: Unsuccessful -EINVAL`, and the request ended 503. It has not been looked at since.
-  Setup and `strata launch` print one plain line that the card is new to Strata and how to report a problem. `--vision no`
-  (setup) or `--vision off` (`strata launch`) turns pictures off.
+  Setup and `deepstrata launch` print one plain line that the card is new to Strata and how to report a problem. `--vision no`
+  (setup) or `--vision off` (`deepstrata launch`) turns pictures off.
 
 > **Measured on:** Arc A750 (8 GB), IQ3_XXS, 8K context, JIT build, 448x448 picture.
 

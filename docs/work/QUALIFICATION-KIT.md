@@ -215,7 +215,7 @@ dsh web --port 0 --no-open          # prints an authenticated URL
 
 ## 8. Time-skip
 
-Time-skip is **implemented** (`strata_control/time_skip.py`, `strata timeskip`). The state machine,
+Time-skip is **implemented** (`strata_control/time_skip.py`, `deepstrata timeskip`). The state machine,
 the non-regression gate and the apply/restore safety are covered by 24 tests that pass on this Mac.
 What those tests cannot show is whether a *real model* produces a candidate worth keeping, which is
 what this section qualifies.
@@ -232,12 +232,12 @@ cat > .strata/checks.json <<'JSON'
 ]}
 JSON
 
-strata timeskip run --workspace "$PWD" --prompt "make the failing test pass" \
+deepstrata timeskip run --workspace "$PWD" --prompt "make the failing test pass" \
     --attempts 2 --revise-command "<python> <repo>/integrations/harness/revise_once.py --deadline 300"
-strata timeskip status <run-id>
-strata timeskip apply  <run-id> --dry-run
-strata timeskip apply  <run-id>            # refuses if the workspace changed; exit 6
-strata timeskip apply  <run-id> --restore
+deepstrata timeskip status <run-id>
+deepstrata timeskip apply  <run-id> --dry-run
+deepstrata timeskip apply  <run-id>            # refuses if the workspace changed; exit 6
+deepstrata timeskip apply  <run-id> --restore
 ```
 
 `--revise-command` is what makes the revision a real agent turn. **Exit 0 from it means an attempt
@@ -253,7 +253,7 @@ construction.
 | S03 | Break a previously passing check in the candidate: it is **rejected**, `decision.regressions` names it, and the workspace still holds the original. |
 | S04 | Run with a check whose command does not exist: `outcome` is `unknown`, `decision.outcome` is `inconclusive`, and `needs_user_review` is true. It must **not** read as a pass. |
 | S05 | Run twice with an unchanged workspace: the second run must not report an improvement. |
-| S06 | `strata timeskip apply <id> --dry-run` writes nothing; the real apply keeps a rollback copy; a subsequent apply after you edit a file yourself exits **6** and leaves your edit alone. |
+| S06 | `deepstrata timeskip apply <id> --dry-run` writes nothing; the real apply keeps a rollback copy; a subsequent apply after you edit a file yourself exits **6** and leaves your edit alone. |
 | S07 | Send SIGINT during the `generating` phase: the run ends `cancelled`, the baseline stays selected, and the workspace is unchanged. |
 | S08 | Kill the Harness mid-attempt: the run ends `failed`, the baseline stays selected, and the reason is recorded. |
 | S09 | Compare cost honestly: report the baseline's and the revision's token or time cost and the total wall-clock latency. **Do not infer a speed or quality gain from the name "Time-skip."** |
@@ -263,7 +263,7 @@ selected, and the run id, digests and raw `run.json` retained as evidence.
 
 ## 9. Engine tuning
 
-The job contract is implemented (`strata_control/tuning.py`, `strata tune`), with 31 tests covering
+The job contract is implemented (`strata_control/tuning.py`, `deepstrata tune`), with 31 tests covering
 the selection rule, failure recording, the exclusive lease and the exported-configuration retest.
 **The measurement harness is not written**, so no sweep has run against a real model — on this Mac
 there is no runnable workload, and inventing one would defeat the point. This section is what to do
@@ -274,7 +274,7 @@ on a machine that has one.
 Always start here. The plan is the review surface, and it is safe to run anywhere:
 
 ```sh
-strata tune plan --engine /path/to/strata --backend metal \
+deepstrata tune plan --engine /path/to/strata --backend metal \
     --model qwen3.8-flash-next --objective generation --trials 16 --repeats 3
 ```
 

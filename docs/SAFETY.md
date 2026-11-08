@@ -10,13 +10,13 @@ you trust can check it. Where Strata does less than you might hope, the page say
   outside model service, you open the server to other devices or to the internet, or the agent searches the web or opens a page
   (see [What the agent can do](#what-the-coding-agent-can-do-on-your-pc)).
 - **There is no telemetry.** Strata sends no usage data, no crash reports and no analytics, and has no account to sign in to.
-- **Starting and running a model never downloads anything**, except that `strata launch` updates an installed DeepSeek
+- **Starting and running a model never downloads anything**, except that `deepstrata launch` updates an installed DeepSeek
   engine package by itself when the signed feed has a newer one (below). Other downloads and updates are steps that you start.
 - **The server listens on your PC only.** Reaching it from another device needs an API key.
 - **Once a model is downloaded, Strata runs without internet.** Starting, loading, serving and chatting need no
   connection. Only things you ask for use it: the agent's web search and web pages, an outside model service, the tunnel,
   and installs and updates (a first model install also fetches llama.cpp's preparation scripts), plus the DeepSeek engine
-  check of `strata launch` (without a connection it gives up after at most 10 s and the launch goes on).
+  check of `deepstrata launch` (without a connection it gives up after at most 10 s and the launch goes on).
 - **Downloads are checked.** Updates come from a signed feed. Every model file has a fixed SHA-256 and size, and an install
   stops if the pinned version of a file is gone (the details are [below](#how-downloads-are-checked)).
 - **In its default mode the coding agent asks before it changes anything**, and once per chat before its first web search or web page.
@@ -46,13 +46,13 @@ Like any download, each connection below shows the other side your IP address an
 | --- | --- | --- |
 | Model files, the picture reader, the speed-up layer (MTP) | huggingface.co, or the mirror in `HF_ENDPOINT` if you set one | When you install a model |
 | The same files from ModelScope, for PCs that cannot reach Hugging Face | modelscope.cn | Only if you ask for it (`--source modelscope`). Strata never switches to it by itself |
-| Engine, Terminal and Control updates | The signed feed on GitHub Releases of Niko1221/Strata | When you install an engine, press **Update engine** or **Check for updates**, or run `strata update`; the DeepSeek engine also on `strata launch` (below). Opening **Settings, Engine** does not connect: it shows the result of your last check |
+| Engine, Terminal and Control updates | The signed feed on GitHub Releases of ilfarpro/DeepStrata | When you install an engine, press **Update engine** or **Check for updates**, or run `deepstrata update`; the DeepSeek engine also on `deepstrata launch` (below). Opening **Settings, Engine** does not connect: it shows the result of your last check |
 | App updates | `latest.json` on the same GitHub Releases, through Tauri's updater | When you press **Check for updates** or **Update Strata** |
 | llama.cpp source code (a fixed commit) | github.com/ggml-org/llama.cpp | During a model install, if it is not on your PC yet. Strata uses only its model-preparation scripts |
 | Web search and web pages | DuckDuckGo, with Bing as the second source; or Exa, Perplexity or DeepSeek if you save a key for them. Any page the agent is asked to open goes to that page's site | When the agent uses its search or "open web pages" tool. In Manual mode it asks you first, once per chat |
 | Outside model services | The service you add (OpenAI, Anthropic, OpenRouter, a server on your network and others) | Only for chats with that model, and only after you add its key |
 | Cloudflare tunnel | Cloudflare, through the `cloudflared` program | Only while you have the tunnel on, and Strata makes an API key for it unless you pass `--no-api-key` (then it warns that anyone who finds the address can use your model) |
-| Tailscale, local network | Not Strata's traffic. Strata only reads Tailscale's status and shows the address | Only if you choose that access in `strata launch` |
+| Tailscale, local network | Not Strata's traffic. Strata only reads Tailscale's status and shows the address | Only if you choose that access in `deepstrata launch` |
 | An image link in an API request | The address in the link | Only when a program sends your server a request with an `http(s)` image link. `--offline` refuses it |
 | Remote tool servers (MCP) | The address you put in the run config | Only when you add one |
 | A website you open in the app's preview pane | That website | Only when you type an address into **Open a website** |
@@ -63,14 +63,14 @@ That is the full list found in the code. Some details:
 - **An engine is never updated by itself.** The app does not check when it starts, and not when you open Settings,
   Engine either: that screen shows the result of your last check, or nothing if you have not checked. The checks in the table
   run when you press a button or run a command. With no connection, the check says so and nothing else happens. The Terminal fetches an engine by itself only when none is
-  installed (and `strata launch` asks first when the one installed is older than the model needs). `strata launch`, setup and a
-  model download never fetch, replace or remove an engine that is installed, DeepSeek's included. An update is `strata update`
+  installed (and `deepstrata launch` asks first when the one installed is older than the model needs). `deepstrata launch`, setup and a
+  model download never fetch, replace or remove an engine that is installed, DeepSeek's included. An update is `deepstrata update`
   or the app's Update engine: with a model loaded it names the model, asks before stopping it, and downloads while the model
   keeps serving; a script is refused (exit 7) unless it passes `--stop-model`. One quiet exception, the launch monitor only:
   once a day it reads the signed update feed (a few KB, no engine, a 5 second limit, nothing shown if it fails or there is no
   connection) so it can say "a new engine is available". `STRATA_UPDATE_CHECK=0` turns it off
   (`strata_control/engine_update.py`, `refresh_cache`).
-- **Starting and serving never download.** `strata serve` and the app's load button fetch nothing. The app sets
+- **Starting and serving never download.** `deepstrata serve` and the app's load button fetch nothing. The app sets
   `STRATA_PACKAGED=1` and `STRATA_NO_ACQUIRE=1` for its parts (`apps/desktop/src-tauri/src/main.rs`), and the downloaders
   refuse to run under them (`strata_control/acquisition.py`, `apps/host/server/acquisition.mjs`). That is why the app
   never downloads `cloudflared` for you while it runs.
@@ -91,7 +91,7 @@ That is the full list found in the code. Some details:
   server's default is the same (`serve/server.py`, the `--host` option).
 - **Sharing needs a key.** The app's "Share with other devices" and the Cloudflare tunnel will not start without an API
   key, and the shared port answers only `/v1/models`, `/v1/chat/completions` and `/v1/messages`
-  (`apps/host/server/local-share.mjs`, `cloudflare.mjs`). `strata launch` makes a key for you when you pick anything wider than
+  (`apps/host/server/local-share.mjs`, `cloudflare.mjs`). `deepstrata launch` makes a key for you when you pick anything wider than
   this computer. The bare engine server (`serve/server.py`) only prints a warning if you open it to your network without a key,
   so set one yourself in that case.
 - **When you use an outside model**, the conversation (and the instructions of skills you switched on) go to that service.
@@ -118,7 +118,7 @@ Updates never replace your models or saved tuning. The full description is in [p
 
 **The app.** Its updates are signed with a separate key (Tauri's minisign), and the public half is in the app
 (`apps/desktop/src-tauri/tauri.conf.json`). The updater refuses an installer whose signature does not match. The Terminal
-checks the same signature when you run `strata update --app`.
+checks the same signature when you run `deepstrata update --app`.
 
 **Model files.** Every model file that `setup.py` downloads has a fixed SHA-256 and size, written in the code, so the check
 needs no network: the main Qwen3.8-Flash-Next files (Q2_0, IQ2_XS, IQ3_XXS, IQ3_S), Swift 1.5, the Coder, the Unsloth sizes,
@@ -145,7 +145,7 @@ check off, and it is never on by default.
 
 **The one-line install** (`curl ... | sh`, `irm ... | iex`) checks the Terminal archive's SHA-256 and the signed feed with the
 Terminal it just unpacked. The checksum and the key come from the same release as the archive, so the first install trusts
-HTTPS and the `Niko1221/Strata` release itself. What that means, and how to read the script first, is in
+HTTPS and the `ilfarpro/DeepStrata` release itself. What that means, and how to read the script first, is in
 [SECURITY.md](../SECURITY.md#how-far-to-trust-curl--sh-and-irm--iex). Later updates are checked against the key already on
 your PC.
 
@@ -193,12 +193,12 @@ The agent runs on a loopback address with a random token, so other programs on t
 
 ## Open source and reporting a problem
 
-Strata is MIT-licensed and the whole code is at [github.com/Niko1221/Strata](https://github.com/Niko1221/Strata). Read it, build
+Strata is MIT-licensed and the whole code is at [github.com/ilfarpro/DeepStrata](https://github.com/ilfarpro/DeepStrata). Read it, build
 it and compare. Strata has not had an outside security audit yet.
 
 To report a security problem, use GitHub's private reporting (the repository's **Security** tab), as described in
 [SECURITY.md](../SECURITY.md). Ordinary questions and ideas can go to an
-[issue](https://github.com/Niko1221/Strata/issues).
+[issue](https://github.com/ilfarpro/DeepStrata/issues).
 
 ## Where to check this in the code
 

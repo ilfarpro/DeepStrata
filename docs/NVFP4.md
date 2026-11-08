@@ -12,7 +12,7 @@ Everything else (attention, GDN, shared experts, routers, the head) stays in the
 Choose a ready-made pack with the Terminal. Manual conversion below needs a source checkout.
 
 ```sh
-strata launch --family nvfp4 --model NVFP4
+deepstrata launch --family nvfp4 --model NVFP4
 ```
 
 | Size in setup and the app | Name | Source |

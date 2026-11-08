@@ -186,6 +186,8 @@ If a sync merge reintroduces one, that test fails — resolve toward the module.
 | Releases / feed / issues / snapshots | `Niko1221/Strata` | `ilfarpro/DeepStrata` (same artifact names) |
 | Feed key, app minisign key | upstream's | ours, regenerated; secrets live outside the repo (`~/.deepstrata-signing/`) |
 | Docker image labels | upstream | `DeepStrata`, our URLs |
+| Docker registry / container / volume | `ghcr.io/niko1221/strata`, container `strata`, volume `strata-data` | `ghcr.io/ilfarpro/deepstrata`, container `deepstrata`, volume `deepstrata-data`, in-container command `deepstrata` (the wrapper on PATH) |
+| Docs commands and install lines | `strata …`, upstream release URLs | `deepstrata …`, `ilfarpro/DeepStrata` URLs, one-liners included (a 404 until our first release is accepted) |
 
 Kept on purpose: `STRATA_*` environment names (one process, no collision); the
 words people read (UI sentences, help texts, tray menus keep saying Strata);
@@ -193,8 +195,7 @@ engine binaries `strata`, `strata-dsv41`, `strata-vision*` and feed artifacts
 (`strata-feed.json`) — each lives inside one product's own component folder or
 release; the workspace convention `.strata/checks.json` and walk skip lists (a
 project declares its checks once for every tool, like `.git`); `packaging/`
-and `docker/` internal paths (`/opt/strata/…`, `strata-wrapper.sh`) that never
-leave our image.
+and `docker/` internal paths (`/opt/strata/…`) that never leave our image.
 
 Files that carry a literal because they cannot import the module (each pinned
 by the test): `setup.py`, `serve/server.py`, `sycl/setup_intel.py`,
@@ -220,6 +221,14 @@ product-side identity value belongs in all three modules (plus the pins) in
 the same commit. `tools/trellis/make_corpus.py` and
 `apps/host/scripts/agent2-tools-flow.mjs` name the upstream repository on
 purpose (a research contact line, a live web probe) and stay excluded.
+**The documents are an identity surface too:** a person copies a command or an
+install line and runs it, so in `README*.md`, `AGENTS.md`, `CONTRIBUTING.md`,
+`SECURITY.md` and `docs/*` commands inside code blocks and backticks say
+`deepstrata` and addresses name our repository — prose keeps saying Strata,
+and the historical records (`docs/release-notes-*`, the two
+`IMPLEMENTATION_STATUS` files) keep the upstream addresses they recorded.
+`test_fork_identity.py` guards both; when upstream edits a doc, take their
+text and re-apply the command and address spellings.
 
 ## Tests a sync merge should run
 

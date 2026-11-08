@@ -12,8 +12,8 @@ graphics driver must be installed (Windows: [AMD Software: Adrenalin Edition](ht
 Linux: the kernel's amdgpu driver, no ROCm install). Terminal:
 
 ```sh
-strata launch --plan       # shows what would happen, changes nothing
-strata launch              # sets up and serves
+deepstrata launch --plan       # shows what would happen, changes nothing
+deepstrata launch              # sets up and serves
 ```
 
 Source checkout on Linux ([SOURCE_INSTALL.md](SOURCE_INSTALL.md#amd-cards)):
@@ -48,9 +48,9 @@ carries it but it is untested. Details: [MODELS.md](MODELS.md#deepseek-v41-flash
 <a id="ready-made-packages-023"></a>
 ## Ready-made packages
 
-The Terminal one-liner and `strata update` pick the package whose GPU code covers the card. The app installer
+The Terminal one-liner and `deepstrata update` pick the package whose GPU code covers the card. The app installer
 (`Strata-0.2.9-windows-x64-setup.exe`, `Strata-0.2.9-linux-x86_64.AppImage`) has no engine inside: on its first start the app
-downloads the matching package for the card. You can also press **Update engine** in Settings (or run `strata update`).
+downloads the matching package for the card. You can also press **Update engine** in Settings (or run `deepstrata update`).
 
 | Package (variant) | OS | GPU code inside | ROCm |
 | --- | --- | --- | --- |
@@ -132,8 +132,8 @@ reused. The Monitor shows the card's load, VRAM, temperature and power from Linu
 ## Windows
 
 Install the [app](INSTALL.md) (`Strata-0.2.9-windows-x64-setup.exe` from the
-[release page](https://github.com/Niko1221/Strata/releases/latest); it downloads the engine for the card), or
-install the [Terminal](INSTALL.md#the-terminal) and run `strata launch`. You need Windows 10 or 11 (64-bit), a supported card
+[release page](https://github.com/ilfarpro/DeepStrata/releases/latest); it downloads the engine for the card), or
+install the [Terminal](INSTALL.md#the-terminal) and run `deepstrata launch`. You need Windows 10 or 11 (64-bit), a supported card
 and a current AMD driver. No ROCm or HIP SDK, no compiler, no admin rights. `START-HERE.bat --backend hip` is a
 source-checkout option for developers, not a way to start the released app.
 
@@ -146,7 +146,7 @@ source-checkout option for developers, not a way to start the released app.
 - **Before the model download,** setup runs `engine\strata-device.exe --list-devices`. If the HIP runtime does not see the
   card, setup stops and points to the driver. With an integrated Radeon, a discrete card is HIP device 1, not 0; `--gpu N` and
   the config's `"gpu"` are HIP numbers.
-- **Several cards:** use the app's card selector or `strata launch --gpu 0,1`. [MULTI_GPU.md](MULTI_GPU.md) lists the
+- **Several cards:** use the app's card selector or `deepstrata launch --gpu 0,1`. [MULTI_GPU.md](MULTI_GPU.md) lists the
   combinations measured. A tested Linux pair does not validate the same pair on Windows.
 - **VRAM budget:** `hipMemGetInfo` on Windows does not subtract what the desktop and other programs hold. The engine lowers
   the free figure by what Windows' video memory budget for the process withholds (logged once). `STRATA_WDDM_BUDGET=0` turns
@@ -287,7 +287,7 @@ without `--kv-resident`, the same setup answered normally. Removing the other sw
 `STRATA_HIP_ADAPT_KERNEL_COPY`, `STRATA_PREFILL_CPU_SHARE`, `STRATA_PIPED_CONCURRENT`, `STRATA_PREFILL_STREAM_MIN`, `STRATA_IO_THREADS`, a rocBLAS
 table) did not clear it; removing `STRATA_SH_STREAM` did. Two RX 6900 XT under Linux (layer split, the same model, the fork and `--kv-resident
 32768`) have served without the fault since 0.1.40. It is one PC and one card, and the faulting kernel was not isolated. So `--calibrate` does
-not measure the fork on Windows when KV streaming is on, `strata tune` never picks it there, and a config that sets it by hand gets a warning
+not measure the fork on Windows when KV streaming is on, `deepstrata tune` never picks it there, and a config that sets it by hand gets a warning
 line at the start; nothing is refused. If you have an RX 6000 card on Windows and want to help, run it once with `STRATA_SH_STREAM=1` and
 `--kv-resident` and tell us in [#3895](https://github.com/Niko1221/Strata/pull/3895) whether the first request answered, with the card and the driver.
 

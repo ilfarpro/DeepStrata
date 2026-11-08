@@ -40,7 +40,7 @@ types, not the name); **all routed experts fit in the cards' memory** (the memor
 131072 or less. The split uses the MTP drafter, so Strata fetches the MTP draft layer (about 5.2 GB) when it is not on the disk; if that layer is
 missing, the launch is a quiet layer split.
 
-**Turn it off:** `strata launch --split-engine off`, or `"split_engine": "off"` in the run config, or `STRATA_SPLIT_ENGINE=0` in the environment.
+**Turn it off:** `deepstrata launch --split-engine off`, or `"split_engine": "off"` in the run config, or `STRATA_SPLIT_ENGINE=0` in the environment.
 **Ask for it:** `--split-engine on` (or `"on"` in the config) uses the same rule, but says why in one line when it cannot run. It also runs the
 cases Auto leaves out (2 or 3 R9700 cards, the IQ3_S set on AMD, other AMD cards, 3 or 4 NVIDIA cards); the line says which part has not been run.
 

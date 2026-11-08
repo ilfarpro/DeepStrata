@@ -4,12 +4,12 @@
 
 Please report anything that should not be public until it is fixed **privately**, through GitHub's private
 vulnerability reporting: the repository's **Security** tab, **Report a vulnerability**
-([direct link](https://github.com/Niko1221/Strata/security/advisories/new)). Say what you found, how to reproduce it
+([direct link](https://github.com/ilfarpro/DeepStrata/security/advisories/new)). Say what you found, how to reproduce it
 (the request, the config keys involved, the Strata version), and what an attacker gains. We answer there, fix it in
 a release, and credit you in the advisory unless you ask us not to.
 
 Ordinary hardening ideas and findings that are safe to discuss in public are welcome as an
-[issue](https://github.com/Niko1221/Strata/issues) (#544 collects audit findings) or as a pull request, which we
+[issue](https://github.com/ilfarpro/DeepStrata/issues) (upstream #544 collects the original's audit findings) or as a pull request, which we
 review like our own code.
 
 Supported: the latest release. Fixes go into the next release, not into older ones.
@@ -50,7 +50,7 @@ this PC only. The details and every setting are in [docs/DETAILS.md](docs/DETAIL
 Strata comes in three parts that share one engine: the **desktop app**, the **Terminal** (`strata`) and the **engine** that runs
 the model. The section above is about the engine's HTTP server. This is what the other two add.
 
-- **The app's host listens on this PC only.** The app serves its page from a local host process on `127.0.0.1` (port 8791 unless
+- **The app's host listens on this PC only.** The app serves its page from a local host process on `127.0.0.1` (port 8891 unless
   changed). A request to its `/api/` endpoints that carries a browser `Origin` from any other site gets 403. The app shell holds a
   random secret (32 characters or more, compared in constant time) that is needed to quit the host or tell it which window is open,
   and the host gives its own helper processes a second random secret. By default the models the app starts are served on this PC only.
@@ -62,7 +62,7 @@ the model. The section above is about the engine's HTTP server. This is what the
   is a TCP listener on `127.0.0.1` that answers only requests carrying a 256-bit token kept in an owner-only folder. That is a weaker
   guarantee than a socket other users cannot open: on Windows the token is what protects it, as with any loopback service that has a
   token (`strata_control/owner_transport.py`). The bridge between the app shell and the host (used for the app update) is also loopback and protected by a token.
-- **Starting a model and serving never download anything.** Downloads and updates are one explicit step: `strata update`, or "Update
+- **Starting a model and serving never download anything.** Downloads and updates are one explicit step: `deepstrata update`, or "Update
   engine" and "Update Strata" in the app's Settings. Models and saved tuning are never replaced by an update.
 - **Updates come from a signed feed.** The release publishes `strata-feed.json` and `strata-feed.json.sig` (Ed25519). An installed
   Strata checks the signature against the public key it carries (`strata_control/update_keys.json`), refuses a feed older than the last
@@ -76,8 +76,8 @@ the model. The section above is about the engine's HTTP server. This is what the
 The Terminal installs with one line:
 
 ```sh
-curl -fsSL https://github.com/Niko1221/Strata/releases/latest/download/install.sh -o install.sh && sh install.sh
-irm https://github.com/Niko1221/Strata/releases/latest/download/install.ps1 | iex
+curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
+irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
 ```
 
 Piping a script into a shell runs whatever the server sends, so it deserves the same care as running any downloaded program.
@@ -86,11 +86,11 @@ checks its SHA-256, unpacks it into your home folder (no administrator rights, n
 with the Terminal it just unpacked and removes it again if that fails, and puts `strata` on your PATH.
 
 Those checks have a limit. The checksum comes from the same release as the archive, and the public key that checks the feed arrives inside
-that archive, so for the first install all trust rests on HTTPS and on the `Niko1221/Strata` GitHub release itself. The checks catch a
+that archive, so for the first install all trust rests on HTTPS and on the `ilfarpro/DeepStrata` GitHub release itself. The checks catch a
 damaged or half-finished download and a feed that was not signed by the release key; they do not protect you if the release has been replaced
 by someone who controls it. Later updates are checked against the key already on your PC, which is a stronger position.
 
-If that is not enough: save the script (`curl -fsSLO https://github.com/Niko1221/Strata/releases/latest/download/install.sh`), read it, and
+If that is not enough: save the script (`curl -fsSLO https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh`), read it, and
 run it from the file; or install the desktop app or build from source instead and check the code you build.
 
 Strata has not had an outside security audit yet.

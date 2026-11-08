@@ -1,6 +1,6 @@
 # Strata standard benchmark protocol
 
-**Status: draft, implemented in `strata bench run`; pilot validation pending.** Protocol ID: `strata-qwen38-thinking-v1-draft.1`.
+**Status: draft, implemented in `deepstrata bench run`; pilot validation pending.** Protocol ID: `strata-qwen38-thinking-v1-draft.1`.
 Result format: `strata-standard-benchmark`, schema version `1`.
 
 This document specifies a repeatable community benchmark and the data a future website can consume. The
@@ -10,7 +10,7 @@ Slower machines take longer; everyone runs the same work. Downloads, installatio
 excluded; so is the hashing of the model files that the runner does first (about 1 to 5 minutes for a 44 to 71 GB model).
 Report their duration separately if measured.
 
-`strata bench run` implements this protocol from Strata 0.2.1. It sends the frozen fixtures in
+`deepstrata bench run` implements this protocol from Strata 0.2.1. It sends the frozen fixtures in
 `bench/prompts/standard-v1` (corpus SHA-256 `e75eff8b9feea04f745520b392c4c17d97aefc1ba185e222aa6740efa8f68407`)
 and writes the result format below. `BENCH.bat`, `./bench.sh`, and `tools/strata_bench.py` do not implement it.
 They stay the quick speed check described in the [community guide](COMMUNITY_BENCHMARKS.md). Do not rename their
@@ -30,8 +30,8 @@ output or add a protocol ID to make it appear standard. The draft becomes final 
 Install Strata, set up the Flash-Next model you want to measure, and close other programs that use the GPU. Then:
 
 ```sh
-strata bench run --profile NAME --track default --track-notes "0.2.1 release, setup defaults"
-strata bench run --url http://127.0.0.1:8080          # a server that is already running
+deepstrata bench run --profile NAME --track default --track-notes "0.2.1 release, setup defaults"
+deepstrata bench run --url http://127.0.0.1:8080          # a server that is already running
 ```
 
 With `--profile` the runner starts that profile's engine, waits for the model to load, runs the protocol, and stops
@@ -41,7 +41,7 @@ server that has already answered requests is not freshly loaded, and the report 
 
 The runner checks every fixture against the bundle manifest before it sends anything, refuses to run if one byte
 differs, and rejects flags that would change the workload (`--concurrency`, `--repeat`, `--request-timeout`).
-`strata bench report DIR` prints a saved result again and re-validates it. Output goes to
+`deepstrata bench report DIR` prints a saved result again and re-validates it. Output goes to
 `bench/results/<UTC-date>-standard-<gpu>-<run-id>/` when the current folder has `bench/results`, otherwise to
 `./bench-results/`. Read the folder once before you share it: home folders, user and host names, private addresses,
 and keys are replaced, but the runner cannot know everything you consider private.
@@ -193,7 +193,7 @@ errors, and skipped cases individually. Only a completed, correct response passe
 
 ### How the runner reads the protocol
 
-Where the rules leave room, `strata bench run` takes the most literal reading. These are its choices; a different
+Where the rules leave room, `deepstrata bench run` takes the most literal reading. These are its choices; a different
 reading needs a new protocol ID.
 
 - **Settings.** Every request carries all sampling values, `reasoning_effort: "xhigh"`, both thinking flags, the
@@ -452,7 +452,7 @@ the draft protocol ID. Existing reports remain welcome under the [community guid
 3. The report states the protocol/status, hardware, model/quant, commit/configuration, actual duration, counts,
    per-case performance, passed/12 sanity score, failures, and limitations. Link raw evidence. Use `not measured`
    in prose and null with a reason in JSON. Do not paste hypothetical performance numbers into examples.
-4. Open a results-only PR against `Niko1221/Strata:main`. Suggested title:
+4. Open a results-only PR against `ilfarpro/DeepStrata:main`. Suggested title:
    `benchmark: <GPU> / <model> / <quant> / <protocol-id>`. The body links the report, names required versus optional
    stages, and states any failed, skipped, missing, or nonconforming measurements. Keep engine changes separate.
 5. Maintainers check the exact revision, profile and corpus, artifact hashes, counts, formulas, scores, logs,
@@ -506,13 +506,13 @@ actual lengths/cache counts, and concurrency; there is no universal combined sco
 
 `tools/strata_bench.py` (behind `BENCH.bat` and `./bench.sh`) hardcodes temperature `0`, turns thinking off by default,
 has no twelve-case sanity suite, reads changing repository files into its agent workload, and can fall back from token
-counts to stream-chunk counts. `--think` alone does not fix those differences. `strata bench run` does not share
+counts to stream-chunk counts. `--think` alone does not fix those differences. `deepstrata bench run` does not share
 them: it is the protocol's runner.
 
 Done in 0.2.1, with tests against a scripted mock server (`tests/terminal/test_bench_standard.py`) and the real
 API server's mock engine:
 
-- The fixtures, the profile settings, the runner, a strict result validator (`strata bench report` runs it), and the
+- The fixtures, the profile settings, the runner, a strict result validator (`deepstrata bench report` runs it), and the
   evidence files. Complete runs, early EOS, cap truncation, wrong answers, malformed JSON and tool calls, duplicate JSON
   keys, missing usage or timings, empty deltas and keep-alives, timeouts, cancellation, a stream cut before its end,
   server death, count identities, summary reconstruction, unexpected payload reuse, a refused setting, a remote server,

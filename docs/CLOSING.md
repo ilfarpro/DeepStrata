@@ -9,12 +9,12 @@ does not exit in time it is killed. After either, the port and the GPU memory ar
 
 | | Started by | Ends with | Stop it with |
 |---|---|---|---|
-| **Foreground** | `strata serve --profile NAME` (or `python serve/server.py`) | the terminal / the command | Ctrl+C, closing the window, `kill` |
-| **Background service** (on purpose) | `strata runtime start --profile NAME` | nothing: it keeps serving after the terminal closes | `strata runtime stop --profile NAME` |
+| **Foreground** | `deepstrata serve --profile NAME` (or `python serve/server.py`) | the terminal / the command | Ctrl+C, closing the window, `kill` |
+| **Background service** (on purpose) | `deepstrata runtime start --profile NAME` | nothing: it keeps serving after the terminal closes | `deepstrata runtime stop --profile NAME` |
 | **The Desktop app's engines** | the app (profiles `app-1`, `app-2`, ...) | the app: its window, its process, its host | closing the app, or the app's unload |
 
 The background service is a deliberate choice and stays one: `runtime start` starts an owner host that is not tied to the
-terminal that ran it. It is documented in `strata runtime --help`. If you want it to follow a process, `--die-with-pid PID`
+terminal that ran it. It is documented in `deepstrata runtime --help`. If you want it to follow a process, `--die-with-pid PID`
 ties it to that process (the app does this for every engine it starts). Engines the Terminal starts are never stopped by the
 app, and the app's `app-N` engines are not stopped by the Terminal unless you run `runtime stop --profile app-1`.
 
@@ -48,11 +48,11 @@ Every engine, image encoder and server Strata starts writes a small private reco
 time, command line, and the same for its parent). Records are removed when the process ends. If everything dies anyway and a
 process is left, the next of these ends it, after the check above:
 
-* the next engine start (`strata serve`, `runtime start`, the app loading a model), for any leftover on the machine whose
+* the next engine start (`deepstrata serve`, `runtime start`, the app loading a model), for any leftover on the machine whose
   parent is gone;
-* `strata runtime stop --profile NAME` when the owner host is lost (it ends the recorded server and engine and clears the
+* `deepstrata runtime stop --profile NAME` when the owner host is lost (it ends the recorded server and engine and clears the
   private state, instead of failing with "runtime control is unavailable");
-* `strata runtime cleanup [--profile NAME]`, on demand (`--json` for scripts); a running instance is never touched;
+* `deepstrata runtime cleanup [--profile NAME]`, on demand (`--json` for scripts); a running instance is never touched;
 * the app host, once at start.
 
 Engines older Strata versions left behind wrote no record. At an engine start, an **orphan of exactly the executable about to

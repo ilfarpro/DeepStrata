@@ -8,20 +8,20 @@ Nothing here is known to work on another ARM machine.
 ## What works, and what does not
 
 - **Works:** Qwen3.8-Flash-Next IQ3_S and the NVFP4 GPTQ pack (64K context, every expert in the GPU's cache), DeepSeek-V4.1-Flash 2.00 bpw
-  (a short chat), the Terminal (`strata launch`, `strata update`, `strata serve`) and the engine packages of the signed feed.
+  (a short chat), the Terminal (`deepstrata launch`, `deepstrata update`, `deepstrata serve`) and the engine packages of the signed feed.
 - **Not built for ARM:** the desktop app (no AppImage; use the Terminal), the HIP, SYCL and CPU-only engines, and the Q2_0 and Gyro packs,
   whose CPU kernels are x86-only (the engine refuses them at start). Picture reading is compiled in and was not tried on the Spark.
-- **Not tested:** contexts above 128K, more than eight chat slots (four and eight were measured: "Several chats at once" below), a long soak. `strata doctor --live` lists the GB10 with no memory
+- **Not tested:** contexts above 128K, more than eight chat slots (four and eight were measured: "Several chats at once" below), a long soak. `deepstrata doctor --live` lists the GB10 with no memory
   figure, because `nvidia-smi` reports none for it.
 
 ## Install with the Terminal
 
 ```sh
-curl -fsSL https://github.com/Niko1221/Strata/releases/latest/download/install.sh -o install.sh && sh install.sh
-strata launch
+curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
+deepstrata launch
 ```
 
-`install.sh` unpacks the Terminal into `~/.local/share/strata` (no administrator rights) and checks the release's signed feed. `strata launch`
+`install.sh` unpacks the Terminal into `~/.local/share/strata` (no administrator rights) and checks the release's signed feed. `deepstrata launch`
 fetches the `linux-aarch64` engine package, shows what each model needs, downloads the one you choose and starts it. Pick Qwen3.8-Flash-Next
 IQ3_S (84 GB download) or the NVFP4 pack, or DeepSeek-V4.1-Flash 2.00 bpw (257 GB). The engine package needs glibc 2.39 or newer
 (Ubuntu 24.04, DGX OS 7) and NVIDIA driver 580.65 or newer.
@@ -106,7 +106,7 @@ DeepSeek-V4.1-Flash 2.00 bpw, 8K context, the default Faster mode (5 of 6 expert
 short chat answers at 13 to 18 tok/s (the first answer after a start is the slowest). Full quality (`--experts 6`) places more of them and was
 measured at 17 to 23 tok/s on a 1.7K-token chat in the first run.
 
-Several chats at once (`"parallel"` is 4 on a Spark for `strata launch`; the setup script leaves it off): IQ3_S, 2K-token prompts, 128-token cap,
+Several chats at once (`"parallel"` is 4 on a Spark for `deepstrata launch`; the setup script leaves it off): IQ3_S, 2K-token prompts, 128-token cap,
 the aggregate tokens per second over all clients: 8 clients 35.6, 16 clients 41.7, 32 clients 47.3 at 4 slots; 32 clients 54.2 at 8 slots. With
 a prompt of its own and a hidden code for each client, every answer named its own code and nobody else's (8 clients at 4 slots, 16 clients at 8
 slots), and none failed or hung.

@@ -74,10 +74,7 @@ test('the page reads what the shell announced and makes Files of it', async () =
   assert.equal(dragHasFiles(['text/uri-list', 'text/html']), true); assert.equal(dragHasFiles(['Files']), true); assert.equal(dragHasFiles(['text/plain']), false); assert.equal(dragHasFiles(null), false);
 });
 
-test('the window passes the drop on (Linux and macOS) and ignores a file dropped outside the chat', async () => {
-  const rust = await readFile(new URL('../../desktop/src-tauri/src/main.rs', import.meta.url), 'utf8');
-  assert.match(rust, /#\[cfg\(windows\)\]\s+let builder = builder\.disable_drag_drop_handler\(\);/);
-  assert.match(rust, /window\.on_webview_event\(/); assert.match(rust, /\/api\/app\/drop/);
+test('the page fetches a handed-over drop, and ignores a file dropped outside the chat', async () => {
   const zone = await readFile(new URL('../src/components/DropZone.tsx', import.meta.url), 'utf8');
   assert.match(zone, /NATIVE_DROP_EVENT/); assert.match(zone, /export function installDropGuard/);
   assert.match(await readFile(new URL('../src/main.tsx', import.meta.url), 'utf8'), /installDropGuard\(\);/);

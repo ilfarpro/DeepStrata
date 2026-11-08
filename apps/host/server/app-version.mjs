@@ -1,6 +1,6 @@
 /**
- * The app's version, from one place. The desktop shell reports its own (apps/desktop/src-tauri/Cargo.toml, which Tauri also uses for
- * the installer and file names) in STRATA_APP_VERSION. Outside the app, in a source checkout, the same file is read; otherwise 'dev'.
+ * The app's version, from one place: the host's own package.json, beside `server/` in a checkout and in the installed `host/` folder.
+ * A launcher may name it exactly in STRATA_APP_VERSION; a host without a package file next to it reports 'dev'.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -11,10 +11,10 @@ export function appVersionFrom({ env = process.env, here }) {
   const given = String(env.STRATA_APP_VERSION ?? '').trim();
   if (VERSION.test(given)) return given;
   try {
-    const toml = readFileSync(join(here, '..', '..', 'desktop', 'src-tauri', 'Cargo.toml'), 'utf8');
-    const found = /^version\s*=\s*"([^"]+)"/m.exec(toml);
-    if (found && VERSION.test(found[1])) return found[1];
-  } catch { /* not a checkout */ }
+    const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8'));
+    const declared = String(pkg.version ?? '');
+    if (VERSION.test(declared)) return declared;
+  } catch { /* not a host folder with a package file */ }
   return 'dev';
 }
 

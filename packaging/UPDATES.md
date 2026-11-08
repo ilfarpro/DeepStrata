@@ -200,6 +200,12 @@ Mach-O in the app with the Developer ID and notarises and staples it, which chan
    and writes `url`, `signature`, `sha256` and `size` of the darwin entry. A signature that was made for the pre-notarisation file does not verify, so it cannot be published by mistake.
 4. `build-feed --app-json` and `verify-feed` as above. Upload the notarised `Strata.dmg`, `Strata.app.tar.gz`, and the `latest.json` from the feed folder (`app/latest.json`).
 
+**Until the fork holds its own Apple certificate** its Mac builds go out without a Developer ID and without notarisation: step 1 runs as
+`sign-and-notarize.sh <the built app> --updater-archive --dry-run`, which checks the app with an ad-hoc signature and packs the archive
+the same way, with no Apple account touched. The fork's Tauri key still signs the archive in step 2, so everything from step 3 on reads
+as written; the dmg warns on the first open and [docs/TROUBLESHOOTING.md](../docs/TROUBLESHOOTING.md) teaches the bypass. With a
+certificate of our own, run the real procedure and the warning is gone.
+
 The Windows installer and the Linux AppImage need no extra step: their `.sig` files from `tauri build` are the ones to pass to `set-app-platform`. Re-signing the Mac app after the archive
 was made (a second `sign-and-notarize.sh` run) makes a new archive: sign and add it again.
 

@@ -59,9 +59,10 @@ replaced (one generation, about 210 MiB). Source-checkout engines use a separate
 **On a Mac: "Strata is damaged and can't be opened", "cannot be opened", or "unidentified developer".**
 Check first that the download is for Apple Silicon and that macOS is 15 or newer ([Mac installation](MAC.md#the-desktop-app-and-deepstrata-launch-on-a-mac)).
 Nothing is wrong with the file if the message is only about the developer: macOS marks everything a browser downloads, and
-only lets a marked program run if Apple has checked it. Strata's release builds are checked by Apple ("notarised"): drag
-Strata onto Applications and open it; the first time, macOS asks "Are you sure you want to open it?" and you press Open. A
-test build that is not notarised says "damaged". Do not move it to the Trash. Open the Terminal app and remove the mark,
+only lets a marked program run if Apple has checked it. DeepStrata's builds are not notarised yet — the signing
+certificate the original product used is not ours, and the fork notarises again when it has its own Apple Developer ID —
+so a release .dmg says "damaged" or "the developer cannot be verified" the first time. Do not move it to the Trash.
+Open the Terminal app and remove the mark,
 with the line that matches what you have (drag the file from Finder into the Terminal window to type its path):
 
     xattr -dr com.apple.quarantine ~/Downloads/<the .dmg file>        # the .dmg, before opening it

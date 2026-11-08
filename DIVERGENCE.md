@@ -41,6 +41,33 @@ Rules that keep the merges mechanical:
 **Last synced:** `strata/main` at `146df3c4` (upstream 0.2.12 line), 2026-11-08.
 Our `main` ahead by 38 commits.
 
+## Release numbering and tags
+
+Our release version is the upstream line we are based on plus our own number: the first
+DeepStrata release on upstream 0.2.12 is `0.2.12.1`, the next one on the same line is
+`0.2.12.2`; after a sync to upstream 0.2.13 the next release is `0.2.13.1`. The release
+version is the tag, the GitHub release name and title, and the file names of the files we
+rebuild for that release.
+
+The components keep their own numbers, where they live today (pinned by
+`tests/terminal/test_tui2_023_versions.py`):
+
+- the app and the Terminal carry a three-number version (`apps/desktop/src-tauri/Cargo.toml`,
+  today 0.2.12): cargo and npm take semver only, and the app updater counts a change of that
+  number — a prerelease suffix does not order (`app_version_key` treats any suffix as merely
+  "below the bare number"), and the feed's `app.version` must equal what the app reports, so
+  four numbers there would offer the same update forever. A rebuilt app inside one line is
+  rare (the shell is upstream code); when it happens the app takes the next third number and
+  the release notes say which line it is from.
+- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.58 …)`
+  today), and a four-number hotfix of those is what `version_key` reads natively.
+
+Tags: a release is tagged `ds-<version>` (`ds-0.2.12.1`); syncs stay `sync-<version>`. The
+`ds-` prefix is not decoration: a sync fetches upstream tags into the same clone, and upstream
+hotfixes its releases with a fourth number too (`v0.2.7.1` and friends), so a plain `v` tag of
+ours will meet the same name there one day — a shared tag name would break the sync with
+"would clobber existing tag".
+
 ## Divergence zones (what a sync must protect)
 
 ### 1. The served web page is gone; `strata ui` brings the App Host's page

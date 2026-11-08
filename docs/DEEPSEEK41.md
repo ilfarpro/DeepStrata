@@ -111,10 +111,12 @@ rules refuse the shapes these files have", not "a run failed".
 Two rules stood in the way. On this branch the table rule is lifted (a Q5_K table is read); the experts rule still stops four
 of the five:
 
-- **One layer's experts** (`src/dsv41/ds4_model.cu:2418`, in every engine since the first): gate and up must share a type, and a layer
-  either keeps all three matrices in DeepSeek's MXFP4 or keeps all three in other, low-bit types - "MXFP4 does not mix with the others".
-  Unsloth's 3-bit sets keep MXFP4 where the layer is sensitive and drop the rest to 2 and 3 bits; in several layers that leaves an MXFP4
-  `down` beside 2- or 3-bit gate and up, and the engine stops at the start with that message.
+- **One layer's experts** (`src/dsv41/ds4_model.cu:2418`, in every engine since the first): gate and up must share a type, and
+  MXFP4 may not mix with the others - a layer keeps either all three in DeepSeek's MXFP4 or all three in low-bit types (where
+  `down` may be a different low-bit type from gate and up). Unsloth's 3-bit sets keep MXFP4 where the layer is sensitive and
+  drop the rest to 2 and 3 bits; in several layers that leaves an MXFP4 `down` beside 2- or 3-bit gate and up, and the engine
+  stops at the start with that message. UD-IQ2_XXS's one layer with a `Q2_K` down is fine: gate and up match, none of the
+  three is MXFP4.
 - **The n-gram table** (`src/dsv41/ds4_model.cu:3454`): the Engram reader takes MXFP8, Q6_K and IQ4_NL - what the offered
   sets carry - and now also **Q5_K**, the type the two 2-bit sets use, as its fourth format. It decodes a Q5_K table row
   (`src/dsv41/ds4_q5k.cuh`) exactly as this engine already decodes a Q5_K dense weight; checked value for value against a

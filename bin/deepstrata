@@ -16,7 +16,7 @@
 # than failing obscurely.
 set -eu
 
-# Resolve this script's real directory, following symlinks, so `strata` can live on PATH.
+# Resolve this script's real directory, following symlinks, so `deepstrata` can live on PATH.
 self=$0
 while [ -L "$self" ]; do
   dir=$(CDPATH= cd -- "$(dirname -- "$self")" && pwd -P)
@@ -31,15 +31,15 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$self")" && pwd -P)
 pick_python() {
   if [ -n "${STRATA_PYTHON:-}" ]; then
     if [ -x "$STRATA_PYTHON" ]; then printf '%s\n' "$STRATA_PYTHON"; return 0; fi
-    echo "strata: STRATA_PYTHON=$STRATA_PYTHON is not executable" >&2
+    echo "deepstrata: STRATA_PYTHON=$STRATA_PYTHON is not executable" >&2
     return 1
   fi
 
   # The private runtime shipped with the distribution.
   #
   # Two layouts are supported, and the relative depth differs between them:
-  #   * an installed distribution: <root>/bin/strata with the runtime at <root>/python/
-  #   * a source checkout:        <root>/bin/strata with no bundled runtime at all
+  #   * an installed distribution: <root>/bin/deepstrata with the runtime at <root>/python/
+  #   * a source checkout:        <root>/bin/deepstrata with no bundled runtime at all
   # So the parent directory is checked as well as this one. Getting this wrong is silent: the
   # launcher falls through to whatever Python is on PATH and the bundle stops being self-contained.
   for candidate in \
@@ -75,7 +75,7 @@ pick_python() {
 
 if ! PY=$(pick_python); then
   cat >&2 <<'MSG'
-strata: no usable Python found.
+deepstrata: no usable Python found.
 
 This distribution is meant to run on its own. If you are seeing this, the private runtime is
 missing from the install and no Python 3.10+ is on your PATH.
@@ -88,14 +88,14 @@ MSG
 fi
 
 # Find the application root. Two layouts are supported so the same launcher works from a checkout
-# (`bin/strata` beside `strata.py`) and from an installed distribution (`<root>/bin/strata` with the
+# (`bin/deepstrata` beside `strata.py`) and from an installed distribution (`<root>/bin/deepstrata` with the
 # code under `<root>/`).
 if [ -f "$HERE/strata.py" ]; then
   APP=$HERE
 elif [ -f "$HERE/../strata.py" ]; then
   APP=$(CDPATH= cd -- "$HERE/.." && pwd -P)
 else
-  echo "strata: cannot find strata.py next to $HERE or its parent; the installation looks incomplete" >&2
+  echo "deepstrata: cannot find strata.py next to $HERE or its parent; the installation looks incomplete" >&2
   exit 5
 fi
 
@@ -117,9 +117,9 @@ if missing:
     raise SystemExit(1)
 PROBE
     then
-      echo "strata: the interpreter $PY is missing packages the API server needs." >&2
+      echo "deepstrata: the interpreter $PY is missing packages the API server needs." >&2
       echo "        Run: $PY -m pip install -r \"$APP/requirements.txt\"" >&2
-      echo "        (strata status, monitor, timeskip and tune plan do not need them)" >&2
+      echo "        (deepstrata status, monitor, timeskip and tune plan do not need them)" >&2
       exit 5
     fi
     ;;

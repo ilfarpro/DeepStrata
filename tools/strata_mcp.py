@@ -610,9 +610,10 @@ class Strata:
     def settings_path(self) -> Path:
         if os.environ.get("STRATA_SETTINGS_FILE"):
             return Path(os.environ["STRATA_SETTINGS_FILE"])
+        # the same rule as strata_control/discovery.py own_settings_file(); literals pinned by tests/terminal/test_fork_identity.py
         if WIN:
-            return Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / "Strata" / "settings.json"
-        return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "strata" / "settings.json"
+            return Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / "DeepStrata" / "settings.json"
+        return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "deepstrata" / "settings.json"
 
     def data_dir(self) -> Path:
         try:

@@ -112,9 +112,9 @@ class WheelLocks(unittest.TestCase):
 
 class Launchers(unittest.TestCase):
     def test_wrappers_prefer_the_bundled_runtime(self):
-        cmd = (ROOT / "bin" / "strata.cmd").read_text(encoding="utf-8")
-        ps1 = (ROOT / "bin" / "strata.ps1").read_text(encoding="utf-8")
-        sh = (ROOT / "bin" / "strata").read_text(encoding="utf-8")
+        cmd = (ROOT / "bin" / "deepstrata.cmd").read_text(encoding="utf-8")
+        ps1 = (ROOT / "bin" / "deepstrata.ps1").read_text(encoding="utf-8")
+        sh = (ROOT / "bin" / "deepstrata").read_text(encoding="utf-8")
         self.assertLess(cmd.index("python\\python.exe"), cmd.index("py -3"))
         self.assertLess(ps1.index("python\\python.exe"), ps1.index("'py', '-3'"))
         self.assertLess(sh.index("python/bin/python3"), sh.index("command -v python3"))

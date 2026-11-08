@@ -3,23 +3,24 @@
  *
  * The host used to assume POSIX in three places: it called /usr/bin/tar and /usr/bin/env, and it kept the tuning
  * and Time-skip state under $HOME/.local/state. On Windows those paths do not exist. State goes to
- * %LOCALAPPDATA%\Strata (the same place the Python side uses: strata_control/paths.py), and the system tools are
+ * %LOCALAPPDATA%\DeepStrata (the same place the Python side uses: strata_control/paths.py), and the system tools are
  * the ones Windows ships (System32\tar.exe, System32\where.exe). POSIX behavior is unchanged.
  *
  * Every function takes the environment and platform as arguments so tests can exercise both without a second OS.
  */
 import { homedir } from 'node:os';
 import { posix } from 'node:path';
+import * as identity from './fork-identity.mjs';
 
 const winPath = (...parts) => parts.join('\\');
 
-/** The folder under which Strata keeps per-user state (tuning jobs, Time-skip runs). */
+/** The folder under which this product keeps per-user state (tuning jobs, Time-skip runs). */
 export function stateRoot(env = process.env, platform = process.platform, home = homedir()) {
   if (platform === 'win32') {
     const local = env.LOCALAPPDATA || winPath(env.USERPROFILE || home, 'AppData', 'Local');
-    return winPath(local, 'Strata');
+    return winPath(local, identity.FOLDER_WINDOWS);
   }
-  return posix.join(env.XDG_STATE_HOME || posix.join(env.HOME || '.', '.local', 'state'), 'strata');
+  return posix.join(env.XDG_STATE_HOME || posix.join(env.HOME || '.', '.local', 'state'), identity.FOLDER_POSIX);
 }
 
 const under = (root, platform, name) => (platform === 'win32' ? winPath(root, name) : posix.join(root, name));

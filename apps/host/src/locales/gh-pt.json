@@ -19,7 +19,7 @@
  "gh18": "Minimizar para a bandeja",
  "gh19": "Ao fechar a janela, o Strata continua em execução na bandeja, ao lado do relógio. Escolha Sair no menu da bandeja para encerrá-lo. Vale a partir da próxima vez que o Strata iniciar.",
  "gh20": "Porta do aplicativo",
- "gh21": "A porta usada pela janela e pelo endereço local do Strata. Deixe vazio para o Strata escolher (47831 quando estiver livre). Vale a partir da próxima vez que o Strata iniciar.",
+ "gh21": "A porta usada pela janela e pelo endereço local do Strata. Deixe vazio para o Strata escolher (47841 quando estiver livre). Vale a partir da próxima vez que o Strata iniciar.",
  "gh22": "Porta (vazio = automático)",
  "gh23": "Usando a porta {0} agora.",
  "gh24": "O Strata não conseguiu usar a sua porta",

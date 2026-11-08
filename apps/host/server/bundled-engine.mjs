@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import { copyFile, mkdir, readdir, readFile, rename, rm, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { dirname, join, resolve, sep } from 'node:path';
+import { RELEASES_URL as FORK_RELEASES_URL } from './fork-identity.mjs';
 
 const MANIFEST = 'engine-component.json';
 
@@ -65,7 +66,7 @@ export function nvidiaDriverVersion() {
 }
 
 /** Where the builds are published; the wrong-make sentence points here. */
-export const RELEASES_URL = 'https://github.com/Niko1221/Strata/releases';
+export const RELEASES_URL = FORK_RELEASES_URL;
 
 /** The PCI vendor ids of the display adapters Windows reports as present right now (PowerShell, Win32_VideoController); empty when that cannot be read. */
 export function windowsPresentVendors({ platform = process.platform, run = execFileSync } = {}) {

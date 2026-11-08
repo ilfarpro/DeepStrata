@@ -1,7 +1,7 @@
 /**
  * Drive the real app through the S4b flow on a real model and take screenshots (playwright-core + installed Chrome).
  *
- *   STRATA_URL=http://127.0.0.1:8791 SHOTS=./shots METRICS=http://127.0.0.1:18797/metrics node scripts/agent-flow-s4b.mjs
+ *   STRATA_URL=http://127.0.0.1:8891 SHOTS=./shots METRICS=http://127.0.0.1:18797/metrics node scripts/agent-flow-s4b.mjs
  *
  * Against a host that has the Harness and one API connection saved (the model server), in Manual mode:
  *   1. a coding task that starts two helper agents; the Subagents popover shows two rows; the engine metrics show both running together;

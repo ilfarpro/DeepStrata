@@ -38,7 +38,8 @@ class _VersionAction(argparse.Action):
 
 
 def parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(prog="strata", description="Strata serving and terminal clients")
+    from strata_control import fork_identity
+    ap = argparse.ArgumentParser(prog=fork_identity.CLI_NAME, description="Strata serving and terminal clients")
     import strata_cli
     ap.add_argument("--version", action=_VersionAction, nargs=0,
                     help="print the version and the interpreter this terminal runs on")

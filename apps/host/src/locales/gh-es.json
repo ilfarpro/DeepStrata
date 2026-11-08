@@ -19,7 +19,7 @@
  "gh18": "Minimizar a la bandeja",
  "gh19": "Al cerrar la ventana, Strata sigue funcionando en la bandeja, junto al reloj. Elige Salir en el menú de la bandeja para detenerlo. Se aplica la próxima vez que se inicie Strata.",
  "gh20": "Puerto de la aplicación",
- "gh21": "El puerto que usan la ventana y la dirección local de Strata. Déjalo vacío para que Strata elija (47831 si está libre). Se aplica la próxima vez que se inicie Strata.",
+ "gh21": "El puerto que usan la ventana y la dirección local de Strata. Déjalo vacío para que Strata elija (47841 si está libre). Se aplica la próxima vez que se inicie Strata.",
  "gh22": "Puerto (vacío = automático)",
  "gh23": "Ahora se usa el puerto {0}.",
  "gh24": "Strata no pudo usar su puerto",

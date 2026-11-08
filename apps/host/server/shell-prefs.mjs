@@ -5,13 +5,14 @@
  *
  *   { "port": 0 | 1024..65535, "tray": false, "language": "en" }
  *
- * Port 0 is the default: the shell asks for 47831 and takes a free port when that one is busy.
+ * Port 0 is the default: the shell asks for the fork's preferred port (47841) and takes a free port when that one is busy.
  */
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { componentsDirectory } from './control-runtime.mjs';
+import { DESKTOP_PORT } from './fork-identity.mjs';
 
-export const DEFAULT_PORT = 47831;
+export const DEFAULT_PORT = DESKTOP_PORT;   // the desktop shell's preferred port (apps/desktop/src-tauri/src/identity.rs)
 export const LANGUAGES = ['en', 'zh', 'ja', 'de', 'es', 'ru', 'pt', 'ko'];
 export const DEFAULTS = Object.freeze({ port: 0, tray: false, language: 'en' });
 

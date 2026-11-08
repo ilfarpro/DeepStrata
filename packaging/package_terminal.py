@@ -21,7 +21,7 @@ What goes in
 * the read-only tooling under `tools/` that the terminal paths import. Everything else under `tools/` is engine
   installation and preparation work and is deliberately excluded: the serving import graph must not pull it in
   (tests/terminal/test_no_acquisition.py checks that);
-* launchers: `bin/strata.cmd` and `bin/strata.ps1` (Windows), `bin/strata` (Linux, macOS).
+* launchers: `bin/deepstrata.cmd` and `bin/deepstrata.ps1` (Windows), `bin/deepstrata` (Linux, macOS).
 
 What does NOT go in
 -------------------
@@ -421,10 +421,10 @@ def main() -> int:
 
         bin_dir = root / "bin"
         bin_dir.mkdir(exist_ok=True)
-        launchers = ["strata.cmd", "strata.ps1"] if target.startswith("windows") else ["strata"]
+        launchers = ["deepstrata.cmd", "deepstrata.ps1"] if target.startswith("windows") else ["deepstrata"]
         for launcher in launchers:
             shutil.copy2(ROOT / "bin" / launcher, bin_dir / launcher)
-            if launcher == "strata":
+            if launcher == "deepstrata":
                 (bin_dir / launcher).chmod(0o755)
 
         installed: dict[str, str] = {}
@@ -499,18 +499,18 @@ def _readme(version: str, target: str) -> str:
     if win:
         install = f"""    Expand-Archive {stem}.zip .
     cd {stem}
-    .\\bin\\strata.cmd --help
+    .\\bin\\deepstrata.cmd --help
 
-Put `bin\\` on your PATH to get the `strata` command everywhere (cmd.exe and PowerShell):
+Put `bin\\` on your PATH to get the `deepstrata` command everywhere (cmd.exe and PowerShell):
 
     setx PATH "%PATH%;%CD%\\bin"
 """
     else:
         install = f"""    tar xzf {stem}.tar.gz
     cd {stem}
-    ./bin/strata --help
+    ./bin/deepstrata --help
 
-Put `bin/` on your PATH to get the `strata` command everywhere:
+Put `bin/` on your PATH to get the `deepstrata` command everywhere:
 
     echo "export PATH=\\"$PWD/bin:$PATH\\"" >> ~/.profile
 """

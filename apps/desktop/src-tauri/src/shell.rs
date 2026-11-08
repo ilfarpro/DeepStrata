@@ -5,7 +5,7 @@
 //!
 //!   { "port": 0 | 1024..65535, "tray": false, "language": "en" }
 //!
-//! * `port`: the port the window's origin uses. 0 is the default, 47831. When the port is busy the shell takes a free one and tells the
+//! * `port`: the port the window's origin uses. 0 is the default, 47841. When the port is busy the shell takes a free one and tells the
 //!   host (`STRATA_PORT_NOTICE=busy:<wanted>:<used>`), which shows the person a warning: the chats and settings of the page are kept per
 //!   port, so a different port starts empty.
 //! * `tray`: closing the window hides it and keeps Strata running in the tray (Windows, macOS). The tray menu follows `language`.
@@ -199,15 +199,15 @@ mod tests {
         assert_eq!(parse_prefs("\u{feff}{\"port\":47900}").port, 47900);
         assert_eq!(parse_prefs(r#"{"port":80}"#).port, 0, "a port below 1024 is not used");
         assert_eq!(parse_prefs(r#"{"port":70000}"#).port, 0);
-        assert_eq!(parse_prefs(r#"{"port":"47831"}"#).port, 0, "a text is not a number");
+        assert_eq!(parse_prefs(r#"{"port":"47841"}"#).port, 0, "a text is not a number");
         assert_eq!(parse_prefs(r#"{"tray":"yes","language":"xx"}"#), Prefs::default());
     }
 
     #[test]
     fn the_wanted_port_is_the_choice_or_the_usual_one() {
-        assert_eq!(wanted_port(&Prefs::default(), 47831), 47831);
-        assert_eq!(wanted_port(&Prefs { port: 47900, ..Prefs::default() }, 47831), 47900);
-        assert_eq!(busy_notice(47831, 51234), "busy:47831:51234");
+        assert_eq!(wanted_port(&Prefs::default(), 47841), 47841);
+        assert_eq!(wanted_port(&Prefs { port: 47900, ..Prefs::default() }, 47841), 47900);
+        assert_eq!(busy_notice(47841, 51234), "busy:47841:51234");
     }
 
     #[test]

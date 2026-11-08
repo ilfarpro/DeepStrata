@@ -27,7 +27,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from strata_control import engine_component as ec, feed as feedmod, signing, transfer, updater  # noqa: E402
+from strata_control import engine_component as ec, feed as feedmod, fork_identity, signing, transfer, updater  # noqa: E402
 
 #: image flavor (the tag suffix) -> (feed backend, feed variant or None for any, docker/build.sh --flavor)
 FLAVORS = {
@@ -99,7 +99,7 @@ def fetch_one(feed: feedmod.Feed, pkg: feedmod.EnginePackage, out: Path, trusted
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--release-tag", help="the GitHub release tag, for example v0.2.7")
-    ap.add_argument("--repo", default="Niko1221/Strata", help="owner/name of the GitHub repository (default %(default)s)")
+    ap.add_argument("--repo", default=fork_identity.REPO, help="owner/name of the GitHub repository (default %(default)s)")
     ap.add_argument("--source", help="a release folder or base URL holding strata-feed.json(.sig) and the archives (instead of --release-tag)")
     ap.add_argument("--flavors", default=",".join(FLAVORS), help="comma separated; default: all (%s)" % ", ".join(FLAVORS))
     ap.add_argument("--out", type=Path, help="where the unpacked package folders go")

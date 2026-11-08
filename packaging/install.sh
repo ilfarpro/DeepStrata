@@ -1,33 +1,33 @@
 #!/bin/sh
 # Strata Terminal: one-line installer for Linux (x86_64, and ARM64 on the NVIDIA DGX Spark) and macOS (Apple silicon).
 #
-#     curl -fsSL https://github.com/Niko1221/Strata/releases/latest/download/install.sh -o install.sh && sh install.sh
+#     curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
 #
 # What it does, in order (and nothing else):
 #   1. finds out which computer this is (system, processor, graphics card) so it can fetch the right archive;
 #   2. downloads the Terminal archive named in the release folder's install-manifest.txt and checks its SHA-256 against it;
-#   3. unpacks it into  ${XDG_DATA_HOME:-~/.local/share}/strata/terminal/<version>  (no administrator rights, nothing outside your home);
-#   4. checks the release's signed feed with the Terminal it just unpacked (`strata update --check`); if that check fails, it removes
+#   3. unpacks it into  ${XDG_DATA_HOME:-~/.local/share}/deepstrata/terminal/<version>  (no administrator rights, nothing outside your home);
+#   4. checks the release's signed feed with the Terminal it just unpacked (`deepstrata update --check`); if that check fails, it removes
 #      what it unpacked and stops;
-#   5. puts a `strata` link in ~/.local/bin and prints:  Installed. Run: strata launch
+#   5. puts a `deepstrata` link in ~/.local/bin and prints:  Installed. Run: deepstrata launch
 #
-# The engine (the part that talks to your graphics card) and the model are NOT part of this: `strata launch` fetches the engine for
+# The engine (the part that talks to your graphics card) and the model are NOT part of this: `deepstrata launch` fetches the engine for
 # your card the first time you choose a model, from the same release folder, signed.
 #
-# <feed> is where the release folder is hosted: GitHub Releases of Niko1221/Strata (the "latest" release's files), built in as the default.
+# <feed> is where the release folder is hosted: GitHub Releases of ilfarpro/DeepStrata (the "latest" release's files), built in as the default.
 # Set STRATA_FEED to another folder (a URL) to use that instead, for example a local test feed:  STRATA_FEED=http://127.0.0.1:8099 sh install.sh
 #
-# Settings (all optional): STRATA_FEED, STRATA_DATA_DIR (default ~/.local/share/strata), STRATA_BIN_DIR (default ~/.local/bin),
+# Settings (all optional): STRATA_FEED, STRATA_DATA_DIR (default ~/.local/share/deepstrata), STRATA_BIN_DIR (default ~/.local/bin),
 # STRATA_INSTALL_TEST_TRUST=1 (a test feed: also fetch <feed>/test-trust.json and trust only that key for the check in step 4).
 set -eu
 
-FEED="${STRATA_FEED:-https://github.com/Niko1221/Strata/releases/latest/download}"
+FEED="${STRATA_FEED:-https://github.com/ilfarpro/DeepStrata/releases/latest/download}"
 FEED="${FEED%/}"
-DATA_DIR="${STRATA_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/strata}"
+DATA_DIR="${STRATA_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/deepstrata}"
 BIN_DIR="${STRATA_BIN_DIR:-$HOME/.local/bin}"
 
 say() { printf '%s\n' "$*"; }
-die() { printf 'strata installer: %s\n' "$*" >&2; exit 1; }
+die() { printf 'deepstrata installer: %s\n' "$*" >&2; exit 1; }
 
 [ -n "$FEED" ] || die "this installer does not know where the Strata release folder is. Set STRATA_FEED to its address and run it again, for example: STRATA_FEED=https://example.org/strata sh install.sh"
 
@@ -79,7 +79,7 @@ main() {
   if [ "$platform" = linux-aarch64 ]; then      # recommend, never force: the Terminal installs on any ARM Linux, its engine is for one machine
     case "$gpu" in
       *GB10*) ;;
-      *) say "  Note: Strata's engine for ARM Linux is built and tested on the NVIDIA DGX Spark (GB10) only. This computer reports ${gpu:-no NVIDIA graphics}: the Terminal installs, but 'strata launch' may find no engine for it." ;;
+      *) say "  Note: Strata's engine for ARM Linux is built and tested on the NVIDIA DGX Spark (GB10) only. This computer reports ${gpu:-no NVIDIA graphics}: the Terminal installs, but 'deepstrata launch' may find no engine for it." ;;
     esac
   fi
   say "  Release folder: $FEED"
@@ -104,14 +104,14 @@ main() {
   mkdir -p "$DATA_DIR/terminal" "$BIN_DIR"
   rm -rf "$dest.incoming"; mkdir -p "$dest.incoming"
   tar -xzf "$work/terminal.tar.gz" -C "$dest.incoming" || die "the archive could not be unpacked (is the disk full?). Nothing was installed."
-  if [ ! -f "$dest.incoming/bin/strata" ]; then                  # an archive with one top folder (a terminal archive instead of the feed's control package)
+  if [ ! -f "$dest.incoming/bin/deepstrata" ]; then                  # an archive with one top folder (a terminal archive instead of the feed's control package)
     inner=$(ls -d "$dest.incoming"/*/ 2>/dev/null | head -1)
-    if [ -n "$inner" ] && [ -f "${inner}bin/strata" ]; then
+    if [ -n "$inner" ] && [ -f "${inner}bin/deepstrata" ]; then
       mv "${inner%/}" "$dest.inner" && rm -rf "$dest.incoming" && mv "$dest.inner" "$dest.incoming"
     fi
   fi
-  [ -f "$dest.incoming/bin/strata" ] || { rm -rf "$dest.incoming"; die "the archive does not look like a Strata Terminal (no bin/strata). Nothing was installed."; }
-  chmod +x "$dest.incoming/bin/strata" 2>/dev/null || true
+  [ -f "$dest.incoming/bin/deepstrata" ] || { rm -rf "$dest.incoming"; die "the archive does not look like a DeepStrata Terminal (no bin/deepstrata). Nothing was installed."; }
+  chmod +x "$dest.incoming/bin/deepstrata" 2>/dev/null || true
 
   # ---- 4. the signed feed, checked with the Terminal just unpacked
   if [ "${STRATA_INSTALL_TEST_TRUST:-}" = 1 ]; then
@@ -119,7 +119,7 @@ main() {
     STRATA_UPDATE_TRUSTED_KEYS="$work/test-trust.json"; export STRATA_UPDATE_TRUSTED_KEYS
   fi
   say "Checking the release's signature…"
-  if ! "$dest.incoming/bin/strata" update --check --no-engine --feed "$FEED" >"$work/check.txt" 2>&1; then
+  if ! "$dest.incoming/bin/deepstrata" update --check --no-engine --feed "$FEED" >"$work/check.txt" 2>&1; then
     sed -e 's/^/    /' "$work/check.txt" >&2
     rm -rf "$dest.incoming"
     die "the release folder's signed feed could not be verified, so nothing was installed. The reason is printed above; if it names a newer feed already accepted here, use the newest release folder, or follow the step it gives. If you trust this source and see no such reason, ask its owner to publish a signed feed."
@@ -130,11 +130,11 @@ main() {
   rm -rf "$dest"
   mv "$dest.incoming" "$dest"
   ln -sfn "$dest" "$DATA_DIR/terminal/current"
-  ln -sf "$DATA_DIR/terminal/current/bin/strata" "$BIN_DIR/strata"
+  ln -sf "$DATA_DIR/terminal/current/bin/deepstrata" "$BIN_DIR/deepstrata"
   case ":$PATH:" in
-    *":$BIN_DIR:"*) say "Installed. Run: strata launch" ;;
-    *) say "Installed. Run: $BIN_DIR/strata launch"
-       say "  (To type just 'strata', add this line to your shell profile: export PATH=\"$BIN_DIR:\$PATH\")" ;;
+    *":$BIN_DIR:"*) say "Installed. Run: deepstrata launch" ;;
+    *) say "Installed. Run: $BIN_DIR/deepstrata launch"
+       say "  (To type just 'deepstrata', add this line to your shell profile: export PATH=\"$BIN_DIR:\$PATH\")" ;;
   esac
 }
 

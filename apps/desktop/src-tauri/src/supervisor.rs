@@ -13,7 +13,7 @@
 //! starts in it on purpose. In browser mode closing the tab does not stop the engine: the page has "Quit Strata", and `--quit`
 //! ends a running Strata from the command line. The host listens on 127.0.0.1 only (the shell sets STRATA_BIND itself).
 //!
-//! The session file (`~/.strata/app-session.json`, mode 0600: process id, port, the secret only this user can read, the mode) is how
+//! The session file (`~/.deepstrata/app-session.json`, mode 0600: process id, port, the secret only this user can read, the mode) is how
 //! a second start finds the first one: it focuses the window (window mode) or opens another tab (browser mode) instead of
 //! starting a second host.
 
@@ -69,7 +69,7 @@ pub fn command_name() -> String {
             return format!("./{}", name.to_string_lossy());
         }
     }
-    std::env::current_exe().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned())).unwrap_or_else(|| "strata-desktop".into())
+    std::env::current_exe().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned())).unwrap_or_else(|| crate::identity::BINARY_NAME.into())
 }
 
 pub fn browser_chosen_line(port: u16) -> String {
@@ -98,7 +98,7 @@ fn session_path() -> PathBuf {
         return PathBuf::from(p);
     }
     let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-    home.join(".strata").join("app-session.json")
+    home.join(crate::identity::HOME_DIR).join("app-session.json")
 }
 
 pub fn write_session(s: &Session) {
@@ -439,7 +439,7 @@ mod tests {
     use super::*;
 
     fn args(list: &[&str]) -> Vec<String> {
-        std::iter::once("strata-desktop").chain(list.iter().copied()).map(String::from).collect()
+        std::iter::once("deepstrata-desktop").chain(list.iter().copied()).map(String::from).collect()
     }
 
     #[test]
@@ -460,9 +460,9 @@ mod tests {
     #[test]
     fn the_browser_message_is_the_plain_sentence_and_names_the_way_out() {
         assert_eq!(BROWSER_NOTICE, "Strata opened in your browser because the app window couldn't start on this computer.");
-        let line = browser_chosen_line(47831);
-        assert!(line.contains("http://127.0.0.1:47831/") && line.contains("--quit") && line.contains("Quit Strata"));
-        assert!(open_by_hand_line(47831).contains("127.0.0.1:47831"));
+        let line = browser_chosen_line(47841);
+        assert!(line.contains("http://127.0.0.1:47841/") && line.contains("--quit") && line.contains("Quit Strata"));
+        assert!(open_by_hand_line(47841).contains("127.0.0.1:47841"));
     }
 
     #[test]
@@ -471,7 +471,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::env::set_var("STRATA_APP_SESSION_FILE", dir.join("s.json"));
         assert!(read_session().is_none());
-        let s = Session { pid: 4242, port: 47831, token: "ab".repeat(32), mode: "browser".into() };
+        let s = Session { pid: 4242, port: 47841, token: "ab".repeat(32), mode: "browser".into() };
         write_session(&s);
         assert_eq!(read_session(), Some(s.clone()));
         #[cfg(unix)]

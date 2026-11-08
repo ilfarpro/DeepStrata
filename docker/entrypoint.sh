@@ -26,7 +26,7 @@
 set -u
 
 APP=/opt/strata
-STRATA="$APP/terminal/bin/strata"
+STRATA="$APP/terminal/bin/deepstrata"
 PYBIN="$APP/terminal/python/bin/python3"; [ -x "$PYBIN" ] || PYBIN=$(command -v python3 || echo python3)
 STATE_DIR="${XDG_STATE_HOME:-/data/state}/strata"
 KEY_FILE="${STRATA_KEY_FILE:-/data/state/api-key}"

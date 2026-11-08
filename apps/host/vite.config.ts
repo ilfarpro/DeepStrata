@@ -27,7 +27,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: process.env.STRATA_HOST ?? 'http://127.0.0.1:8791',
+        target: process.env.STRATA_HOST ?? 'http://127.0.0.1:8891',   // the fork's page port (server/fork-identity.mjs HOST_PORT; pinned by tests/terminal/test_fork_identity.py)
         changeOrigin: true,
         ws: true,
       },

@@ -19,7 +19,7 @@
  "gh18": "Réduire dans la zone de notification",
  "gh19": "Fermer la fenêtre garde Strata actif dans la zone de notification, près de l’horloge. Choisissez Quitter dans le menu de l’icône pour l’arrêter. S’applique au prochain démarrage de Strata.",
  "gh20": "Port de l’application",
- "gh21": "Le port que la fenêtre et l’adresse locale de Strata utilisent. Laissez vide pour que Strata choisisse (47831 s’il est libre). S’applique au prochain démarrage de Strata.",
+ "gh21": "Le port que la fenêtre et l’adresse locale de Strata utilisent. Laissez vide pour que Strata choisisse (47841 s’il est libre). S’applique au prochain démarrage de Strata.",
  "gh22": "Port (vide = automatique)",
  "gh23": "Port {0} utilisé en ce moment.",
  "gh24": "Strata n’a pas pu utiliser son port",

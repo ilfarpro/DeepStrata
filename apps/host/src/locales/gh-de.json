@@ -19,7 +19,7 @@
  "gh18": "In den Infobereich minimieren",
  "gh19": "Beim Schließen des Fensters läuft Strata im Infobereich neben der Uhr weiter. Wählen Sie im Menü des Symbols „Beenden“, um es zu stoppen. Gilt ab dem nächsten Start von Strata.",
  "gh20": "App-Port",
- "gh21": "Der Port, den das Fenster und die lokale Adresse von Strata verwenden. Leer lassen, damit Strata ihn wählt (47831, wenn frei). Gilt ab dem nächsten Start von Strata.",
+ "gh21": "Der Port, den das Fenster und die lokale Adresse von Strata verwenden. Leer lassen, damit Strata ihn wählt (47841, wenn frei). Gilt ab dem nächsten Start von Strata.",
  "gh22": "Port (leer = automatisch)",
  "gh23": "Aktuell wird Port {0} verwendet.",
  "gh24": "Strata konnte seinen Port nicht verwenden",

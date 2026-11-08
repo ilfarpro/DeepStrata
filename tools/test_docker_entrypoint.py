@@ -43,7 +43,7 @@ class Entrypoint(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         (self.tmp / "opt" / "terminal" / "bin").mkdir(parents=True)
-        stub = self.tmp / "opt" / "terminal" / "bin" / "strata"
+        stub = self.tmp / "opt" / "terminal" / "bin" / "deepstrata"
         stub.write_text(STUB, encoding="utf-8")
         stub.chmod(0o755)
         self.log = self.tmp / "calls.log"

@@ -1,7 +1,7 @@
 /**
  * Drive the real app through an agent turn and take screenshots (playwright-core + installed Chrome).
  *
- *   STRATA_URL=http://127.0.0.1:8791 SHOTS=./shots node scripts/agent-flow.mjs
+ *   STRATA_URL=http://127.0.0.1:8891 SHOTS=./shots node scripts/agent-flow.mjs
  *
  * What it does, against a host that has the Harness installed and one API connection saved:
  *   1. opens the app, picks the API model in the chat picker (the choice is for this chat only);

@@ -80,7 +80,7 @@ cargo tauri build --bundles appimage deb                                     # L
 ```
 
 The Windows installer is per-user and needs no elevation (`installMode: currentUser` in `tauri.conf.json`). Models, profiles and
-sessions live outside the install directory (`~/.strata` and the platform state directories), so uninstalling the app does not remove them.
+sessions live outside the install directory (`~/.deepstrata` and the platform state directories), so uninstalling the app does not remove them.
 
 Build boxes build without a signing key: the default `tauri.conf.json` has `createUpdaterArtifacts: false`. Signing happens on the
 release PC ([UPDATES.md](UPDATES.md#releasing)).
@@ -133,7 +133,7 @@ The Terminal bundles a private Python and its dependencies for `windows-x86_64`,
 - The interpreter is python-build-standalone CPython 3.12.15, digest-checked at build time.
 - Packages come from `packaging/locks/runtime-<target>-cp312.txt` and are installed with
   `pip install --require-hashes --no-deps --only-binary=:all:` at build time only. `lock_wheels.py` makes the lock; review its diff when a pin changes.
-- Wrappers: `bin/strata.cmd` and `bin/strata.ps1` on Windows, `bin/strata` on POSIX. `START-HERE.bat`, `SETUP.bat`, `UPDATE.bat`, `setup.sh`
+- Wrappers: `bin/deepstrata.cmd` and `bin/deepstrata.ps1` on Windows, `bin/deepstrata` on POSIX. `START-HERE.bat`, `SETUP.bat`, `UPDATE.bat`, `setup.sh`
   and `update.sh` use a `python/` folder beside them when there is one.
 - `smoke_terminal.py <archive>` extracts an archive into a clean environment (a path with a space, a PATH with no Python) and runs
   `--version`, `doctor`, `profile list`, `install` and `serve --engine mock`.

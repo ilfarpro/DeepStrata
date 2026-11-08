@@ -65,7 +65,7 @@ class GuiLayout(unittest.TestCase):
         self.env = {"LOCALAPPDATA": str(base / "local"), "XDG_DATA_HOME": str(base / "local"), "APPDATA": str(base / "roaming"),
                     "XDG_CONFIG_HOME": str(base / "config"), "USERPROFILE": str(base / "home"), "HOME": str(base / "home"),
                     "XDG_STATE_HOME": str(base / "state"), "XDG_DOCUMENTS_DIR": ""}
-        settings = Path(self.env["APPDATA"]) / "Strata" if os.name == "nt" else Path(self.env["XDG_CONFIG_HOME"]) / "strata"
+        settings = Path(self.env["APPDATA"]) / "DeepStrata" if os.name == "nt" else Path(self.env["XDG_CONFIG_HOME"]) / "deepstrata"
         self.settings_path = settings / "settings.json"
         patch = mock.patch.dict(os.environ, self.env)
         patch.start()

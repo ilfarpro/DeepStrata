@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Strata",
-  "identifier": "ai.strata.desktop",
+  "productName": "DeepStrata",
+  "identifier": "ai.deepstrata.desktop",
   "build": {
     "frontendDist": "../../host/dist"
   },
@@ -64,9 +64,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI2QjA5OTk5MDU1MjFGNUUKUldSZUgxSUZtWm13dHNGRU40N2xOUjdZZGpvcGl0NTB2WGxnS3VTc2RlakpSbnBxUkxndHNFY0oK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk3M0M1Rjc2NUY4REMyQkQKUldTWFBGOTJYNDNDdlpjOFgzWmZqY0s5L1RxWU9CL0NUSkVPY2UrWU4zRStXWGRsd3ZEcEtjdkMK",
       "endpoints": [
-        "https://github.com/Niko1221/Strata/releases/latest/download/latest.json"
+        "https://github.com/ilfarpro/DeepStrata/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

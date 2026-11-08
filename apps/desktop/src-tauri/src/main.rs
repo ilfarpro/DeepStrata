@@ -39,6 +39,7 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 mod updater;
 mod desktoplog;
+mod identity;
 mod recovery;
 mod shell;
 // Plain std, built on every platform so its decisions are tested everywhere; only the Linux window process uses it.
@@ -255,7 +256,7 @@ fn pick_port() -> Result<u16, String> {
 /// theme, text size, language and the chat list belongs to that origin, so a port that changed on every launch lost all
 /// of it. The preferred port is fixed; only when something else holds it does the app fall back to a free one (and that
 /// launch starts with empty storage, as before).
-const PREFERRED_PORT: u16 = 47831;
+const PREFERRED_PORT: u16 = identity::DESKTOP_PORT;
 
 /// Set when the port the person (or the app) wanted was busy: "busy:<wanted>:<used>". The host gets it as STRATA_PORT_NOTICE and tells the
 /// person (the chats and settings saved on the page belong to the port, so a different port starts empty) (#3402).
@@ -600,8 +601,8 @@ fn packaged_resource_dir(exe: &Path) -> Option<PathBuf> {
     let mut candidates = vec![dir.to_path_buf()];
     if let Some(up) = dir.parent() {
         candidates.push(up.join("Resources"));
-        candidates.push(up.join("lib").join("Strata"));
-        candidates.push(up.join("lib").join("strata-desktop"));
+        candidates.push(up.join("lib").join(identity::FOLDER_WINDOWS));   // the deb keeps resources under the product name
+        candidates.push(up.join("lib").join(identity::BINARY_NAME));
     }
     candidates
         .into_iter()
@@ -614,7 +615,7 @@ fn self_test_path(args: &[String]) -> Option<String> {
         if a == "--self-test" {
             return Some(
                 std::env::temp_dir()
-                    .join("strata-desktop-self-test.json")
+                    .join("deepstrata-desktop-self-test.json")
                     .to_string_lossy()
                     .into_owned(),
             );
@@ -821,7 +822,7 @@ fn write_self_test_report(path: &str, steps: Vec<(String, bool, String)>, error:
         .collect();
     let report = serde_json::json!({
         "schemaVersion": 1,
-        "kind": "strata-desktop-self-test",
+        "kind": "deepstrata-desktop-self-test",
         "carrier": "tauri",
         "ok": ok,
         "error": error,
@@ -842,7 +843,7 @@ fn write_self_test_report(path: &str, steps: Vec<(String, bool, String)>, error:
 fn main() {
     // ------------------------------------------------------------------ self-test
     //
-    // `Strata.app/Contents/MacOS/strata-desktop --self-test[=path]` starts the App Host from the
+    // `DeepStrata.app/Contents/MacOS/deepstrata-desktop --self-test[=path]` starts the App Host from the
     // *packaged resources*, waits for it to answer, checks that it serves the supplied UI, writes a
     // JSON report and exits 0/1. This is what makes the shipped artifact verifiable without a human
     // at the screen — the lesson from the Electron attempt, where a packaged app that never started
@@ -965,7 +966,7 @@ fn run_embedded() {
 fn open_window(app: &tauri::App, port: u16, shell_token: &str) -> Result<(), Box<dyn std::error::Error>> {
     let origin = format!("http://127.0.0.1:{port}");
     let url = origin.parse().expect("a valid loopback URL");
-    let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url)).title("Strata").inner_size(1440.0, 920.0).min_inner_size(900.0, 600.0);
+    let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url)).title(identity::PRODUCT_NAME).inner_size(1440.0, 920.0).min_inner_size(900.0, 600.0);
     // Dropping pictures on the chat (QA report 1, item 4). Windows: the shell's own file-drop handler is off, because with it on the system hands
     // the dropped file to the shell and the page never sees it; with it off the page gets ordinary drag and drop events (apps/host DropZone), as
     // in a browser. Linux and macOS: the page gets the drag events but WebKit gives it no files, so the handler stays on and the shell passes the
@@ -1326,7 +1327,7 @@ mod tests {
     }
 
     fn scratch(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("strata-desktop-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("deepstrata-desktop-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
@@ -1419,9 +1420,9 @@ mod tests {
     fn packaged_resources_are_found_for_each_platform_layout() {
         let root = scratch("layout");
         for (exe_rel, res_rel) in [
-            ("Contents/MacOS/strata-desktop", "Contents/Resources"),
-            ("install/strata-desktop.exe", "install"),
-            ("usr/bin/strata-desktop", "usr/lib/Strata"),
+            ("Contents/MacOS/deepstrata-desktop", "Contents/Resources"),
+            ("install/deepstrata-desktop.exe", "install"),
+            ("usr/bin/deepstrata-desktop", "usr/lib/DeepStrata"),
         ] {
             let exe = root.join(exe_rel);
             let res = root.join(res_rel);
@@ -1445,14 +1446,14 @@ mod tests {
         std::fs::write(res.join("node").join(NODE_EXE), b"").unwrap();
         // a caller's environment must not widen the bind address: the command sets it itself
         std::env::set_var("STRATA_BIND", "0.0.0.0");
-        let cmd = host_command(&res, 47831, "s3cret").expect("a host command");
+        let cmd = host_command(&res, 47841, "s3cret").expect("a host command");
         std::env::remove_var("STRATA_BIND");
         let env: std::collections::HashMap<String, String> = cmd
             .get_envs()
             .filter_map(|(k, v)| Some((k.to_string_lossy().into_owned(), v?.to_string_lossy().into_owned())))
             .collect();
         assert_eq!(env.get("STRATA_BIND").map(String::as_str), Some("127.0.0.1"));
-        assert_eq!(env.get("STRATA_PORT").map(String::as_str), Some("47831"));
+        assert_eq!(env.get("STRATA_PORT").map(String::as_str), Some("47841"));
         assert_eq!(env.get("STRATA_SHUTDOWN_TOKEN").map(String::as_str), Some("s3cret"));
         assert_eq!(env.get("STRATA_PACKAGED").map(String::as_str), Some("1"));
         assert_eq!(env.get("STRATA_NO_ACQUIRE").map(String::as_str), Some("1"));

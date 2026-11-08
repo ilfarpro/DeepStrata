@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { engineProgressMark } from './agent/engine-progress.mjs';
 import './system-ca.mjs';        // #3722: the operating system's certificates, before any HTTPS request
+import * as identity from './fork-identity.mjs';
 import { createCloudflare } from './cloudflare.mjs';
 import { createConnectorInstaller } from './cloudflared-install.mjs';
 import { findRunningConnector } from './cloudflared-find.mjs';
@@ -101,16 +102,16 @@ const DIST = process.env.STRATA_DIST
   : distFlag >= 0
     ? resolve(argv[distFlag + 1] ?? join(ROOT, 'dist'))
     : join(ROOT, 'dist');
-const PORT = Number(process.env.STRATA_PORT ?? 8791);
+const PORT = Number(process.env.STRATA_PORT ?? identity.HOST_PORT);
 const HOST = process.env.STRATA_BIND ?? '127.0.0.1';
 /* The folder chats work in when nothing else is chosen. It is never the app's own folder (the host is started inside its install
    directory, so `process.cwd()` was "host" in the sidebar and the agent could read and write the app): the person's own
-   Documents\Strata\Workspace (the models folder is next to it, not in it), created on first use, unless STRATA_WORKSPACE names one. */
+   Documents\DeepStrata\Workspace (the shared models folder is next to it, not in it), created on first use, unless STRATA_WORKSPACE names one. */
 function defaultWorkspace() {
   if (process.env.STRATA_WORKSPACE) return resolve(process.env.STRATA_WORKSPACE);
   const user = process.env.USERPROFILE ?? process.env.HOME ?? homedir();
   for (const base of [join(user, 'Documents'), user]) {
-    const dir = join(base, 'Strata', 'Workspace');
+    const dir = join(base, identity.FOLDER_WINDOWS, 'Workspace');   // the product's own folder in Documents, capitalized the way %LOCALAPPDATA% names it
     try { mkdirSync(dir, { recursive: true }); return dir; } catch { /* try the next place */ }
   }
   return user;

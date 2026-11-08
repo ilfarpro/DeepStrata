@@ -13,6 +13,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, parse, resolve } from 'node:path';
+import * as identity from './fork-identity.mjs';
 
 export const isDriveRoot = path => { const p = resolve(path); return p === parse(p).root; };
 
@@ -67,8 +68,8 @@ export function readDataFolder(file) {
 /** The settings file the Terminal (command-line Strata) keeps: the same place setup.py and strata_control/discovery.py use. */
 export function terminalSettingsFile(env = process.env, platform = process.platform) {
   if (env.STRATA_TERMINAL_SETTINGS_FILE) return env.STRATA_TERMINAL_SETTINGS_FILE;
-  if (platform === 'win32') return join(env.APPDATA || join(homedir(), 'AppData', 'Roaming'), 'Strata', 'settings.json');
-  return join(env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'strata', 'settings.json');
+  if (platform === 'win32') return join(env.APPDATA || join(homedir(), 'AppData', 'Roaming'), identity.FOLDER_WINDOWS, 'settings.json');
+  return join(env.XDG_CONFIG_HOME || join(homedir(), '.config'), identity.FOLDER_POSIX, 'settings.json');
 }
 
 /** Write the person's data folder into a settings file (merged, atomically) with the time of the change; returns whether it changed. Never

@@ -73,7 +73,7 @@ class StopTest(unittest.TestCase):
 
     def test_stop_asks_the_host_to_quit_like_the_page_does(self):
         with Home():
-            U._write_record({"schema_version": 1, "pid": 4242, "port": 8791})
+            U._write_record({"schema_version": 1, "pid": 4242, "port": U.DEFAULT_PORT})
             seen = {}
 
             def urlopen(req, timeout=None):
@@ -86,13 +86,13 @@ class StopTest(unittest.TestCase):
                 code, out, _ = run_cli(["ui", "--stop", "--output", "json"])
             self.assertEqual(code, 0)
             self.assertTrue(json.loads(out)["stopped"])
-            self.assertEqual(seen["url"], "http://127.0.0.1:8791/api/app/quit")
+            self.assertEqual(seen["url"], f"http://127.0.0.1:{U.DEFAULT_PORT}/api/app/quit")
             self.assertEqual(seen["headers"].get("x-strata-client"), "strata-ui")   # what the host requires
             self.assertFalse(U._record_path().exists())                              # the record is gone
 
     def test_stop_falls_back_to_the_process_this_command_started(self):
         with Home():
-            U._write_record({"schema_version": 1, "pid": 4242, "port": 8791})
+            U._write_record({"schema_version": 1, "pid": 4242, "port": U.DEFAULT_PORT})
 
             def refuse(req, timeout=None):
                 raise OSError("no quit on this host")
@@ -170,10 +170,10 @@ class StartTest(unittest.TestCase):
                                           "--url", "http://127.0.0.1:8095/", "--no-browser", "--output", "json"])
             self.assertEqual(code, 0, err)
             body = json.loads(out)
-            self.assertEqual((body["ok"], body["ui_url"], body["chat_model"]), (True, "http://127.0.0.1:8791", None))
+            self.assertEqual((body["ok"], body["ui_url"], body["chat_model"]), (True, f"http://127.0.0.1:{U.DEFAULT_PORT}", None))
             self.assertEqual(started["env"]["STRATA_UI_MODE"], "browser")     # the page with its own "Quit Strata"
             self.assertEqual(started["env"]["STRATA_SERVER_URL"], "http://127.0.0.1:8095")
-            self.assertEqual(started["env"]["STRATA_PORT"], "8791")
+            self.assertEqual(started["env"]["STRATA_PORT"], str(U.DEFAULT_PORT))
             self.assertEqual(started["cmd"][0], sys.executable)               # the --node one is what runs
             self.assertTrue(str(started["cmd"][1]).endswith("index.mjs"))
             self.assertIn("--dist", started["cmd"])
@@ -187,7 +187,7 @@ class StartTest(unittest.TestCase):
             self.assertEqual(code, 0)
             body = json.loads(out)
             self.assertTrue(body["already_running"])
-            self.assertEqual(body["ui_url"], "http://127.0.0.1:8791")
+            self.assertEqual(body["ui_url"], f"http://127.0.0.1:{U.DEFAULT_PORT}")
             popen.assert_not_called()                               # nothing was started twice
 
     def test_the_browser_opens_when_not_refused(self):

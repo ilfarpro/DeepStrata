@@ -36,10 +36,10 @@
 #      writes the signed files' SHA-256 and size into engine-component.json, codesign --verify --strict on each, checks that the signed
 #      program starts, notarises a zip of the folder, and packs it again as strata-dsv41-<version>-<platform>-<backend>-folder.tar.gz (modes
 #      kept). Sign the folder with the feed key AFTER this step, on the PC: signing changes the program, so the manifest changes with it.
-#   8. --updater-archive (opt-in, needs the app input): packs the signed, notarised, stapled .app into Strata.app.tar.gz, the file Tauri's in-app
-#      updater downloads on a Mac (Strata.app at the root of the archive), and checks it by unpacking it again. The archive is NOT signed with the
+#   8. --updater-archive (opt-in, needs the app input): packs the signed, notarised, stapled .app into DeepStrata.app.tar.gz, the file Tauri's in-app
+#      updater downloads on a Mac (DeepStrata.app at the root of the archive), and checks it by unpacking it again. The archive is NOT signed with the
 #      Tauri updater key here: this script never touches that key. Sign it on the PC (npx tauri signer sign) and put it in the update file with
-#      packaging/feed_tool.py set-app-platform (see packaging/UPDATES.md). Any Strata.app.tar.gz / .sig that `tauri build` made earlier holds the
+#      packaging/feed_tool.py set-app-platform (see packaging/UPDATES.md). Any DeepStrata.app.tar.gz / .sig that `tauri build` made earlier holds the
 #      UNSIGNED app and must not be published.
 set -u
 set -o pipefail
@@ -392,7 +392,7 @@ smoke_app() {   # app
   export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1   # a smoke test must not write into the sealed bundle
 
   # 1. the app's own headless self-test: private node, host, UI, Control on the bundled python
-  run_timeout 150 env HOME="$home" "$app/Contents/MacOS/strata-desktop" --self-test="$rep" >"$WORK/selftest.out" 2>&1; rc=$?
+  run_timeout 150 env HOME="$home" "$app/Contents/MacOS/deepstrata-desktop" --self-test="$rep" >"$WORK/selftest.out" 2>&1; rc=$?
   cat "$WORK/selftest.out" >>"$LOG"
   if [ "$rc" -eq 0 ]; then rec OK "smoke: app --self-test (host, UI, Control)"
   else
@@ -471,7 +471,7 @@ smoke_terminal() {   # extracted terminal folder
   if [ -n "$py" ]; then
     if env HOME="$home" "$py" -c 'import ctypes, ssl, sqlite3, zlib; print("python ok")' >>"$LOG" 2>&1; then rec OK "smoke: terminal python starts"
     else fail "smoke: terminal python" "does not start under the hardened runtime"; fi
-    strata="$(dirname "$py")/../../bin/strata"
+    strata="$(dirname "$py")/../../bin/deepstrata"
     if [ -x "$strata" ]; then
       if out="$(env HOME="$home" STRATA_NO_ACQUIRE=1 "$strata" --version 2>&1)"; then rec OK "smoke: strata --version" "$(printf '%s' "$out" | head -n 1)"
       else printf '%s\n' "$out" | tail -n 5 | sed 's/^/        /'; fail "smoke: strata --version" "the Terminal launcher does not start"; fi

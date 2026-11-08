@@ -213,7 +213,7 @@ test('the host route for the shell: a browser has no shell, the port choice is s
   const get = async path => (await fetch(base + path)).json();
   const post = (path, body) => fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const first = await get('/api/shell');
-  assert.equal(first.desktop, false); assert.equal(first.tray, false); assert.equal(first.port, port); assert.equal(first.defaultPort, 47831);
+  assert.equal(first.desktop, false); assert.equal(first.tray, false); assert.equal(first.port, port); assert.equal(first.defaultPort, 47841);   // the fork's desktop port (apps/host/server/fork-identity.mjs)
   assert.equal(first.pinnedPort, null); assert.equal(first.minimizeToTray, false);
   assert.deepEqual(first.portNotice, { wanted: 47831, used: port });
   assert.deepEqual(await get('/api/locale'), { locale: 'de-DE', region: 'DE', currency: null, source: 'test' }, 'the host names the regional format; the page maps it to a currency');

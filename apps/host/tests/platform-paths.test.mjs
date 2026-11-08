@@ -7,16 +7,16 @@ import { which } from '../server/util.mjs';
 
 const read = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 
-test('Windows keeps tuning and Time-skip state under %LOCALAPPDATA%\\Strata, never HOME/.local/state', () => {
+test('Windows keeps tuning and Time-skip state under %LOCALAPPDATA%\\DeepStrata, never HOME/.local/state', () => {
   const env = { LOCALAPPDATA: 'C:\\Users\\me\\AppData\\Local', HOME: '/home/ignored', XDG_STATE_HOME: '/ignored' };
-  assert.equal(stateRoot(env, 'win32'), 'C:\\Users\\me\\AppData\\Local\\Strata');
-  assert.equal(tuningDir(env, 'win32'), 'C:\\Users\\me\\AppData\\Local\\Strata\\tuning');
-  assert.equal(timeSkipDir(env, 'win32'), 'C:\\Users\\me\\AppData\\Local\\Strata\\time-skip');
+  assert.equal(stateRoot(env, 'win32'), 'C:\\Users\\me\\AppData\\Local\\DeepStrata');
+  assert.equal(tuningDir(env, 'win32'), 'C:\\Users\\me\\AppData\\Local\\DeepStrata\\tuning');
+  assert.equal(timeSkipDir(env, 'win32'), 'C:\\Users\\me\\AppData\\Local\\DeepStrata\\time-skip');
 });
 
 test('without LOCALAPPDATA, Windows falls back to the profile folder', () => {
-  assert.equal(stateRoot({ USERPROFILE: 'C:\\Users\\me' }, 'win32', 'C:\\Users\\other'), 'C:\\Users\\me\\AppData\\Local\\Strata');
-  assert.equal(stateRoot({}, 'win32', 'C:\\Users\\other'), 'C:\\Users\\other\\AppData\\Local\\Strata');
+  assert.equal(stateRoot({ USERPROFILE: 'C:\\Users\\me' }, 'win32', 'C:\\Users\\other'), 'C:\\Users\\me\\AppData\\Local\\DeepStrata');
+  assert.equal(stateRoot({}, 'win32', 'C:\\Users\\other'), 'C:\\Users\\other\\AppData\\Local\\DeepStrata');
 });
 
 test('explicit directories win on every platform', () => {
@@ -25,9 +25,9 @@ test('explicit directories win on every platform', () => {
 });
 
 test('POSIX is unchanged: XDG_STATE_HOME, else ~/.local/state', () => {
-  assert.equal(stateRoot({ XDG_STATE_HOME: '/x' }, 'linux'), '/x/strata');
-  assert.equal(tuningDir({ HOME: '/home/me' }, 'linux'), '/home/me/.local/state/strata/tuning');
-  assert.equal(timeSkipDir({ HOME: '/home/me' }, 'darwin'), '/home/me/.local/state/strata/time-skip');
+  assert.equal(stateRoot({ XDG_STATE_HOME: '/x' }, 'linux'), '/x/deepstrata');
+  assert.equal(tuningDir({ HOME: '/home/me' }, 'linux'), '/home/me/.local/state/deepstrata/tuning');
+  assert.equal(timeSkipDir({ HOME: '/home/me' }, 'darwin'), '/home/me/.local/state/deepstrata/time-skip');
 });
 
 test('the archive tool is the one the platform ships', () => {

@@ -63,6 +63,7 @@ import zipfile
 from pathlib import Path
 
 from strata_control import acquisition
+from strata_control import fork_identity
 from strata_control import tls
 
 tls.install()      # #3722: HTTPS checks the server against the operating system's certificates (what Chrome and curl.exe do)
@@ -245,12 +246,12 @@ LLAMA_CPP_ZIP = f"https://github.com/ggml-org/llama.cpp/archive/{LLAMA_CPP_COMMI
 # "https://github.com/<you>/Strata/releases/latest/download/" (or pass --prebuilt / set STRATA_PREBUILT_URL).
 # With the default, the release of this checkout's own version (PREBUILT_TAG_URL, CMakeLists.txt's version) is
 # tried first and the latest release is the fallback (#214): an older checkout keeps the engine it shipped with.
-PREBUILT_URL = "https://github.com/Niko1221/Strata/releases/latest/download/"
+PREBUILT_URL = fork_identity.LATEST_DOWNLOAD + "/"
 # The repository the release assets and their SHA-256 come from; `engine_digest` reads the API here even
 # when --prebuilt points the download somewhere else, because the hash is only worth having if it comes
 # from somewhere the download does not.
-REPO = "Niko1221/Strata"
-PREBUILT_TAG_URL = "https://github.com/Niko1221/Strata/releases/download/v{version}/"
+REPO = fork_identity.REPO
+PREBUILT_TAG_URL = fork_identity.RELEASES_URL + "/download/v{version}/"
 PREBUILT_ASSET = "strata-windows-x64.zip" if WIN else "strata-linux-x64.zip"
 # the CUDA libraries the ready-made engine loads (the same CUDA 13.0 it is built with), from NVIDIA's pip packages
 CUDA_WHEELS = ["nvidia-cublas==13.0.2.14", "nvidia-cuda-runtime==13.0.96"]
@@ -5578,7 +5579,7 @@ def release_of(base: str) -> tuple[str, str | None] | None:
     against a release the user did not ask for, over the network, which is wrong twice over.
 
     The repository comes out of the URL when it names one, so a fork's own releases are checked against
-    the fork rather than against Niko1221/Strata (which never has the fork's tags, so the check would
+    the fork rather than against the original repository (which never has the fork's tags, so the check would
     always fail).
     """
     m = re.search(r"https?://(?:www\.)?github\.com/([^/]+)/([^/]+)/releases/(?:download/v([^/]+)|latest)/",
@@ -6706,8 +6707,8 @@ def settings_path() -> Path:
     if own is not None:
         return own
     if WIN:
-        return Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / "Strata" / "settings.json"
-    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "strata" / "settings.json"
+        return Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / fork_identity.FOLDER_WINDOWS / "settings.json"
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / fork_identity.FOLDER_POSIX / "settings.json"
 
 
 def load_settings() -> dict:

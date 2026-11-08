@@ -82,7 +82,7 @@ def clean_env(sandbox: Path) -> tuple[dict, list[str]]:
 
 
 def launcher(root: Path) -> list[str]:
-    return [str(root / "bin" / "strata.cmd")] if os.name == "nt" else [str(root / "bin" / "strata")]
+    return [str(root / "bin" / "deepstrata.cmd")] if os.name == "nt" else [str(root / "bin" / "deepstrata")]
 
 
 def as_command(args: list[str]):
@@ -173,7 +173,7 @@ def main() -> int:
 
         if os.name == "nt":
             ps = Path(env["SystemRoot"]) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
-            r = run([str(ps), "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(root / "bin" / "strata.ps1"),
+            r = run([str(ps), "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(root / "bin" / "deepstrata.ps1"),
                      "--version"], env, root)
             check("version (strata.ps1)", r["rc"] == 0 and inside_archive(root, r["stdout"]),
                   rc=r["rc"], output=r["stdout"].strip(), stderr=r["stderr"].strip()[:200])

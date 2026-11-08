@@ -26,6 +26,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from strata_control import fork_identity
+
 # What setup still has to fetch for an installed model whose helper files are gone (setup.py: tools/mtp_fetch.py reads the 31 MTP tensors of
 # the pinned checkpoint, 5.214 GB, and packs them into a 0.9 GB draft layer; the picture reader is one 0.9 GB file).
 MTP_FETCH_GB = 5.2
@@ -122,14 +124,14 @@ def _installs_in(settings: dict) -> list[Path]:
 
 
 def own_settings_file(environ=None, *, windows: bool | None = None, home: Path | None = None) -> Path:
-    """The settings file this process uses: the app's (STRATA_SETTINGS_FILE), else the command-line Strata's (%APPDATA% / ~/.config)."""
+    """The settings file this process uses: the app's (STRATA_SETTINGS_FILE), else this product's own (%APPDATA% / ~/.config)."""
     environ = os.environ if environ is None else environ
     if environ.get("STRATA_SETTINGS_FILE"):
         return Path(environ["STRATA_SETTINGS_FILE"])
     home = _home(home)
     if _windows(windows):
-        return Path(environ.get("APPDATA") or str(home / "AppData" / "Roaming")) / "Strata" / "settings.json"
-    return Path(environ.get("XDG_CONFIG_HOME") or str(home / ".config")) / "strata" / "settings.json"
+        return Path(environ.get("APPDATA") or str(home / "AppData" / "Roaming")) / fork_identity.FOLDER_WINDOWS / "settings.json"
+    return Path(environ.get("XDG_CONFIG_HOME") or str(home / ".config")) / fork_identity.FOLDER_POSIX / "settings.json"
 
 
 def has_configs(directory: Path) -> bool:
@@ -271,7 +273,7 @@ def data_dir_choices(*, environ=None, windows: bool | None = None, home: Path | 
     out.extend((p, src) for p, src, _ in entries)
     if not in_app_mode(environ):
         for d in documents_dirs(environ, windows=windows, home=home):
-            out.append((d / "Strata", "documents"))
+            out.append((d / fork_identity.MODEL_FOLDER, "documents"))      # shared with the original Strata on purpose: models never download twice
     return out
 
 

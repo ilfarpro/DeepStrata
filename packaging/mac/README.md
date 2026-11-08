@@ -8,6 +8,17 @@ It has to run on the Mac that holds the certificate. It never asks for, reads or
 `notarytool` take them from the Keychain. The only names in it are the certificate (`Developer ID Application: Niko Veit (79LR4R7RSC)`)
 and the notarytool profile (`strata-notary`); `SIGN_ID` and `NOTARY_PROFILE` override them.
 
+**The fork holds no Developer ID certificate yet**, and those two names are the original product's. Until the fork has a certificate of
+its own the Mac builds ship without a Developer ID and without notarisation. On release day: build the app and the dmg the usual way
+(`cargo tauri build --bundles app`, `scripts/make-dmg.sh`), then run
+
+    bash sign-and-notarize.sh <the built app> --updater-archive --dry-run
+
+which checks the app and packs the updater archive with an ad-hoc signature and touches no Apple account; the fork's own Tauri key still
+signs that archive on the release PC, so the in-app updater works. macOS warns on the first open of the dmg;
+[docs/TROUBLESHOOTING.md](../../docs/TROUBLESHOOTING.md) shows what to press. When the fork holds its own certificate, set `SIGN_ID` and
+`NOTARY_PROFILE` to its name and profile and drop `--dry-run` — everything below is that procedure.
+
 ## What to type (once per build)
 
 1. Put these on the Mac in one folder: `sign-and-notarize.sh`, `entitlements-node.plist` (they must stay together), and the file(s) to sign,

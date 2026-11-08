@@ -409,5 +409,18 @@ class StoredTuning(Base):
 
 
 
+class PresetsHelpText(unittest.TestCase):
+    """`strata presets --help` says what a tuning preset is and how it differs from a launch preset and a serving profile."""
+
+    def test_help_names_the_three_and_their_own_rules(self):
+        code, out, err = run_cli(["presets", "--help"])
+        self.assertEqual(code, 0, err)
+        text = " ".join(out.split())         # argparse wraps at the terminal width; compare the words, not the lines
+        self.assertIn("Tuning presets keep the faster settings strata tune measured for one model", text)
+        self.assertIn("a new driver only brings a short re-check", text)
+        self.assertIn("apply makes one active, undo goes back, off returns to the standard settings", text)
+        self.assertIn("strata launch --save-preset saves a whole launch, and strata profile saves serving settings", text)
+
+
 if __name__ == "__main__":
     unittest.main()

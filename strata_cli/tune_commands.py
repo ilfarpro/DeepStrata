@@ -49,7 +49,14 @@ def add_tune_auto(tune_sp: argparse._SubParsersAction) -> None:
 
 
 def add_presets(sp: argparse._SubParsersAction) -> None:
-    pr = sp.add_parser("presets", help="saved tuning presets: list, apply, rename, delete, undo, re-check")
+    pr = sp.add_parser("presets", help="saved tuning presets: list, apply, rename, delete, undo, re-check",
+                       description="Tuning presets keep the faster settings strata tune measured for one model, so the "
+                                   "next start uses them with no measuring again. Each preset knows the computer it was "
+                                   "measured on: after a new graphics card or model file it will not apply by itself, and "
+                                   "a new driver only brings a short re-check. apply makes one active, undo goes back, off "
+                                   "returns to the standard settings. These are the tuning answers: strata launch "
+                                   "--save-preset saves a whole launch, and strata profile saves serving settings — the "
+                                   "three live apart and nothing here changes there.")
     psp = pr.add_subparsers(dest="presets_command", required=True)
 
     def common(x: argparse.ArgumentParser) -> argparse.ArgumentParser:

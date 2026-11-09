@@ -151,8 +151,7 @@ int main(int argc, char** argv) {
     CK(hipMemcpy(d_in, all.data(), (size_t) total_blocks * q5::kQ5kBytes, hipMemcpyHostToDevice));
     const int tpb = 256;
     q5k_decode_kernel<<<(total_blocks * 256 + tpb - 1) / tpb, tpb>>>(d_in, total_blocks, d_out);
-    CK(hipGetLastError());
-    CK(hipDeviceSynchronize());
+    CK(hipDeviceSynchronize());   // (the hip_or_cuda shim maps no hipGetLastError; a failed launch surfaces here)
 
     std::vector<float> dev((size_t) total_blocks * 256);
     CK(hipMemcpy(dev.data(), d_out, dev.size() * sizeof(float), hipMemcpyDeviceToHost));

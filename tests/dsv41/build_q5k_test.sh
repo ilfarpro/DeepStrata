@@ -2,7 +2,8 @@
 # Builds tests/dsv41/q5k_engram_test.cpp by hand (no CMake): nvcc (CUDA) or the ROCm clang (HIP).  It checks the Engram's
 # Q5_K table row (src/dsv41/ds4_q5k.cuh's q5k_value, Engram fmt 4) on the device against a CPU decode, bit for bit - the
 # decoder unsloth's UD-IQ2_XXS n-gram table runs on.  One translation unit (ds4_q5k.cuh is header-only).
-#   build_q5k_test.sh cuda <outdir>   env: CUDA_ARCH=86 (sm_ number), NVCC=nvcc
+#   build_q5k_test.sh cuda <outdir>   env: CUDA_ARCH=89 (an sm_ number, or several space-separated - "89 120" - for one
+#                                      binary that runs on every card listed; use that on a box with mixed GPUs), NVCC=nvcc
 #   build_q5k_test.sh hip  <outdir>   env: HIP_ROOT=<_rocm_sdk_devel>, HIP_ARCH=gfx1201
 # SRC (the tree) defaults to the repo this script is in.  Then:
 #   <outdir>/q5k_engram_test                                   # random blocks
@@ -15,10 +16,16 @@ INC="-I$SRC/include -I$SRC/src/dsv41"
 F="tests/dsv41/q5k_engram_test.cpp"
 
 if [ "$MODE" = cuda ]; then
-    A=${CUDA_ARCH:?CUDA_ARCH, e.g. 86}
+    ARCHES=${CUDA_ARCH:?CUDA_ARCH, e.g. 89, or several: "89 120"}
     NVCC=${NVCC:-nvcc}
-    FL="-O2 -std=c++20 --generate-code=arch=compute_$A,code=sm_$A -Xcompiler -ffp-contract=off -Xcompiler -fPIC $INC"
-    if [ "$A" -lt 70 ]; then FL="$FL -include $SRC/tests/dsv41/dq_pascal_shim.h"; fi
+    CODEGEN=""; SHIM=0
+    for a in $ARCHES; do
+        CODEGEN="$CODEGEN --generate-code=arch=compute_$a,code=sm_$a"
+        if [ "$a" -lt 70 ] 2>/dev/null; then SHIM=1; fi
+    done
+    [ -z "$CODEGEN" ] && { echo "CUDA_ARCH is empty" >&2; exit 1; }
+    FL="-O2 -std=c++20$CODEGEN -Xcompiler -ffp-contract=off -Xcompiler -fPIC $INC"
+    if [ "$SHIM" -eq 1 ]; then FL="$FL -include $SRC/tests/dsv41/dq_pascal_shim.h"; fi
     ( cd "$SRC" && $NVCC $FL -x cu -c "$F" -o "$OUT/q5k.o" ) || exit 1
     $NVCC -o "$OUT/q5k_engram_test" "$OUT/q5k.o" || exit 1
 else

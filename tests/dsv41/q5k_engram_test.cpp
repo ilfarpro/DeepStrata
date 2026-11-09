@@ -151,12 +151,30 @@ int main(int argc, char** argv) {
     CK(hipMalloc(&d_in, (size_t) total_blocks * q5::kQ5kBytes));
     CK(hipMalloc(&d_out, (size_t) total_blocks * 256 * sizeof(float)));
     CK(hipMemcpy(d_in, all.data(), (size_t) total_blocks * q5::kQ5kBytes, hipMemcpyHostToDevice));
+    // Pre-fill the output with a NaN sentinel.  If the kernel never runs - the usual cause is --device pointing at a card
+    // this binary was not built for ("no kernel image for device", which the hip shim cannot report here) - the outputs stay
+    // NaN and we say so below, instead of printing one bogus mismatch per value.  A Q5_K decode of these inputs is always
+    // finite (d and dmin are forced to finite fp16; a real table row's scales are finite), so a surviving NaN means unwritten.
+    {
+        std::vector<float> sent((size_t) total_blocks * 256, std::nanf(""));
+        CK(hipMemcpy(d_out, sent.data(), sent.size() * sizeof(float), hipMemcpyHostToDevice));
+    }
     const int tpb = 256;
     q5k_decode_kernel<<<(total_blocks * 256 + tpb - 1) / tpb, tpb>>>(d_in, total_blocks, d_out);
     CK(hipDeviceSynchronize());   // (the hip_or_cuda shim maps no hipGetLastError; a failed launch surfaces here)
 
     std::vector<float> dev((size_t) total_blocks * 256);
     CK(hipMemcpy(dev.data(), d_out, dev.size() * sizeof(float), hipMemcpyDeviceToHost));
+    long nan = 0;
+    for (float v : dev) if (v != v) ++nan;   // (NaN != NaN; a real decode never yields NaN, so these are unwritten slots)
+    if (nan > (long) dev.size() / 4) {
+        std::printf("DEVICE: the kernel left %ld of %zu outputs unwritten (NaN sentinel) - it produced no output.\n", nan, dev.size());
+        std::printf("  Usually a device/arch mismatch: this binary's CUDA_ARCH must include the compute capability of --device.\n");
+        std::printf("  Cards here: `nvidia-smi --query-gpu=index,compute_cap,name --format=csv`.  Run on the matching --device, or build for both: CUDA_ARCH=\"89 120\".\n");
+        std::printf("SUMMARY q5k_engram kernel_did_not_run=1\n");
+        std::fflush(stdout);
+        return 3;
+    }
     long bad = 0;
     bad += compare(dev, all, nblocks, "synthetic");
     if (rows > 0)

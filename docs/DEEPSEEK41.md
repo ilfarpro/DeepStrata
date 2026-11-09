@@ -188,9 +188,9 @@ headers to under 0.1 GB; each SHA-256 is the file's LFS object id fetched at tha
 | 00005 | 16,419,622,240 | `34fa48fbe2237b1b71a4f18a04bbe10946f6b1c76b7bbff21c76da630da677b6` |
 | 00006 (the Q5_K n-gram table, and nothing else) | 135,172,021,792 | `406103485a7a7193337adee38b7178d3b636940aaa3ca033bc91e0d3687e3031` |
 
-- Before listing it, run `tests/dsv41/q5k_engram_test` on the target card (`tests/dsv41/build_q5k_test.sh`, CUDA and HIP; the
-  Metal engine build on a Mac). CUDA on RTX is done (the answer is recorded in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md)); the
-  AMD and Mac runs are still open.
+- The card test came before the listing: run `tests/dsv41/q5k_engram_test` on the target card (`tests/dsv41/build_q5k_test.sh`, CUDA and HIP; the
+  Metal engine build on a Mac). CUDA on RTX is done - `fails=0` on sm_89 and sm_120 (recorded in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md)); the
+  AMD and Mac runs are still open, and the set stays hidden on those platforms (`not_here`) until they pass.
 
 ### Opening the four 2- and 3-bit sets - what it would take (scope open in [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1))
 

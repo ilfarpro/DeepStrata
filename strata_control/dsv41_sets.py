@@ -40,14 +40,14 @@ def tables() -> dict | None:
         new1, six = getattr(module, "DSV41_NEW_SHARD1", {}), getattr(module, "DSV41_ISTA6_FILES", {})
         result: dict = {"sets": {}, "engram": {}}
         for model, entry in family["models"].items():
-            if entry.get("recipe") not in ("ista", "udlow", "coder"):
+            if entry.get("recipe") not in ("ista", "udlow", "coder", "udiq2"):
                 continue                                # Unsloth's 508 GB set is not an "already have it" case of the app
-            ista = {**ista, **getattr(module, "DSV41_UD_FILES", {}), **getattr(module, "DSV41_CODER_FILES", {})}
+            ista = {**ista, **getattr(module, "DSV41_UD_FILES", {}), **getattr(module, "DSV41_CODER_FILES", {}), **getattr(module, "DSV41_UDIQ2_FILES", {})}
             shards = {name: ista[name][0] for name in entry["shards"]}
             old = {renamed[name]: legacy[renamed[name]][0] for name in entry["shards"] if name in renamed and renamed[name] in legacy}
-            alt = entry.get("engram_shard")             # Unsloth's UD-IQ1 sets: shard 5 is the Engram (the same data as ISTA-DAS's file)
+            alt = entry.get("engram_shard")             # Unsloth's UD-IQ1 sets: shard 5 is the Engram (the same data as ISTA-DAS's file); UD-IQ2_XXS: its Q5_K shard 6, its own data
             result["sets"][model] = {"label": entry.get("label", model), "shards": shards, "legacy": old, "generic": bool(entry.get("generic_names")),
-                                     "engram_alt": {alt: ista[alt][0]} if alt else {},
+                                     "engram_alt": {alt: ista[alt][0]} if alt else {}, "own_engram": entry.get("recipe") == "udiq2",
                                      "new1": {name: new1[name][0] for name in entry["shards"] if name in new1},
                                      "six": {name: six[name][0] for name in entry.get("shards6") or [] if name in six}}
         for name in (module.DSV41_ISTA_ENGRAM, renamed.get(module.DSV41_ISTA_ENGRAM)):
@@ -71,8 +71,8 @@ def match(files: dict[str, int]) -> list[dict]:
     engram = next((name for name in known["engram"] if files.get(name) == known["engram"][name]), None)
     found = []
     for model, entry in known["sets"].items():
-        engram = engram_any = next((name for name in known["engram"] if files.get(name) == known["engram"][name]), None)
-        if engram is None:                             # an Unsloth set's own shard 5 is its Engram
+        engram = engram_any = None if entry.get("own_engram") else next((name for name in known["engram"] if files.get(name) == known["engram"][name]), None)
+        if engram is None:                             # an Unsloth set's own last shard is its Engram (UD-IQ2_XXS's Q5_K shard counts for its own set only)
             engram = next((n for n, size in entry.get("engram_alt", {}).items() if files.get(n) == size), None)
         for layout, pinned in (("four", entry["shards"]), ("legacy", entry["legacy"]), ("six", entry.get("six") or {})):
             if not pinned:

@@ -129,7 +129,7 @@ of the five:
 
 | set | download | routed experts | n-gram table | what stops it |
 |---|---:|---|---|---|
-| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | engine done and run on RTX; left: the setup wiring, an engine-version gate, and a release |
+| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | done on this branch: the engine (run on RTX) and the setup wiring, the fit entry and an engine-version gate; left: a release that carries fmt 4, a serving run on the card, and a quality measurement |
 | UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | the experts rule |
 | UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule |
 | UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule |
@@ -154,29 +154,27 @@ landing needs is written down just below. The second feature - letting a layer
 keep an MXFP4 `down` while gate and up stay low-bit - would open the other four (UD-Q2_K_XL needs both); it is bigger and is
 open for scope as [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1). The offered sets and every default path stay exactly as they are.
 
-### Landing UD-IQ2_XXS when a release carries fmt 4
+### Landing UD-IQ2_XXS - wired on this branch
 
-For whoever wires it, with the facts read off the pinned set (repo `unsloth/DeepSeek-V4.1-Flash-1017-GGUF`, revision
+The setup wiring, the fit entry, the pins and the file recognition are in this branch; what still has to come is a release that carries fmt 4 and
+a serving run of the set on an RTX card. The facts, read off the pinned set (repo `unsloth/DeepSeek-V4.1-Flash-1017-GGUF`, revision
 `8a6ec9cf118e785a362ea94ee123c61c70553be6`, path `UD-IQ2_XXS/`):
 
 - Six files `DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-0000N-of-00006.gguf`. Shard 1 (5,780,923 B) is metadata, no tensors;
   shards 2-5 (49,955,895,008; 49,950,675,200; 48,971,469,632; 16,419,622,240 B) are the experts and dense weights - about
   165 GB, all types the engine already takes; shard 6 (135,172,021,792 B) is the n-gram table and nothing else.
-- The download follows the low-bit recipe the offered sets use (`setup.py`'s UD-IQ1_M shape; the recipe is resolved at
-  `setup.py:9272`, the pack command built at `setup.py:8940`): pack shards 1-5 and take the Engram table from shard 6 with the
-  packer's `--engram`. One thing must be written, not assumed: the offered low-bit sets feed the **shared IQ4_NL table**
-  (`DSV41_ISTA_ENGRAM`) as `--engram` and use their own `engram_shard` only as an alternate local copy (the resolution at
-  `setup.py:9296`), so a new recipe is needed that points `--engram` at shard 6's Q5_K file and still keeps the drafter
-  (`DSV41_DSPARK`) and the picture file in `shared` - `shared` carries the drafter too, not only the table. `pack_gguf.py` needs
-  no change: its type table already knows Q5_K (`tools/dsv41/pack_gguf.py:44`, `13: ("Q5_K", 256, 176)` - 176 bytes a block, the
-  same figure the reader uses).
-- The model key `ud-iq2_xxs`, its `dsv41_fit` fit entry, its `MODELS.md` line and its `setup.py` pins go in together, **gated on
-  an engine that ships fmt 4**. That gate does not exist for the DeepSeek family yet: an offered set is hidden from the list only
-  by `dsv41_fit.not_here` (a Mac or a DGX Spark), not by engine version - so adding the set without a version gate would offer it
-  to an engine that cannot read its table. The landing has to add that gate (hide the set until the engine carries fmt 4); never
-  list it under a release that cannot load it. A `tools/test_setup_udiq2.py` shape test (which runs with no GPU and no downloads,
-  like `tools/test_setup_udq4.py`) should check the recipe targets shard 6's table, that `shared` still carries the drafter, and
-  that the set is hidden below the fmt-4 engine.
+- The download follows the low-bit recipe the offered sets use, in a new `udiq2` shape: setup downloads shard 6 with the model (verified against
+  the pins like every other file) and hands it to the packer as the n-gram table - `--engram` points at shard 6's Q5_K file, never at the
+  **shared IQ4_NL table** (`DSV41_ISTA_ENGRAM`), which plays no part here, so `shared` carries only the drafter (`DSV41_DSPARK`) and the picture
+  file. `pack_gguf.py` needed no change: its type table already knows Q5_K (`tools/dsv41/pack_gguf.py:44`, `13: ("Q5_K", 256, 176)` - 176 bytes
+  a block, the same figure the reader uses).
+- Setup checks the installed engine **before anything downloads**: `dsv41_reads_q5k` (next to the pack command in `setup.py`) reads the engine
+  version and says whether it can read fmt 4 - 0.1.59 or newer can, an older one stops the setup with "run `strata update`", nothing downloaded.
+  The fit entry counts this set's own 135.2 GB table, not the shared 110.6 GB one, and the plan's words say the table is the set's own. On a Mac
+  and on a DGX Spark the set stays hidden (`dsv41_fit.MAC_NOT_YET` / `AARCH64_NOT_YET`) until its table is run there. On Linux with an fmt-4
+  engine the app's list, `strata launch`, setup's menu and the "I already have the model" check all know the six files.
+  `tools/test_setup_udiq2.py` (no GPU, no downloads) checks the recipe targets shard 6's table, that `shared` carries the drafter, the fit
+  numbers, the version gate and the file recognition.
 
 The six files, pinned from the Hub at revision `8a6ec9cf118e785a362ea94ee123c61c70553be6` (sizes cross-check with the tensor
 headers to under 0.1 GB; each SHA-256 is the file's LFS object id fetched at that revision, not copied from a doc):

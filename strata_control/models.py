@@ -340,8 +340,7 @@ def _already_set_up(shards: list[Path], candidate: dict | None) -> dict | None:
 
 
 ISSUE_WORDS = {
-    "not_on_this_mac": "Unsloth's UD-IQ1_M set doesn't run on a Mac yet; the UD-IQ1_S, 2.00 and 2.25 sets do",
-    "not_on_this_spark": "Unsloth's 1-bit DeepSeek sets were not tested on a DGX Spark yet; the 2.00 and 2.25 sets were",
+    # not_on_this_mac and not_on_this_spark read their line from dsv41_fit in plain_issue(): one sentence for setup, the launch and this preview
     "multiple_model_groups": "the folder holds more than one model",
     "incomplete_or_invalid_shard_set": "some parts of the model are missing",
     "unrecognized_or_unsupported_model_variant": "this is not a model size Strata knows",
@@ -381,6 +380,12 @@ def plain_issue(code: str) -> str:
     """One problem from the GGUF preview, in words, with the file's name when it is about one file
     (`file.gguf: GGUF shard is not a nonempty regular file`)."""
     code = str(code)
+    if code == "not_on_this_mac":                   # the gate's line lives in dsv41_fit (setup and `strata launch` say the same one); no copy here
+        from strata_control import dsv41_fit
+        return dsv41_fit.MAC_NOT_YET_LINE.rstrip(".")
+    if code == "not_on_this_spark":
+        from strata_control import dsv41_fit
+        return dsv41_fit.AARCH64_NOT_YET_LINE.rstrip(".")
     if code in ISSUE_WORDS:
         return ISSUE_WORDS[code]
     name, sep, reason = code.partition(": ")

@@ -1,6 +1,7 @@
 """Unsloth's DeepSeek sets on a Mac: UD-IQ1_S runs on the Metal engine (IQ1_S kernels, run on an M5 Max) and is offered like the ISTA-DAS sets;
-UD-IQ1_M was never run on a Mac, so it is not offered there (model list, `--model`, `--model-path`, the app's "I already have the model"
-check, setup), and the line says what does work.
+UD-IQ1_M was never run on a Mac, and the owner chose to offer it anyway with a plain "not run yet" line; UD-IQ2_XXS is held back there (and on a DGX
+Spark) until its Q5_K n-gram table is run on Apple Silicon (the gate: model list, `--model`, `--model-path`, the app's "I already have the model"
+check, setup).
 On every other computer nothing changes."""
 
 from __future__ import annotations
@@ -17,22 +18,24 @@ from strata_cli.launch.runner import LaunchError, Runner
 from strata_control import dsv41_fit, dsv41_sets, models
 from tests.terminal.launch_support import HW_12, Home, catalog
 
-LINE = "Unsloth's UD-IQ1_M set doesn't run on a Mac yet; the UD-IQ1_S, 2.00 and 2.25 sets do."
+LINE = "Unsloth's UD-IQ2_XXS doesn't run on a Mac yet (its Q5_K n-gram table has not been run on Apple Silicon); the 2.00, 2.25 and the 1-bit sets do."
 MAC = {**HW_12, "mac": True, "ram_gb": 128.0, "disk_free_gb": 900.0, "gpus": [], "engine_vendor": "apple"}
 PC = {**HW_12, "ram_gb": 64.0, "disk_free_gb": 900.0, "engine_vendor": "nvidia"}
-UD = ("UD-IQ1_M",)          # the set the gate holds back in these tests (MAC_NOT_YET is empty in the product: the owner offers UD-IQ1_M on a Mac, not run there)
+UD = ("UD-IQ1_M",)          # the set the mechanism held back on a Mac in the old runs (the product now holds back UD-IQ2_XXS; UD-IQ1_M is offered, not run there)
 RUNS = "UD-IQ1_S"            # the one that was run there
-BOTH = ("UD-IQ1_S", "UD-IQ1_M")   # both ran on a DGX Spark (10-30): AARCH64_NOT_YET is empty; SparkGate patches it back to test the mechanism
+OFF = ("UD-IQ2_XXS",)       # the product's Mac gate today: the Q5_K table (fmt 4) has run on RTX cards only
+BOTH = ("UD-IQ1_S", "UD-IQ1_M")   # both ran on a DGX Spark (10-30): the Spark gate holds only UD-IQ2_XXS; SparkGate patches the old rule back to test the mechanism
 
 
 def hidden(fn):
-    """Run a test with the Mac gate as it was while UD-IQ1_M was kept off a Mac (MAC_NOT_YET = UD, and no Mac fit words for it)."""
+    """Run a test with the Mac gate holding UD-IQ1_M too (as it was while it was kept off a Mac), with this file's line, and no Mac fit words for it."""
     import functools
 
     @functools.wraps(fn)
     def run(*a, **k):
         pack = {m: v for m, v in dsv41_fit.MAC_SET_PACK.items() if m not in UD}
-        with mock.patch.object(dsv41_fit, "MAC_NOT_YET", UD), mock.patch.object(dsv41_fit, "MAC_SET_PACK", pack):
+        with mock.patch.object(dsv41_fit, "MAC_NOT_YET", UD + OFF), mock.patch.object(dsv41_fit, "MAC_NOT_YET_LINE", LINE), \
+                mock.patch.object(dsv41_fit, "MAC_SET_PACK", pack):
             return fn(*a, **k)
     return run
 
@@ -42,11 +45,10 @@ def ud_files(model):
 
 
 class Line(unittest.TestCase):
-    @hidden
     def test_the_line_and_the_names(self):
-        self.assertEqual(dsv41_fit.MAC_NOT_YET, UD)
-        self.assertEqual(dsv41_fit.MAC_NOT_YET_LINE, LINE)
-        self.assertFalse(set(UD) & set(dsv41_fit.MAC_SET_PACK))
+        self.assertEqual(dsv41_fit.MAC_NOT_YET, OFF)                    # the product: only the Q5_K set is kept off a Mac until it runs there
+        self.assertIn("UD-IQ2_XXS", dsv41_fit.MAC_NOT_YET_LINE)
+        self.assertFalse(set(dsv41_fit.MAC_NOT_YET) & set(dsv41_fit.MAC_SET_PACK))
 
 
 class Lists(unittest.TestCase):
@@ -137,7 +139,8 @@ class OwnFiles(unittest.TestCase):
 
 
 class OfferedOnAMac(unittest.TestCase):
-    """The product state: the Mac gate is empty, both Unsloth sets are offered; UD-IQ1_M says plainly that it was not run on a Mac."""
+    """The product state: the Unsloth sets that ran on RTX cards only are held back; the 1-bit and the ISTA-DAS sets are offered, UD-IQ1_M saying
+    plainly that it was not run on a Mac."""
     PLAIN = "Not run on a Mac yet; UD-IQ1_S was. It keeps fewer experts in memory, so expect it to be slower."
 
     def setUp(self):
@@ -148,11 +151,14 @@ class OfferedOnAMac(unittest.TestCase):
         p.start()
         self.addCleanup(p.stop)
 
-    def test_the_gate_is_empty_and_both_sets_have_a_pack(self):
-        self.assertEqual(dsv41_fit.MAC_NOT_YET, ())
+    def test_the_gate_holds_the_q5k_set_and_offers_the_rest(self):
+        self.assertEqual(dsv41_fit.MAC_NOT_YET, OFF)
         for m in ("UD-IQ1_S", "UD-IQ1_M"):
             self.assertIn(m, dsv41_fit.MAC_SET_PACK)
-            self.assertIsNone(dsv41_fit.not_here(m))
+        with mock.patch.object(sys, "platform", "darwin"):
+            for m in ("UD-IQ1_S", "UD-IQ1_M", "IST-DAS-2.25bpw"):
+                self.assertIsNone(dsv41_fit.not_here(m))
+            self.assertIsNotNone(dsv41_fit.not_here("UD-IQ2_XXS"))
 
     def test_the_list_and_the_flag(self):
         got = [r.model for r in catalog(self.hw).rows() if r.family == "deepseek41"]
@@ -283,6 +289,9 @@ class SparkGate(unittest.TestCase):
         q = mock.patch.object(dsv41_fit, "AARCH64_NOT_YET", BOTH)     # the mechanism, as it was while the sets were kept off
         q.start()
         self.addCleanup(q.stop)
+        w = mock.patch.object(dsv41_fit, "AARCH64_NOT_YET_LINE", SPARK_LINE)
+        w.start()
+        self.addCleanup(w.stop)
 
     def test_the_rule(self):
         self.assertEqual(dsv41_fit.AARCH64_NOT_YET, BOTH)
@@ -343,13 +352,14 @@ class SparkGate(unittest.TestCase):
 
 
 class SparkOffered(unittest.TestCase):
-    """Both Unsloth sets ran on a DGX Spark (2026-10-30): the production rule hides nothing there."""
+    """Both 1-bit Unsloth sets ran on a DGX Spark (2026-10-30): the Spark gate holds back only the Q5_K table, which ran on RTX cards only."""
 
-    def test_nothing_is_hidden_on_a_spark(self):
-        self.assertEqual(dsv41_fit.AARCH64_NOT_YET, ())
+    def test_only_the_q5k_set_is_hidden_on_a_spark(self):
+        self.assertEqual(dsv41_fit.AARCH64_NOT_YET, OFF)
         with spark():
             for m in BOTH + ("IST-DAS-2.25bpw",):
                 self.assertIsNone(dsv41_fit.not_here(m))
+            self.assertIsNotNone(dsv41_fit.not_here("UD-IQ2_XXS"))
 
 
 if __name__ == "__main__":

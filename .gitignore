@@ -65,6 +65,8 @@ build-vision-cuda12.bat
 
 /.ccache/
 /.rocm-win/
+# npm cache the app/host tooling creates on the user's machine
+/.npm-cache/
 
 # Optional MCP raster cache
 *.tool-media/

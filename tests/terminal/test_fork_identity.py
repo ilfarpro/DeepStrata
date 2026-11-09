@@ -1,10 +1,10 @@
 r"""DeepStrata installs beside the original Strata (DIVERGENCE.md). One identity module per
 language carries the fork's own names — strata_control/fork_identity.py (source of truth),
-apps/host/server/fork-identity.mjs (the host), apps/desktop/src-tauri/src/identity.rs (the shell).
+apps/host/server/fork-identity.mjs (the host).
 
 Three guarantees: the copies say the same values; the surfaces that cannot import a module
-(setup.py, serve/server.py, sycl/setup_intel.py, tools/strata_mcp.py, handover.py, tauri.conf.json,
-Cargo.toml, SnapshotDialog.tsx) pin to it; and an original-product value — the upstream release
+(setup.py, serve/server.py, sycl/setup_intel.py, tools/strata_mcp.py, handover.py,
+SnapshotDialog.tsx) pin to it; and an original-product value — the upstream release
 address, `ai.strata.desktop`, the old ports, the `strata-desktop` binary, `~/.strata` — never
 appears in product code again (the scan below), so a merge from upstream that reintroduces one
 fails here instead of making the two installs fight over a folder, a port or an update feed.
@@ -43,15 +43,6 @@ def js_constants(rel: str) -> dict:
     return out
 
 
-def rust_constants(rel: str) -> dict:
-    """`pub const NAME: &str = "value";` / `u16 = 123;` in a module."""
-    text = (ROOT / rel).read_text(encoding="utf-8")
-    out = {}
-    for name, kind, raw in re.findall(r'pub const (\w+): (&str|u16) = (.*?);', text):
-        out[name] = int(raw) if kind == "u16" else raw.strip('"')
-    return out
-
-
 class ModuleValues(unittest.TestCase):
     """The values themselves, pinned: changing one is a deliberate act, not a typo."""
 
@@ -68,11 +59,9 @@ class ModuleValues(unittest.TestCase):
         self.assertEqual(identity.ISSUES_URL, identity.RELEASES_URL + "/issues")
         self.assertEqual(identity.FEED_NAME, "strata-feed.json")          # our release folder holds it; the name stays
         self.assertEqual(identity.FEED_URL, identity.LATEST_DOWNLOAD + "/strata-feed.json")
-        self.assertEqual(identity.APP_UPDATER_URL, identity.LATEST_DOWNLOAD + "/latest.json")
 
     def test_the_ports_are_not_the_original_product(self):
         self.assertEqual(identity.HOST_PORT, 8891)        # the original's page port was 8791
-        self.assertEqual(identity.DESKTOP_PORT, 47841)    # the original's shell port was 47831
 
     def test_the_model_folder_stays_shared(self):
         """Documents/Strata holds the model files for both products: an installed model is never downloaded twice."""
@@ -80,33 +69,17 @@ class ModuleValues(unittest.TestCase):
 
 
 class MirrorCopies(unittest.TestCase):
-    """The Node host and the Rust shell copy the values; a drifted copy is a silent collision."""
+    """The Node host copies the values; a drifted copy is a silent collision."""
 
     def test_the_host_copy(self):
         js = js_constants("apps/host/server/fork-identity.mjs")
         for name, want in [("PRODUCT_NAME", identity.PRODUCT_NAME), ("CLI_NAME", identity.CLI_NAME),
                            ("FOLDER_POSIX", identity.FOLDER_POSIX), ("FOLDER_WINDOWS", identity.FOLDER_WINDOWS),
                            ("HOME_DIR", identity.HOME_DIR), ("REPO", identity.REPO),
-                           ("HOST_PORT", identity.HOST_PORT), ("DESKTOP_PORT", identity.DESKTOP_PORT),
+                           ("HOST_PORT", identity.HOST_PORT),
                            ("FEED_NAME", identity.FEED_NAME), ("MODEL_FOLDER", identity.MODEL_FOLDER)]:
             self.assertIn(name, js, f"the host module lost {name}")
             self.assertEqual(js[name], want, f"apps/host/server/fork-identity.mjs {name}")
-
-    def test_the_shell_copy(self):
-        rs = rust_constants("apps/desktop/src-tauri/src/identity.rs")
-        for name, want in [("PRODUCT_NAME", identity.PRODUCT_NAME), ("FOLDER_POSIX", identity.FOLDER_POSIX),
-                           ("FOLDER_WINDOWS", identity.FOLDER_WINDOWS), ("HOME_DIR", identity.HOME_DIR),
-                           ("REPO", identity.REPO), ("DESKTOP_PORT", identity.DESKTOP_PORT)]:
-            self.assertIn(name, rs, f"the shell module lost {name}")
-            self.assertEqual(rs[name], want, f"apps/desktop/src-tauri/src/identity.rs {name}")
-        self.assertEqual(rs["BINARY_NAME"], js_constants("apps/host/server/fork-identity.mjs")["BINARY_NAME"])
-
-    def test_the_cargo_package_is_the_binary_the_copies_name(self):
-        rs = rust_constants("apps/desktop/src-tauri/src/identity.rs")
-        cargo = (ROOT / "apps/desktop/src-tauri/Cargo.toml").read_text(encoding="utf-8")
-        m = re.search(r'\[package\][^\[]*?name = "([^"]+)"', cargo, re.S)
-        self.assertIsNotNone(m)
-        self.assertEqual(m.group(1), rs["BINARY_NAME"])     # MAINBINARYNAME and NSIS follow the package name
 
 
 class StandaloneCopies(unittest.TestCase):
@@ -138,16 +111,6 @@ class StandaloneCopies(unittest.TestCase):
         text = (ROOT / "apps/host/vite.config.ts").read_text(encoding="utf-8")
         self.assertIn(f"http://127.0.0.1:{identity.HOST_PORT}", text)
 
-    def test_the_desktop_config_is_the_fork_config(self):
-        import json
-        conf = json.loads((ROOT / "apps/desktop/src-tauri/tauri.conf.json").read_text(encoding="utf-8-sig"))
-        self.assertEqual(conf["productName"], identity.PRODUCT_NAME)
-        self.assertEqual(conf["identifier"], "ai.deepstrata.desktop")           # not ai.strata.desktop: macOS/Linux keep settings per identifier
-        updater = conf["plugins"]["updater"]
-        self.assertEqual(updater["endpoints"], [identity.APP_UPDATER_URL])
-        keys = json.loads((ROOT / "strata_control/update_keys.json").read_text(encoding="utf-8-sig"))
-        self.assertEqual(updater["pubkey"], keys["app_minisign_public"])         # one app key on both sides
-
 
 # ---------------------------------------------------------------------------------------------
 # the purity scan: no original-product identity in product code
@@ -156,16 +119,14 @@ class StandaloneCopies(unittest.TestCase):
 SCAN_DIRS = [
     "strata_control", "strata_cli", "serve", "sycl", "packaging", "docker", "tools", "bin",
     "apps/host/server", "apps/host/src", "apps/host/scripts",
-    "apps/desktop/src-tauri/src", "apps/desktop/src-tauri/nsis", "apps/desktop/scripts",
 ]
 SCAN_FILES = ["setup.py", "update.sh", "strata.py", "apps/host/vite.config.ts"]
 SKIP_PARTS = {"node_modules", "__pycache__", "target", "dist", "fixtures"}           # fixtures hold capture samples, not product code
 TEXT_EXTS = {".py", ".mjs", ".js", ".ts", ".tsx", ".rs", ".nsi", ".sh", ".ps1", ".cmd", ".bat",
              ".toml", ".md", ".txt", ".yml", ".yaml"}                                 # plus extensionless files (bin/deepstrata, docker/Dockerfile)
 
-# the three identity modules document the original's values on purpose
-IDENTITY_MODULES = {"strata_control/fork_identity.py", "apps/host/server/fork-identity.mjs",
-                    "apps/desktop/src-tauri/src/identity.rs"}
+# the two identity modules document the original's values on purpose
+IDENTITY_MODULES = {"strata_control/fork_identity.py", "apps/host/server/fork-identity.mjs"}
 # tools that reach the real web or the real upstream on purpose: the agent-tool probe must find the original product's page,
 # the research corpus tool says who to contact; neither is something an install runs
 LIVE_WEB_TOOLS = {"tools/trellis/make_corpus.py", "apps/host/scripts/agent2-tools-flow.mjs"}

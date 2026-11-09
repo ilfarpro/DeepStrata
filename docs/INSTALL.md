@@ -1,30 +1,30 @@
 # Install Strata
 
-This page is for anyone installing or updating Strata (version 0.2.5). Use the **desktop app** for a graphical
-interface, or the **Terminal** for `deepstrata launch` and coding tools. Both use released engine packages. A normal
-install does not need a source checkout or a startup `.bat` file.
+This page is for anyone installing or updating Strata (version 0.2.5). Use the **chat page in your browser** for a
+graphical interface, or the **Terminal** for `deepstrata launch` and coding tools. Both come from one download: the
+Terminal archive carries the page too. A normal install does not need a source checkout or a startup `.bat` file.
 
 ## Quick start
 
 | I want | Do this |
 | --- | --- |
-| A window with chat | Download the installer from the [latest release](https://github.com/ilfarpro/DeepStrata/releases/latest) ([steps](#the-app)) |
+| A chat page in the browser | Install the Terminal, run `deepstrata launch`, then `deepstrata ui` ([steps](#the-chat-page)) |
 | The terminal, or my coding tool | Run the one-line install, then `deepstrata launch` ([steps](#the-terminal)) |
-| DeepSeek V4.1-Flash | Pick it in the app, or run `deepstrata launch --family deepseek41` ([model page](MODELS.md#deepseek-v41-flash)) |
+| DeepSeek V4.1-Flash | Pick it in the page, or run `deepstrata launch --family deepseek41` ([model page](MODELS.md#deepseek-v41-flash)) |
 
-[Requirements](#what-you-need) · [Desktop app](#the-app) · [Terminal](#the-terminal) ·
+[Requirements](#what-you-need) · [The chat page](#the-chat-page) · [Terminal](#the-terminal) ·
 [Update](#updating) · [Files and folders](#where-things-are-stored) · [Build from source](SOURCE_INSTALL.md)
 
 ## What you need
 
 | Computer | Guide |
 | --- | --- |
-| Windows 10/11 or Linux x86-64 with an NVIDIA RTX GPU | Use the app or the Terminal. The engine for your card is downloaded for you. [Older NVIDIA cards](OLDER_GPUS.md) use the CUDA 12 engine. DeepSeek V4.1-Flash runs on RTX 30, 40 and 50 cards in the app and the Terminal. |
-| Windows or Linux x86-64 with a supported AMD Radeon | [AMD guide](AMD_HIP.md), including the card-to-package table. DeepSeek V4.1-Flash runs on the Radeon AI PRO R9700 under Linux, in the app and the Terminal. |
+| Windows 10/11 or Linux x86-64 with an NVIDIA RTX GPU | Use the page or the Terminal. The engine for your card is downloaded for you. [Older NVIDIA cards](OLDER_GPUS.md) use the CUDA 12 engine. DeepSeek V4.1-Flash runs on RTX 30, 40 and 50 cards in the page and the Terminal. |
+| Windows or Linux x86-64 with a supported AMD Radeon | [AMD guide](AMD_HIP.md), including the card-to-package table. DeepSeek V4.1-Flash runs on the Radeon AI PRO R9700 under Linux, in the page and the Terminal. |
 | Linux x86-64 with Intel Arc | [Intel Arc guide](INTEL_ARC.md); install the driver/compute runtime and check model preparation requirements |
 | Apple Silicon Mac, macOS 15 or newer | [Mac guide](MAC.md). Intel Macs are not supported by the Mac package. |
 | AMD Ryzen AI Max / Strix Halo | [Strix Halo guide](STRIX_HALO.md) |
-| NVIDIA DGX Spark (Linux ARM64) | [DGX Spark guide](DGX_SPARK_LINUX.md). Use the Terminal; there is no desktop app for ARM64 Linux. |
+| NVIDIA DGX Spark (Linux ARM64) | [DGX Spark guide](DGX_SPARK_LINUX.md). Use the Terminal; the page runs from it the same way. |
 
 Memory and disk needs depend on the **model, quantization, context and enabled features**. Check
 [which model fits](MODELS.md#pick-by-memory); download size is not the same as RAM use. Unified memory counts once.
@@ -34,32 +34,28 @@ Install a graphics driver that supports the package you choose. CUDA 13 packages
 older NVIDIA cards use CUDA 12. AMD and Intel requirements are in their guides. Packaged GPU runtimes do not replace
 hardware drivers. Models and updates need an internet connection to download.
 
-## The app
+## The chat page
 
-1. Open the [latest release](https://github.com/ilfarpro/DeepStrata/releases/latest).
-2. Download the one installer for your system. There is one per system, not one per graphics card:
-   - **Windows:** run `Strata-0.2.9-windows-x64-setup.exe`. It installs for your user and needs no administrator rights.
-   - **Linux:** make `Strata-0.2.9-linux-x86_64.AppImage` executable, then open it. If FUSE is unavailable, run the
-     downloaded file with `--appimage-extract-and-run`. [Linux help](TROUBLESHOOTING.md).
-   - **Mac:** open `Strata-0.2.9-macos-arm64.dmg`, drag Strata into Applications, then open it. The Mac builds are not
-     notarised yet, so macOS warns the first time; [Mac help](MAC.md) shows what to press.
-3. On Windows and Linux the installer has no engine inside. On first start the app shows the engine for your
-   graphics card with its size and one **Download** button, with progress and resume. If you already downloaded the
-   engine file, choose **I already have the file** and it installs without internet. The Mac file keeps its small
-   Metal engine inside.
+The page ships inside the Terminal archive: same install, one command more.
+
+1. Install the Terminal once ([steps below](#the-terminal)). It carries the page and the runtime that serves it;
+   it needs no administrator rights.
+2. Start a model: `deepstrata launch` shows what each model needs, downloads the engine for your graphics card
+   with its size before it fetches anything, and serves.
+3. Run `deepstrata ui`. It starts the App Host and opens the full page — Chat, Monitor, Settings — in your browser.
+   Closing the tab keeps the model serving; `deepstrata ui --stop` ends the page.
 4. Choose a model and its storage folder, let it download, then chat. DeepSeek V4.1-Flash is in the model list on
    the supported cards ([model page](MODELS.md#deepseek-v41-flash)); it has three sizes, an 8K context and a **Speed**
    choice, Faster or Full quality.
 
-The `strata-engine-…` and `strata-control-…` archives on the release page are components, not installers. The
-installer is the same file for a first install and for an update. There is no Intel desktop installer yet; Intel Arc
+The `strata-engine-…` and `strata-control-…` archives on the release page are components, not installers. Intel Arc
 runs on Linux only, through the [Terminal](INTEL_ARC.md).
 
 The first launch can take time to check and prepare large model files. Watch its progress and logs; there is no fixed
-startup time for every model or computer. Closing the desktop app stops its managed engine.
+startup time for every model or computer. `deepstrata stop` stops a served model.
 
 The provider order recommended here is **ISTA-DASLab, Unsloth, Gyro, then others**, when a compatible pack fits.
-Current app recommendations can differ; choose the model explicitly when you want a particular provider.
+Current recommendations can differ; choose the model explicitly when you want a particular provider.
 
 ## The Terminal
 
@@ -110,7 +106,7 @@ restart it. A restart interrupts current answers. See [all launch options](TERMI
 
 ## Updating
 
-**Desktop app:** open Settings and find the update controls, check for updates, and use the offered app or engine update.
+**The page:** open Settings and find the update controls, check for updates, and use the offered Strata or engine update.
 Unload running models before replacing the engine. Your model files and settings are kept.
 
 **Terminal:**
@@ -136,14 +132,14 @@ Source checkouts have a [separate update workflow](SOURCE_INSTALL.md#updating).
 
 | Item | Default location |
 | --- | --- |
-| Desktop chats and host state | `~/.deepstrata` (or `STRATA_HOME`) |
+| Page chats and host state | `~/.deepstrata` (or `STRATA_HOME`) |
 | Engine components, Windows | `%LOCALAPPDATA%\Strata\components` |
 | Engine components, Linux / Mac | `$XDG_DATA_HOME/strata/components`, normally `~/.local/share/strata/components` |
 | Terminal files | The `terminal` folder beside `components`; the installer prints the exact path |
-| Models | The folder chosen in the app or launch screens; an existing model library is reused |
+| Models | The folder chosen in the page or launch screens; an existing model library is reused |
 
-The desktop app normally proposes `Documents/Strata/Models` for a new library. The Terminal discovers saved
-folders from earlier installs. Use the path shown by the app or `deepstrata models list`, not an assumed folder name.
+The page normally proposes `Documents/Strata/Models` for a new library. The Terminal discovers saved
+folders from earlier installs. Use the path shown by the page or `deepstrata models list`, not an assumed folder name.
 `--data-dir` changes where new downloads go; it does not move existing models unless you add `--move-data`.
 See [model discovery](TERMINAL_LAUNCH.md#models-you-already-have).
 

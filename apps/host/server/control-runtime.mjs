@@ -189,14 +189,14 @@ export function createControl({ control = findControl(), env = process.env, run 
      * The explicit update step. These are the only calls that let Control reach the network: `acquire` removes
      * STRATA_NO_ACQUIRE for that one process. Starting, serving, listing and rolling back never do.
      */
-    async updateCheck({ feed = env.STRATA_UPDATE_FEED ?? null, appVersion = env.STRATA_APP_VERSION ?? null } = {}) {
-      const result = await call(['update', '--check', '--output', 'json', ...feedArgs(feed), ...(appVersion ? ['--app-version', appVersion] : [])], { timeoutMs: 90_000, acquire: true });
+    async updateCheck({ feed = env.STRATA_UPDATE_FEED ?? null } = {}) {
+      const result = await call(['update', '--check', '--output', 'json', ...feedArgs(feed)], { timeoutMs: 90_000, acquire: true });
       if (result.json?.ok) return result.json;
       throw failure(result, 'The update check failed.');
     },
-    async update({ feed = env.STRATA_UPDATE_FEED ?? null, engine = true, control: withControl = true, appVersion = env.STRATA_APP_VERSION ?? null, force = false, stopModel = false, onEvent = null, signal = null } = {}) {
+    async update({ feed = env.STRATA_UPDATE_FEED ?? null, engine = true, control: withControl = true, force = false, stopModel = false, onEvent = null, signal = null } = {}) {
       const args = ['update', '--output', 'jsonl', ...feedArgs(feed), ...(engine ? [] : ['--no-engine']), ...(withControl ? [] : ['--no-control']),
-        ...(appVersion ? ['--app-version', appVersion] : []), ...(force ? ['--force'] : []), ...(stopModel ? ['--stop-model'] : [])];
+        ...(force ? ['--force'] : []), ...(stopModel ? ['--stop-model'] : [])];
       const result = await call(args, { timeoutMs: 3 * 3600_000, acquire: true, onLine: onEvent ?? (() => {}), signal });
       if (result.json?.ok) return result.json;
       const failed = result.json?.results?.find?.(r => r.status === 'failed');

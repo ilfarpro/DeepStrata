@@ -45,30 +45,29 @@ this PC only. The details and every setting are in [docs/DETAILS.md](docs/DETAIL
   last few prompts, whatever `"api_monitor"` says, to encode the next turn faster; no endpoint shows them, and they
   are gone when the server stops.
 
-## The desktop app and the Terminal
+## The page and the Terminal
 
-Strata comes in three parts that share one engine: the **desktop app**, the **Terminal** (`strata`) and the **engine** that runs
-the model. The section above is about the engine's HTTP server. This is what the other two add.
+Strata comes in two parts that share one engine: the **browser page** (`deepstrata ui` starts it from the App Host) and the
+**Terminal** (`strata`), above the **engine** that runs the model. The section above is about the engine's HTTP server.
+This is what the other two add.
 
-- **The app's host listens on this PC only.** The app serves its page from a local host process on `127.0.0.1` (port 8891 unless
-  changed). A request to its `/api/` endpoints that carries a browser `Origin` from any other site gets 403. The app shell holds a
-  random secret (32 characters or more, compared in constant time) that is needed to quit the host or tell it which window is open,
-  and the host gives its own helper processes a second random secret. By default the models the app starts are served on this PC only.
+- **The page's host listens on this PC only.** The host serves the page from a local process on `127.0.0.1` (port 8891 unless
+  changed). A request to its `/api/` endpoints that carries a browser `Origin` from any other site gets 403, and the host gives
+  its own helper processes a random secret. By default the models the page starts are served on this PC only.
 - **Sharing is a separate, key-protected listener.** "Share with other devices" (and the Cloudflare tunnel) will not start until an
   API key is set. It opens a different listener that answers only `/v1/models`, `/v1/chat/completions` and `/v1/messages`, never the
-  app's page or its host endpoints.
+  page or its host endpoints.
 - **App and Terminal talk through an owner channel.** One owner process per installation starts and ends the engine, and a second
   client (the Terminal) attaches to it. On macOS and Linux that is a private Unix socket in a folder only you can open. On Windows it
   is a TCP listener on `127.0.0.1` that answers only requests carrying a 256-bit token kept in an owner-only folder. That is a weaker
   guarantee than a socket other users cannot open: on Windows the token is what protects it, as with any loopback service that has a
-  token (`strata_control/owner_transport.py`). The bridge between the app shell and the host (used for the app update) is also loopback and protected by a token.
+  token (`strata_control/owner_transport.py`).
 - **Starting a model and serving never download anything.** Downloads and updates are one explicit step: `deepstrata update`, or "Update
-  engine" and "Update Strata" in the app's Settings. Models and saved tuning are never replaced by an update.
+  engine" and "Update Strata" in the page's Settings. Models and saved tuning are never replaced by an update.
 - **Updates come from a signed feed.** The release publishes `strata-feed.json` and `strata-feed.json.sig` (Ed25519). An installed
   Strata checks the signature against the public key it carries (`strata_control/update_keys.json`), refuses a feed older than the last
   one it accepted (a replayed old feed) or expired, and checks every engine package against its SHA-256, its signed manifest and the
-  card in your PC before it test-starts it and switches to it. Any failure keeps the engine you had. The app installer itself is signed
-  with a separate key (Tauri's minisign key) that the app and the Terminal both check. The private keys are kept offline by the owner.
+  card in your PC before it test-starts it and switches to it. Any failure keeps the engine you had. The private keys are kept offline by the owner.
   See [packaging/UPDATES.md](packaging/UPDATES.md).
 
 ### How far to trust `curl | sh` and `irm | iex`
@@ -91,7 +90,7 @@ damaged or half-finished download and a feed that was not signed by the release 
 by someone who controls it. Later updates are checked against the key already on your PC, which is a stronger position.
 
 If that is not enough: save the script (`curl -fsSLO https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh`), read it, and
-run it from the file; or install the desktop app or build from source instead and check the code you build.
+run it from the file; or build from source instead and check the code you build.
 
 Strata has not had an outside security audit yet.
 What Strata downloads, when it uses the internet, what stays on your PC and how downloads are checked is written up in [docs/SAFETY.md](docs/SAFETY.md).

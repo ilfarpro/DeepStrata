@@ -61,13 +61,20 @@ class UnknownEntriesAreSkipped(unittest.TestCase):
         self.assertEqual(f.engine[0].variant, "cuda14-new")
         self.assertEqual(f.skipped, ())
 
-    def test_unknown_app_platform(self):
+    def test_a_feed_from_the_app_days_still_verifies_and_its_app_member_is_ignored(self):
+        # the App component went with the desktop app; an old feed that still carries an "app" member is read
+        # for everything it has that is still ours, and the app member passes unnoticed
         app = {"version": "0.2.8", "notes": "", "pub_date": "2026-10-28T00:00:00Z", "platforms": {
             "windows-x86_64": {"url": "a", "signature": "s", "sha256": "a" * 64, "size": 5},
             "plan9-mips": {"url": "b", "signature": "s", "sha256": "a" * 64, "size": 5}}}
-        f = parse(doc(app=app))
-        self.assertEqual(sorted(f.app.platforms), ["windows-x86_64"])
-        self.assertEqual(len(f.skipped), 1)
+        base = doc(engine={"packages": [engine()]}, control={"version": "0.1.53", "packages": [control()]})
+        with_app = copy.deepcopy(base)
+        with_app["app"] = app
+        a, b = parse(base), parse(with_app)
+        self.assertEqual(a.engine, b.engine)
+        self.assertEqual(a.control, b.control)
+        self.assertEqual(a.skipped, b.skipped)
+        self.assertFalse(hasattr(b, "app"))
 
     def test_the_known_entries_are_unchanged_by_the_skipped_ones(self):
         base = doc(engine={"packages": [engine()]}, control={"version": "0.1.53", "packages": [control()]})

@@ -9,7 +9,7 @@ several cards. NVIDIA is described here; AMD limits and measurements are in [AMD
 
 ## Using it
 
-**Desktop app:** choose Main, Helper or Off for each card. **Terminal:** run `deepstrata launch` and use the Cards step, or name
+**The page:** choose Main, Helper or Off for each card. **Terminal:** run `deepstrata launch` and use the Cards step, or name
 the cards:
 
 ```sh

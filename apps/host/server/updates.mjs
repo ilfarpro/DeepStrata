@@ -54,7 +54,7 @@ export async function checkComponentUpdates({ control, appUpdater = null, appVer
   const checkedAt = new Date().toISOString();
   let report;
   try {
-    report = await control.updateCheck({ appVersion });
+    report = await control.updateCheck();
   } catch (error) {
     const plain = plainUpdateError(error, 'Strata');
     const message = /update server|aren't available|No internet/.test(plain.headline) ? plain.message : `Couldn't check for updates. Try again in a moment.`;

@@ -7,7 +7,7 @@ covered under [Integrated GPUs](#integrated-gpus-mini-pcs).
 
 ## Quick start
 
-Use the matching [desktop app or Terminal](INSTALL.md). The engine package carries the HIP runtime, so only the AMD
+Use the matching [page or Terminal](INSTALL.md). The engine package carries the HIP runtime, so only the AMD
 graphics driver must be installed (Windows: [AMD Software: Adrenalin Edition](https://www.amd.com/en/support/download/drivers.html);
 Linux: the kernel's amdgpu driver, no ROCm install). Terminal:
 
@@ -48,9 +48,9 @@ carries it but it is untested. Details: [MODELS.md](MODELS.md#deepseek-v41-flash
 <a id="ready-made-packages-023"></a>
 ## Ready-made packages
 
-The Terminal one-liner and `deepstrata update` pick the package whose GPU code covers the card. The app installer
-(`Strata-0.2.9-windows-x64-setup.exe`, `Strata-0.2.9-linux-x86_64.AppImage`) has no engine inside: on its first start the app
-downloads the matching package for the card. You can also press **Update engine** in Settings (or run `deepstrata update`).
+The Terminal one-liner and `deepstrata update` pick the package whose GPU code covers the card. The Terminal archive
+has no engine inside: the first `deepstrata launch` downloads the matching package for the card. You can also press
+**Update engine** in the page's Settings (or run `deepstrata update`).
 
 | Package (variant) | OS | GPU code inside | ROCm |
 | --- | --- | --- | --- |
@@ -131,11 +131,11 @@ reused. The Monitor shows the card's load, VRAM, temperature and power from Linu
 
 ## Windows
 
-Install the [app](INSTALL.md) (`Strata-0.2.9-windows-x64-setup.exe` from the
-[release page](https://github.com/ilfarpro/DeepStrata/releases/latest); it downloads the engine for the card), or
-install the [Terminal](INSTALL.md#the-terminal) and run `deepstrata launch`. You need Windows 10 or 11 (64-bit), a supported card
+Install the [Terminal](INSTALL.md#the-terminal)
+from the [release page](https://github.com/ilfarpro/DeepStrata/releases/latest) and run `deepstrata launch`
+(it downloads the engine for the card). You need Windows 10 or 11 (64-bit), a supported card
 and a current AMD driver. No ROCm or HIP SDK, no compiler, no admin rights. `START-HERE.bat --backend hip` is a
-source-checkout option for developers, not a way to start the released app.
+source-checkout option for developers, not a way to start a released build.
 
 - **Detection:** setup reads the display adapters Windows lists. An integrated Radeon is listed as not supported, except Strix
   Halo ([STRIX_HALO.md](STRIX_HALO.md)). Phoenix / Hawk Point (780M / 760M) is not supported on Windows; on Linux it has an

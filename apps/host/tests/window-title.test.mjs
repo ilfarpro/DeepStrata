@@ -9,7 +9,6 @@ const read = (p) => readFileSync(resolve(root, p), 'utf8');
 test('the window title is "Strata" on every page', () => {
   assert.match(read('index.html'), /<title>Strata<\/title>/);
   assert.match(read('server/index.mjs'), /<title>Strata<\/title>/);
-  assert.match(read('../desktop/src-tauri/src/main.rs'), /WebviewWindowBuilder::new\(app, "main"[^\n]*\.title\(identity::PRODUCT_NAME\)/);   // the fork shows its own product name in the window (apps/desktop/src-tauri/src/identity.rs)
 });
 
 test('no screen sets document.title to anything else', () => {

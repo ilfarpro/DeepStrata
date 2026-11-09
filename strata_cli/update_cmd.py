@@ -2,7 +2,6 @@
 
     strata update                 the engine for this PC and Control, from the signed feed; switches only after a test start
     strata update --check         read the feed and say what would change; downloads nothing else
-    strata update --app           also download and verify the desktop app's installer
     strata components update      the same as `strata update` (engine + Control)
     strata components rollback    return to the previous engine version the last update kept
     strata components engines     list the engines installed on this computer (sizes, which one is in use)
@@ -37,8 +36,6 @@ from strata_control import fork_identity
 DEFAULT_FEED = fork_identity.FEED_URL
 ENV_FEED = "STRATA_UPDATE_FEED"
 
-ENV_APP_VERSION = "STRATA_APP_VERSION"
-
 
 def default_feed() -> str:
     """DEFAULT_FEED for this machine: a Linux ARM64 machine (the DGX Spark) reads strata-feed-linux-aarch64.json from the same release."""
@@ -62,8 +59,6 @@ def add_parsers(sp, components_sp) -> list:
     update = sp.add_parser("update", help="download and install the engine for this PC (and Control) from the signed feed; switches only after a test start")
     _common(update)
     update.add_argument("--check", action="store_true", help="only read the feed and say what would change")
-    update.add_argument("--app", action="store_true", help="also download and verify the desktop app's installer")
-    update.add_argument("--app-version", default=None, help=f"the installed app's version (default: ${ENV_APP_VERSION})")
     update.add_argument("--no-engine", action="store_true")
     update.add_argument("--no-control", action="store_true")
     update.add_argument("--yes", action="store_true", help="ask nothing (a script); a loaded model is not stopped by this alone, see --stop-model")
@@ -72,8 +67,6 @@ def add_parsers(sp, components_sp) -> list:
     comp_update = components_sp.add_parser("update", help="the same as `strata update` (engine and Control)")
     _common(comp_update)
     comp_update.add_argument("--check", action="store_true")
-    comp_update.add_argument("--app", action="store_true")
-    comp_update.add_argument("--app-version", default=None)
     comp_update.add_argument("--no-engine", action="store_true")
     comp_update.add_argument("--no-control", action="store_true")
     comp_update.add_argument("--yes", action="store_true", help="ask nothing (a script); a loaded model is not stopped by this alone, see --stop-model")
@@ -200,7 +193,7 @@ def _line(name: str, result: dict) -> str:
 
 
 def _print_check(report: dict) -> None:
-    feed, eng, ctl, app = report["feed"], report["engine"], report["control"], report["app"]
+    feed, eng, ctl = report["feed"], report["engine"], report["control"]
     print(f"Update feed  sequence {feed['sequence']}, {feed['channel']} channel, signed by {feed['key_id']} ({feed['trusted_by']})")
     installed = (eng["installed"] or {}).get("version")
     offered = (eng["offered"] or {}).get("version")
@@ -228,11 +221,6 @@ def _print_check(report: dict) -> None:
     ds = report.get("dsv41") or {}
     if ds.get("status") not in (None, "none-installed"):
         print(f"  DeepSeek {ds.get('installed')}: " + (f"update available -> {ds['offered']} ({_mib(ds['download_bytes'])})" if ds["status"] == "available" else ds["status"]))
-    if app["status"] != "not-in-feed":
-        if app["status"] == "unknown-installed":
-            print(f"  App      latest is {app['offered']}; this terminal cannot tell which version of the app is installed (the app checks itself)")
-        else:
-            print(f"  App      {app['installed'] or 'unknown'} -> {app['offered']}: {app['status']}")
     if report.get("serving"):
         from strata_control import engine_update
         names = ", ".join(m.label for m in engine_update.running_models(report["serving"]))
@@ -294,8 +282,7 @@ def run(a) -> int:
         lines: list = []
         cancel = threading.Event()
         ctx = updater.Context(components=root, source="", trusted={}, hardware=hardware, emit=_emit_factory(a, lines), cancel=cancel,
-                              force=getattr(a, "force", False), run_config=a.model_config, wait=a.wait or 0.0,
-                              app_version=getattr(a, "app_version", None) or os.environ.get(ENV_APP_VERSION))
+                              force=getattr(a, "force", False), run_config=a.model_config, wait=a.wait or 0.0)
         if getattr(a, "components_command", None) == "rollback":
             ctx.serving = updater.serving_now
             _maybe_wait(a, ctx, machine)
@@ -340,7 +327,7 @@ def run(a) -> int:
             print(f"Strata update ({ctx.source})")
         from strata_control import engine_update
         out = engine_update.update_with_models(ctx, _gate_for(a, ctx, machine), show=None if machine else _show_results,
-                                               engine=not a.no_engine, control=not a.no_control, app=a.app)
+                                               engine=not a.no_engine, control=not a.no_control)
         if machine:
             print(json.dumps({"schema_version": 1, "ok": out["exit_code"] == 0, **out}, ensure_ascii=False))
         elif out["exit_code"] == engine_update.EXIT_NOT_RESTARTED:

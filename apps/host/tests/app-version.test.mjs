@@ -15,16 +15,14 @@ test('the shell passes the version; a bad value is ignored', () => {
   assert.equal(appVersionFrom({ env: {}, here: '/nowhere/a/b' }), 'dev');
 });
 
-test('in a checkout the same file the shell is built from is read, so there is one source', async () => {
-  const toml = await readFile(join(here, '..', '..', 'desktop', 'src-tauri', 'Cargo.toml'), 'utf8');
-  const declared = /^version\s*=\s*"([^"]+)"/m.exec(toml)[1];
+test('a checkout or an installed host reads its own package.json, so there is one source', async () => {
+  const declared = JSON.parse(await readFile(join(here, '..', 'package.json'), 'utf8')).version;
   assert.equal(appVersionFrom({ env: {}, here }), declared);
   assert.notEqual(declared, '0.1.0', 'the app version is the product version, not the 0.1.0 placeholder');
   const dir = await mkdtemp(join(tmpdir(), 'strata-appver-'));
   try {
     await mkdir(join(dir, 'host', 'server'), { recursive: true });
-    await mkdir(join(dir, 'desktop', 'src-tauri'), { recursive: true });
-    await writeFile(join(dir, 'desktop', 'src-tauri', 'Cargo.toml'), '[package]\nname = "x"\nversion = "9.8.7-rc.1"\n');
+    await writeFile(join(dir, 'host', 'package.json'), JSON.stringify({ name: 'strata-host', version: '9.8.7-rc.1' }));
     assert.equal(appVersionFrom({ env: {}, here: join(dir, 'host', 'server') }), '9.8.7-rc.1');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

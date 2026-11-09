@@ -20,11 +20,11 @@ engine and is covered in [MODELS.md](MODELS.md); nothing below applies to it unl
 **Which flags go where.** `deepstrata launch` has its own flags (`deepstrata launch --help`). The engine and server flags below go
 in the `"args"` list of `strata-<model>.json` (source setup writes it) or on the `serve/server.py` command line.
 `START-HERE.bat`, `SETUP.bat`, `./setup.sh` and `run-<model>` exist only in a [source checkout](SOURCE_INSTALL.md). An
-installed app has none of them.
+installed Terminal has none of them.
 
 ## Quick start
 
-1. Install and start a model: [INSTALL.md](INSTALL.md) (app or Terminal) or [SOURCE_INSTALL.md](SOURCE_INSTALL.md).
+1. Install and start a model: [INSTALL.md](INSTALL.md) (Terminal and browser page) or [SOURCE_INSTALL.md](SOURCE_INSTALL.md).
 2. Check that the server answers. The default address is `http://127.0.0.1:8080`:
 
    ```sh
@@ -128,8 +128,8 @@ A 4-bit quantization of the same model (111 GB, 72 GiB of experts). Install it w
 
 ## Windows
 
-On Windows the source wrapper is `START-HERE.bat` ([source installation](SOURCE_INSTALL.md#from-source-windows)). For a
-released app, run its installer and open Strata from the Start menu. For the Terminal, use `deepstrata launch`. Watch the
+On Windows the source wrapper is `START-HERE.bat` ([source installation](SOURCE_INSTALL.md#from-source-windows)). The
+released route is the Terminal: install it and run `deepstrata launch`. Watch the
 setup plan and the startup log for what is actually chosen on your machine, and see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 if a component is missing.
 
@@ -182,7 +182,7 @@ large pages were refused. `tools\windows\enable_large_pages.ps1` (run as Adminis
 
 ## Linux
 
-These notes are for **source setup**. Normal installs use [the Terminal or AppImage](INSTALL.md).
+These notes are for **source setup**. Normal installs use the [Terminal](INSTALL.md).
 
 ```bash
 ./setup.sh
@@ -463,7 +463,7 @@ print(r.choices[0].message.content)
 ### Thinking levels: none, low, medium, high
 
 The model thinks before it answers (streamed as `reasoning_content`; Anthropic: `thinking` blocks). Choose how much per request
-in a chat app (the desktop app, or `deepstrata ui` in a browser), in `chat.py` (`/think low`) or over the API:
+in a chat app (the page of `deepstrata ui` in a browser), in `chat.py` (`/think low`) or over the API:
 
 | API | How |
 | --- | --- |
@@ -655,7 +655,7 @@ tables per token). The scaling is fixed for the whole run, because the KV cache 
   `"trusted_origins": ["https://strata.example.com"]`.
 - **Browser pages (CORS):** off by default. `"cors_origins": ["https://chat.example.com"]` lets those origins call `/v1/*`;
   `["*"]` lets any page and is only sensible with an API key. It never opens `/settings`, `/unload` or the MCP tools. It
-  belongs to the engine's own server; the desktop app answers browser pages on its own API address and already allows
+  belongs to the engine's own server; the App Host answers browser pages on its own API address and already allows
   pages of any site there. When you share with other devices or run a tunnel, the shared address answers them too, with an
   API key: the key decides, not the site. The browser's preflight (`OPTIONS`) is answered without a key, since a browser never
   sends one with it; the request that follows still needs the key. Without an API key the shared address sends no CORS
@@ -812,13 +812,11 @@ curl -X POST "http://127.0.0.1:8080/slots/0?action=restore" -H "Content-Type: ap
 ### The page: `deepstrata ui` (Chat, Monitor, About)
 
 The server's address is API-only: `http://127.0.0.1:8080/` answers a short index of the endpoints (this is where the old
-Chat, Images, Monitor and About page lived). The full interface is the App Host's - the same page the desktop app shows
-in its own window - and from a terminal you reach it with `deepstrata ui`: it starts the App Host on this computer, opens the
+Chat, Images, Monitor and About page lived). The full interface is the App Host's, and you reach it with `deepstrata ui`: it starts the App Host on this computer, opens the
 page in your browser and puts the serving model into the chat's model picker as an API model. Closing the tab keeps the
 model serving; `deepstrata ui --stop` ends the page's host, `deepstrata launch --stop` the model.
 
-What the old page could do now belongs to the App Host's UI (`apps/host`), which the desktop app and the installers
-ship: saved chats with search, LaTeX math (KaTeX), previews of the HTML and SVG an answer writes, its own settings and
+What the old page could do now belongs to the App Host's UI (`apps/host`), which the Terminal ships: saved chats with search, LaTeX math (KaTeX), previews of the HTML and SVG an answer writes, its own settings and
 languages. The old page's paths (`/web/*`, `/fonts/*`, `/api-monitor`) answer 404; nothing else moved: the endpoints
 (`/v1/*`, `/metrics`, `/load`, `/unload`, `/mcp`, `/api/requests`, ...) are the same as before.
 
@@ -1321,7 +1319,7 @@ never changed. `STRATA_ROUTE_PRIOR` raises KL and is an opt-in again in 0.2.8 (0
 | `no progress for 60 s ... reading the prompt` on Linux with `threads waiting on the disk (state D)` in the stall report | The engine waits for the drive: the n-gram table is read at random (`--ple-io direct`), which a rotational disk cannot keep up with. `--ple-io ram` (needs RAM for the table) or the model on an SSD fixes it. Setup adds `--ple-io ram` itself on a rotational disk when the RAM holds the table. |
 | `the engine said nothing for ... s during the request` | The engine and the server lost step. The server ends the engine after `engine_silence_s` (300 by default), the request ends with an error and the next request starts the engine again. If it repeats, add the end of the engine log to issue #481. |
 | `the engine said nothing for ... s and used no CPU or disk in that time (frozen ...)` | A quicker version of the check above for an engine that stopped, not slowed: after 90 s the server ends it. `STRATA_ENGINE_STALL_S=180` sets the time, `0` turns it off (needs `psutil`, which setup installs). |
-| The desktop app or the Terminal could not find an engine, or a Mac says an app is "damaged" | [TROUBLESHOOTING.md](TROUBLESHOOTING.md#the-desktop-app-and-the-terminal). |
+| The page or the Terminal could not find an engine, or a Mac says a downloaded file is "damaged" | [TROUBLESHOOTING.md](TROUBLESHOOTING.md#the-page-and-the-terminal). |
 | Anything else | The engine log is `strata-<model>.log` in this folder. In the app: Settings, Engine, Diagnostics, View logs, Save logs. In the Terminal: `deepstrata doctor`. |
 
 ---

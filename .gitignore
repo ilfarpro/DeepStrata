@@ -101,3 +101,5 @@ node_modules/
 /build-spark/
 /build-vision-spark/
 /.venv-build/
+
+.npm-cache

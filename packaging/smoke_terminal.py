@@ -184,6 +184,18 @@ def main() -> int:
         r = run([*strata, "profile", "list"], env, root)
         check("profile list", r["rc"] == 0, rc=r["rc"], output=r["stdout"].strip()[:300])
 
+        # the browser page `deepstrata ui` opens: the staged host, and the pinned Node that runs it
+        node = root / "node" / ("node.exe" if os.name == "nt" else "bin/node")
+        r = run([str(node), "--version"], env, root)
+        try:
+            major, minor = (int(p) for p in r["stdout"].strip().lstrip("v").split(".")[:2])
+        except ValueError:
+            major = minor = 0
+        check("ui: the bundled Node runs and is new enough", r["rc"] == 0 and (major, minor) >= (24, 12),
+              rc=r["rc"], version=r["stdout"].strip())
+        check("ui: the App Host is staged", (root / "host" / "server" / "index.mjs").is_file()
+              and (root / "host" / "dist" / "index.html").is_file())
+
         r = run([*strata, "install"], env, root)
         # since 0.2.4 the Terminal carries setup.py: with no keyboard it stops at the first question, in plain words and with a non-zero code
         # (an older Terminal without the installer answers rc 5 "no installer")

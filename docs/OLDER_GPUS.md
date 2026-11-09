@@ -1,7 +1,7 @@
 # Older GPUs (experimental)
 
 This page is for people with an NVIDIA card older than the RTX 20 series, an older AMD card, or a Turing card they want to tune.
-For a normal install use the app installer for your hardware or the [Terminal](INSTALL.md#the-terminal). Pascal and Volta use the
+For a normal install use the [Terminal](INSTALL.md#the-terminal). Pascal and Volta use the
 CUDA 12 engine package. The `--cuda`, `--gpus`, `START-HERE.bat` and `UPDATE.bat` examples below are
 [source-setup](SOURCE_INSTALL.md) options, not Terminal launch flags.
 

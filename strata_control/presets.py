@@ -1,6 +1,6 @@
 """Saved tuning presets: tune once, keep it.
 
-One store for the Terminal and the desktop app: a folder of small JSON files (``presets/`` beside the profiles), so tuning in
+One store for the Terminal and the App Host: a folder of small JSON files (``presets/`` beside the profiles), so tuning in
 one place covers the other. A preset holds
 
 * the settings the tuner found (``settings``: engine arguments, environment, per-request defaults),

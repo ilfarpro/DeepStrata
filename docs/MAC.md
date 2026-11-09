@@ -14,9 +14,9 @@ own engine, separate from the Qwen one described on this page.
 
 There are two ways in:
 
-- **The Strata app (`.dmg`) and the Terminal (`deepstrata launch`).** The Metal engine comes ready-made: the `.dmg` has it inside and
-  the Terminal fetches it as an engine component. Nothing is built on your Mac and you need no Command Line Tools. If macOS says
-  the app is "damaged", see [Troubleshooting](TROUBLESHOOTING.md#the-desktop-app-and-the-terminal). How the builds are signed:
+- **The Terminal (`deepstrata launch`), with the browser page (`deepstrata ui`).** The Metal engine comes ready-made: the
+  Terminal fetches it as an engine component. Nothing is built on your Mac and you need no Command Line Tools. If macOS says
+  a downloaded file is "damaged", see [Troubleshooting](TROUBLESHOOTING.md#the-page-and-the-terminal). How the builds are signed:
   [packaging/mac/README.md](../packaging/mac/README.md).
 - **From source: `./setup.sh`.** It sets things up the way `START-HERE.bat` does on Windows and builds the engine on your Mac
   (about 1 to 15 minutes).
@@ -78,7 +78,7 @@ The engine streams the experts from the SSD. It decides this itself when the exp
 
 ## Install
 
-For everyday use follow [the app or Terminal installation](INSTALL.md). The commands below are the source installation, which
+For everyday use follow [the Terminal installation](INSTALL.md). The commands below are the source installation, which
 builds the Metal engine locally.
 
 ```sh
@@ -117,10 +117,10 @@ API on `http://127.0.0.1:8080/v1`, the Anthropic API on `/v1/messages`; the addr
 | `--data-dir`, `--models-dir`, `--gguf-dir` | Where files go, or where yours are. |
 | `--setup`, `--no-start`, `--check`, `--build` | Choose another model or settings; install only; only check the Mac; build the engine again. |
 
-### The desktop app and `deepstrata launch` on a Mac
+### The browser page and `deepstrata launch` on a Mac
 
-The app and `deepstrata launch` build nothing. The Metal engine comes ready-made as an engine component, from the update feed or
-inside the app's installer. The model install is `setup.py` in its Control mode (`STRATA_CONTROL_INSTALL=1`). It downloads, or
+`deepstrata launch` builds nothing. The Metal engine comes ready-made as an engine component from the update feed.
+The model install is `setup.py` in its Control mode (`STRATA_CONTROL_INSTALL=1`). It downloads, or
 uses with `--gguf-dir`, and prepares the model files, and writes a run config whose engine is `component:strata-engine`. It does
 not run `metal/setup_mac.py`, needs no Command Line Tools, and writes the same Metal flags.
 
@@ -129,7 +129,7 @@ The model list and the recommendation judge a Mac by its unified memory with the
 installer's repack for now. A pack that does not stay in memory is listed as "read from the SSD", and a Mac under 16 GB of unified
 memory is told the model does not fit.
 
-The ready-made Mac engine is in the app and in the Terminal's engine component, not in the release zips. The zips (for
+The ready-made Mac engine comes through the update feed as the Terminal's engine component, not in the release zips. The zips (for
 `START-HERE.bat` and `setup.sh`) have no Mac engine: `./setup.sh` builds it.
 
 ## Defaults and options

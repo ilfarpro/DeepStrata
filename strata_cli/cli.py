@@ -505,7 +505,7 @@ def parser() -> argparse.ArgumentParser:
     monitor_commands.add_monitor(sp)
     monitor_commands.add_logs(sp)
     monitor_commands.add_connections(sp)
-    code = sp.add_parser("code", help="coding client for the shared Desktop harness")
+    code = sp.add_parser("code", help="coding client for the shared harness")
     code.add_argument("--workspace")
     code.add_argument("--resume")
     code.add_argument("--quiet", action="store_true", help="suppress human informational output")
@@ -2211,7 +2211,7 @@ def _run(a: argparse.Namespace) -> int:
         if a.command == "ops":
             return _ops(a)
         if a.command == "code":
-            return _error("the shared Desktop harness component is not installed; coding sessions are unavailable", 5,
+            return _error("the shared harness component is not installed; coding sessions are unavailable", 5,
                           getattr(a, "output", None) in ("json", "jsonl"))
         return monitor_commands.run(a)
     except ValueError as e:

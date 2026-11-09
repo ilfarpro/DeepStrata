@@ -52,7 +52,7 @@ If RAM is short, setup can read experts from the SSD instead ([below](#will-it-f
 
 ## DeepSeek V4.1-Flash
 
-DeepSeek V4.1-Flash-1017 runs in the **desktop app** (pick it in the model list) and in the **Terminal** (`deepstrata launch`).
+DeepSeek V4.1-Flash-1017 runs in the **browser page** (pick it in the model list) and in the **Terminal** (`deepstrata launch`).
 It uses its own engine, a separate download that the app and `deepstrata launch` fetch for you.
 
 | Set (ISTA-DAS) | Download | Quality against the original model |

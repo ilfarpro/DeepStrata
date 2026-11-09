@@ -52,14 +52,13 @@ rebuild for that release.
 The components keep their own numbers, where they live today (pinned by
 `tests/terminal/test_tui2_023_versions.py`):
 
-- the app and the Terminal carry a three-number version (`apps/desktop/src-tauri/Cargo.toml`,
-  today 0.2.12): cargo and npm take semver only, and the app updater counts a change of that
-  number — a prerelease suffix does not order (`app_version_key` treats any suffix as merely
-  "below the bare number"), and the feed's `app.version` must equal what the app reports, so
-  four numbers there would offer the same update forever. A rebuilt app inside one line is
-  rare (the shell is upstream code); when it happens the app takes the next third number and
-  the release notes say which line it is from.
-- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.58 …)`
+- the page and the Terminal carry a three-number version (`apps/host/package.json` and `strata_cli.PRODUCT_VERSION`,
+  today 0.2.12): npm takes semver only, and version keys order a bare number — a prerelease suffix does not order
+  (`app_version_key` treats any suffix as merely "below the bare number"), so four numbers there would offer the same
+  update forever. A rebuilt page inside one line is rare (the page is upstream code); when it happens the page takes the next
+  third number and the release notes say which line it is from. Up to 0.2.12 the same number also lived in
+  `apps/desktop/src-tauri/Cargo.toml`, where the desktop app's updater compared it against the feed's `app.version`.
+- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.59 …)`
   today), and a four-number hotfix of those is what `version_key` reads natively.
 
 Tags: a release is tagged `ds-<version>` (`ds-0.2.12.1`); syncs stay `sync-<version>`. The
@@ -189,9 +188,8 @@ identity value there, nowhere else:
 |---|---|
 | `strata_control/fork_identity.py` | source of truth: product, command, folders, home store, repo, feed, ports |
 | `apps/host/server/fork-identity.mjs` | the host's copy (same values, mirrored in `identity.HOST_PORT` etc.) |
-| `apps/desktop/src-tauri/src/identity.rs` | the shell's copy (folders, preferred port, binary name) |
 
-`tests/terminal/test_fork_identity.py` pins the values, diffs the three copies
+`tests/terminal/test_fork_identity.py` pins the values, diffs the two copies
 against the Python module, pins the literals that cannot import it, and scans
 product code for original-product values (`Niko1221/Strata`,
 `ai.strata.desktop`, `strata-desktop`, `~/.strata`, ports `8791` / `47831`).
@@ -207,11 +205,8 @@ If a sync merge reintroduces one, that test fails — resolve toward the module.
 | Documents workspace | `Documents\Strata\Workspace` | `Documents\DeepStrata\Workspace` |
 | Models | `Documents\Strata\Models` | **shared, stays** (`MODEL_FOLDER`) |
 | Page port (`strata ui`, host default) | 8791 | 8891 (vite dev proxy and `dev.mjs` follow) |
-| Desktop shell port | 47831 | 47841 |
-| Shell binary | `strata-desktop` | `deepstrata-desktop` (Cargo package = `MAINBINARYNAME`) |
-| Tauri identifier | `ai.strata.desktop` | `ai.deepstrata.desktop` |
 | Releases / feed / issues / snapshots | `Niko1221/Strata` | `ilfarpro/DeepStrata` (same artifact names) |
-| Feed key, app minisign key | upstream's | ours, regenerated; secrets live outside the repo (`~/.deepstrata-signing/`) |
+| Feed key | upstream's | ours, regenerated; secrets live outside the repo (`~/.deepstrata-signing/`) |
 | Docker image labels | upstream | `DeepStrata`, our URLs |
 | Docker registry / container / volume | `ghcr.io/niko1221/strata`, container `strata`, volume `strata-data` | `ghcr.io/ilfarpro/deepstrata`, container `deepstrata`, volume `deepstrata-data`, in-container command `deepstrata` (the wrapper on PATH) |
 | Docs commands and install lines | `strata …`, upstream release URLs | `deepstrata …`, `ilfarpro/DeepStrata` URLs, one-liners included (a 404 until our first release is accepted) |
@@ -228,17 +223,20 @@ Files that carry a literal because they cannot import the module (each pinned
 by the test): `setup.py`, `serve/server.py`, `sycl/setup_intel.py`,
 `tools/strata_mcp.py`, `strata_cli/handover.py` (its own stdlib copy — it runs
 before any package import), `apps/host/vite.config.ts`,
-`apps/host/src/components/SnapshotDialog.tsx`, `tauri.conf.json`
-(productName/identifier/endpoint/pubkey), `Cargo.toml`/`Cargo.lock`,
-`strata_control/update_keys.json`.
+`apps/host/src/components/SnapshotDialog.tsx`,
+`strata_control/update_keys.json` (and, up to 0.2.12, `apps/desktop`'s
+`tauri.conf.json` and `Cargo.toml`/`Cargo.lock`, which went with the desktop app).
 
-Windows details a merge must not undo: the uninstaller's data page deletes
-only `$LOCALAPPDATA\DeepStrata`, `$APPDATA\DeepStrata`, `$PROFILE\.deepstrata`
-— never `Documents\Strata\Models` (shared), never the original's folders; the
-migration macro matches only `${MAINBINARYNAME}.exe`. The stop-before-delete
-macro kills by image path under `$INSTDIR`, so it never reaches the other
-product's processes. `install.sh` / `install.ps1` unpack into `deepstrata` /
-`DeepStrata` folders and link `deepstrata` on PATH.
+Windows details a merge must not undo: `install.sh` / `install.ps1` unpack into
+`deepstrata` / `DeepStrata` folders and link `deepstrata` on PATH, and nothing
+installs for
+another user or outside the person's own folders. (Up to 0.2.12 this also
+covered the NSIS uninstaller: its data page deleted only
+`$LOCALAPPDATA\DeepStrata`, `$APPDATA\DeepStrata`, `$PROFILE\.deepstrata` —
+never `Documents\Strata\Models` (shared), never the original's folders; the
+migration macro matched only `${MAINBINARYNAME}.exe`, and the stop-before-delete
+macro killed by image path under `$INSTDIR`. The uninstaller went with the
+desktop app; upstream `apps/desktop` changes are dropped at merge.)
 
 **Sync rule:** identity lives in code only — never rename a string in a UI
 sentence. When upstream adds code that writes a per-user folder, a port or a
@@ -274,9 +272,11 @@ The `README.md` rewrite of 2026-11-09:
   page prints the `install.sh` one-liner (Linux x86-64 — the Terminal and the
   DeepSeek CUDA-13 engine are what our feed publishes today) and names what we
   do not publish yet: `install.ps1`, the macOS and ARM64 Terminal packages,
-  the Qwen engine packs, the app installers and its updater manifest. Those
-  point at a source build; there is no link to a file our release folder does
-  not carry, and no `Strata-0.2.x-…exe` style file names.
+  the Qwen engine packs. Those point at a source build; there is no link to a
+  file our release folder does not carry, and no `Strata-0.2.x-…exe` style
+  file names. (Up to 0.2.12 that list also named the desktop app's installers
+  and its updater manifest; both went with the desktop app, and the page now
+  rides in the Terminal archive.)
 - Credit to the original is two lines under **Built on Strata** (the upstream
   home page, the author's sponsor page). The Sponsor and coffee badges, the
   "Loyal supporters" wall and the upstream contact email are off our page;
@@ -295,10 +295,8 @@ do not publish, no sponsor wall, no new translations.
 ## Tests a sync merge should run
 
 - `python -m pytest tests/terminal/test_fork_identity.py` (identity: values,
-  the three copies, the pins, the purity scan — run this first after a merge)
+  the two copies, the pins, the purity scan — run this first after a merge)
 - `python -m pytest tests/terminal` (Terminal and Control)
-- `python -m pytest tests/desktop/test_nsis_layout.py` (installer data safety;
-  the migration cases need makensis)
 - `python tools/test_setup_udq4.py`, `python tools/test_setup_dsv41.py`, and
   the other `tools/test_setup_*.py` that the merge touched
 - `python -m pytest serve/test_server.py serve/test_monitor.py serve/test_prometheus.py`

@@ -21,7 +21,7 @@ def first(path, pattern):
 
 class VersionBump(unittest.TestCase):
     def test_the_terminal_is_0_2_4_2_and_control_is_0_1_49_2_while_the_app_stays_0_2_3(self):
-        # 0.1.59 engine (this branch, DeepSeek fmt 4): the Engram reader takes Q5_K, opening Unsloth UD-IQ2_XXS; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.59 (the CMake project version); the Terminal and app stay 0.2.12. CUDA device reader verified on RTX sm_89 + sm_120; HIP/Metal build from the same source, their card runs are still open.
+        # 0.1.59 engine (this branch, DeepSeek fmt 4): the Engram reader takes Q5_K, opening Unsloth UD-IQ2_XXS; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.59 (the CMake project version); the Terminal and page stay 0.2.12. CUDA device reader verified on RTX sm_89 + sm_120; HIP/Metal build from the same source, their card runs are still open.
         # 0.2.12 (owner 2026-11-06, release of rounds 0215/0216/0217): Terminal and app are 0.2.12; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.58 (the CMake project version).
         # 0.2.11 (coordinator 2026-11-04; the owner can still rename it 0.2.10.1): Terminal and app are 0.2.11; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.57 (the CMake project version).
         # 0.2.10 (the 0.2.9 update, owner 2026-11-02): Terminal and app are 0.2.10; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.56 (the CMake project version).
@@ -36,11 +36,7 @@ class VersionBump(unittest.TestCase):
         self.assertEqual(first("CMakeLists.txt", r"^project\(strata VERSION ([0-9.]+) "), "0.1.59")
         self.assertIn('STRATA_VERSION="0.1.59-metal"', (ROOT / "metal" / "CMakeLists.txt").read_text(encoding="utf-8"))
 
-    def test_every_place_the_app_version_lives_says_0_2_3(self):
-        self.assertEqual(first("apps/desktop/src-tauri/Cargo.toml", r'^version = "([^"]+)"'), "0.2.12")
-        lock = (ROOT / "apps/desktop/src-tauri/Cargo.lock").read_text(encoding="utf-8")
-        self.assertRegex(lock, r'name = "deepstrata-desktop"\r?\nversion = "0.2.12"')
-        self.assertEqual(json.loads((ROOT / "apps/desktop/package.json").read_text(encoding="utf-8"))["version"], "0.2.12")
+    def test_every_place_the_page_version_lives_says_0_2_3(self):
         host = json.loads((ROOT / "apps/host/package.json").read_text(encoding="utf-8"))
         self.assertEqual(host["version"], "0.2.12")
         locked = json.loads((ROOT / "apps/host/package-lock.json").read_text(encoding="utf-8"))
@@ -49,11 +45,14 @@ class VersionBump(unittest.TestCase):
     def test_the_documents_that_state_the_current_version_agree(self):
         self.assertIn("Version 0.2.12, engine 0.1.59.", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))
         # The fork's front page is English-only (DIVERGENCE.md, zone 12): it states our own release and engine
-        # version and names no installer file our release folder does not carry.
+        # version, names no installer file our release folder does not carry, and no longer offers the removed
+        # desktop app (the page rides in the Terminal archive).
         text = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertRegex(text, r"DeepStrata 0\.2\.12\.1")      # our release on the upstream 0.2.12 line (tag ds-0.2.12.1)
         self.assertRegex(text, r"\b0\.1\.59\b")                # the Control and the engine our feed publishes
         self.assertNotRegex(text, r"Strata-0[.]\d")            # no upstream app installers: we publish none yet
+        self.assertNotIn("desktop app", text)                   # the shell is gone: the page rides in the Terminal
+        self.assertNotIn("macos-arm64.dmg", text)               # ... and so are its per-system installers
 
     def test_version_prints_the_product_and_the_build(self):
         done = subprocess.run([sys.executable, str(ROOT / "strata.py"), "--version"], capture_output=True, text=True, cwd=str(ROOT),

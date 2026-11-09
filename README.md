@@ -44,7 +44,7 @@ upstream 0.2.12 line. The version is the upstream line we are based on plus our 
 | The DeepSeek V4.1-Flash engine 0.1.59 (CUDA 13, sm_86 / sm_89 / sm_120) | Linux x86-64 with NVIDIA RTX 30, 40 or 50, driver 580.65 or newer |
 
 **Not in our release folder yet:** `install.ps1` and a Windows Terminal, the macOS and ARM64 Linux Terminal packages,
-the Qwen engine packages (NVIDIA, AMD, Intel, Mac), the desktop app installers and its updater manifest. Our installer
+the Qwen engine packages (NVIDIA, AMD, Intel, Mac). Our installer
 runs everywhere it knows and stops with a plain line naming the package this release does not carry — nothing half
 installed. Until our own packages land on those systems, use a
 [source build](docs/SOURCE_INSTALL.md) or [Docker](docs/DOCKER.md).
@@ -61,7 +61,7 @@ the Qwen engine pack, which we do not publish yet — today that means a [source
 <details open>
 <summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b> — runs from our release today</summary>
 
-In the **desktop app** (a source build) and the **Terminal**. What does not fit in memory is read from your SSD, so it
+In the **browser page** and the **Terminal**. What does not fit in memory is read from your SSD, so it
 needs a lot of free disk space.
 
 | Set | Download | Free disk needed |
@@ -144,21 +144,22 @@ Follow the prompts to download and start a model. [Terminal guide](docs/TERMINAL
   <br><sub>Watch your model and hardware while it runs.</sub>
 </p>
 
-### Windows, macOS, and the desktop app
+### Windows, macOS, and the chat page
 
-Our release folder does not carry `install.ps1`, a macOS package or an app installer yet, so we do not print those
+Our release folder does not carry `install.ps1` or a macOS package yet, so we do not print those
 commands here. [Build from source](docs/SOURCE_INSTALL.md) · [Docker](docs/DOCKER.md) ·
 [Full install guide](docs/INSTALL.md).
 
 <details>
 <summary>What a source build gives you today</summary>
 
-The desktop app (a window with chat, files and a live preview), the Terminal on Windows and macOS, and the engine
+The chat page in your browser (start a model and run `deepstrata ui`; chat, files and a live preview in one window),
+the Terminal on Windows and macOS, and the engine
 backends our feed does not carry yet: AMD HIP, Intel SYCL, Apple Metal and Strix Halo. The same code our packages are
 built from; it builds on your machine instead of ours.
 
 <p align="center">
-  <img src="docs/media/app-chat.png" width="900" alt="The app with a chat and live code preview side by side">
+  <img src="docs/media/app-chat.png" width="900" alt="The chat page with a chat and live code preview side by side">
   <br><sub>Chat, files and a live preview in one window (source build today).</sub>
 </p>
 

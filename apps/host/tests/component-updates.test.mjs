@@ -93,8 +93,8 @@ test('createControl: the update calls ask the explicit commands; a failed step c
   await control.update({ engine: true, control: false });
   await control.rollbackEngine();
   assert.deepEqual(seen, [
-    ['update --check --output json --feed http://127.0.0.1:1/strata-feed.json --app-version 0.1.0', true],
-    ['update --output jsonl --feed http://127.0.0.1:1/strata-feed.json --no-control --app-version 0.1.0', true],
+    ['update --check --output json --feed http://127.0.0.1:1/strata-feed.json', true],
+    ['update --output jsonl --feed http://127.0.0.1:1/strata-feed.json --no-control', true],
     ['components rollback --output json', false],
   ], 'only the check and the update acquire; the rollback downloads nothing');
   const failing = createControl({

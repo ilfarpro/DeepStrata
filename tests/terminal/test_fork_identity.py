@@ -255,7 +255,9 @@ DOC_SUBS = (r"launch|start|stop|serve|status|ui|connect|update|monitor|timeskip|
             r"compare|code|use-config|--[a-z0-9-]+")
 DOC_CMD = re.compile(r"(?<![\w./-])strata(?= (?:" + DOC_SUBS + r"\b))")
 DOC_UPSTREAM_URL = re.compile(r"Niko1221/Strata", re.IGNORECASE)
-DOC_URL_KEPT = re.compile(r"github\.com/sponsors/Niko1221|Niko1221/Strata/pull/\d+|Pagoda\.mp4|fetched on 11 October 2026")
+# the credit line in README.md names the original repository (its home page, never a release or install address);
+# a sync that reintroduces an upstream download link still fails: the lookahead lets the bare home page through only
+DOC_URL_KEPT = re.compile(r"github\.com/sponsors/Niko1221|Niko1221/Strata(?![\w/])|Niko1221/Strata/pull/\d+|Pagoda\.mp4|fetched on 11 October 2026")
 DOC_OLD_FACTS = {
     "the original page port": re.compile(r"\b8791\b"),
     "the original shell port": re.compile(r"\b47831\b"),
@@ -266,7 +268,7 @@ DOC_OLD_FACTS = {
 def docs_files():
     for rel in DOC_ROOT_FILES:
         yield ROOT / rel
-    for path in sorted(ROOT.glob("README.*.md")):            # the translations carry the same copyable one-liners
+    for path in sorted(ROOT.glob("README.*.md")):            # a translation someone re-adds carries copyable one-liners too
         yield path
     yield from sorted((ROOT / "docs").rglob("*.md"))
 

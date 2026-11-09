@@ -48,10 +48,12 @@ class VersionBump(unittest.TestCase):
 
     def test_the_documents_that_state_the_current_version_agree(self):
         self.assertIn("Version 0.2.12, engine 0.1.59.", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))
-        for name in ("README.md", "README.de.md", "README.es.md", "README.fr.md", "README.ja.md", "README.pl.md", "README.pt-BR.md", "README.zh-CN.md"):
-            text = (ROOT / name).read_text(encoding="utf-8")
-            self.assertRegex(text, r"Strata-0[.]2[.][0-9]+-", name)       # (the restyled READMEs state the app version through the download buttons; their owner moves them to the release)
-            self.assertNotIn("Strata-0.2.2-", text, name)
+        # The fork's front page is English-only (DIVERGENCE.md, zone 12): it states our own release and engine
+        # version and names no installer file our release folder does not carry.
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertRegex(text, r"DeepStrata 0\.2\.12\.1")      # our release on the upstream 0.2.12 line (tag ds-0.2.12.1)
+        self.assertRegex(text, r"\b0\.1\.59\b")                # the Control and the engine our feed publishes
+        self.assertNotRegex(text, r"Strata-0[.]\d")            # no upstream app installers: we publish none yet
 
     def test_version_prints_the_product_and_the_build(self):
         done = subprocess.run([sys.executable, str(ROOT / "strata.py"), "--version"], capture_output=True, text=True, cwd=str(ROOT),

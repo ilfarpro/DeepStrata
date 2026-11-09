@@ -1,33 +1,98 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="apps/host/public/brand/strata-lockup-dark.svg">
-    <img src="apps/host/public/brand/strata-lockup-light.svg" alt="Strata" width="340">
+    <source media="(prefers-color-scheme: dark)" srcset="apps/host/public/brand/strata-mark-dark.svg">
+    <img src="apps/host/public/brand/strata-mark-light.svg" alt="DeepStrata" width="76">
   </picture>
 </p>
+
+<h1 align="center">DeepStrata</h1>
 
 <h3 align="center">Run powerful AI on your own computer.</h3>
 <p align="center">Chat, code and work with images, locally.</p>
 
 <p align="center">
   <a href="#models">Models</a> · <a href="#install"><b>Install</b></a> ·
-  <a href="#hardware">Hardware</a> · <a href="#tools">Tools</a> ·
-  <a href="#help">Help</a> · <a href="#support-strata">Support</a>
+  <a href="#our-release">Our release</a> · <a href="#hardware">Hardware</a> ·
+  <a href="#tools">Tools</a> · <a href="#help">Help</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/ilfarpro/DeepStrata/releases/latest"><img src="https://img.shields.io/github/v/release/ilfarpro/DeepStrata?label=download&color=0ab887" alt="Download Strata"></a>
+  <a href="https://github.com/ilfarpro/DeepStrata/releases/latest"><img src="https://img.shields.io/github/v/release/ilfarpro/DeepStrata?label=download&color=0ab887" alt="Download DeepStrata"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/ilfarpro/DeepStrata" alt="MIT license"></a>
-  <a href="https://github.com/sponsors/Niko1221"><img src="https://img.shields.io/badge/Sponsor-EA4AAA?logo=githubsponsors&logoColor=fff" alt="Sponsor Strata on GitHub Sponsors"></a>
-  <a href="https://buymeacoffee.com/strataengine"><img src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?logo=buymeacoffee&logoColor=000" alt="Support Strata on Buy Me a Coffee"></a>
+  <a href="#built-on-strata"><img src="https://img.shields.io/badge/fork_of-Strata-6b7280?logo=github&logoColor=fff" alt="DeepStrata is a fork of Strata"></a>
 </p>
 
-<p align="center"><sub><b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a> · <a href="README.pl.md">Polski</a></sub></p>
+**DeepStrata is a fork of [Strata](https://github.com/Niko1221/Strata).** The engine, the models and the measurements
+come from that project; we run them under our own name and install beside the original. Own folders, own ports, own
+update feed, and the command `deepstrata`. Model files are shared on purpose: a model you already have is never
+downloaded twice. Every difference and the rules for keeping them through a sync are in
+[DIVERGENCE.md](DIVERGENCE.md); our own work is tracked in [roadmap/](roadmap).
 
-**Free, open source, and yours to run.** Use Strata on your desktop or with your favorite coding tools. No account needed.
+**Free, open source, and yours to run.** No account needed.
+
+<a id="our-release"></a>
+
+## What our release carries today
+
+Our newest release is **DeepStrata 0.2.12.1** — the Terminal and the engine **0.1.59**, our first release on the
+upstream 0.2.12 line. The version is the upstream line we are based on plus our own number, so
+`0.2.12.1`, `0.2.12.2`, then `0.2.13.1` after the next sync ([how we number releases](DIVERGENCE.md#release-numbering-and-tags)).
+
+| Published by us now | For |
+| --- | --- |
+| The Terminal — `deepstrata`, Control 0.1.59 | Linux x86-64 |
+| The DeepSeek V4.1-Flash engine 0.1.59 (CUDA 13, sm_86 / sm_89 / sm_120) | Linux x86-64 with NVIDIA RTX 30, 40 or 50, driver 580.65 or newer |
+
+**Not in our release folder yet:** `install.ps1` and a Windows Terminal, the macOS and ARM64 Linux Terminal packages,
+the Qwen engine packages (NVIDIA, AMD, Intel, Mac), the desktop app installers and its updater manifest. Our installer
+runs everywhere it knows and stops with a plain line naming the package this release does not carry — nothing half
+installed. Until our own packages land on those systems, use a
+[source build](docs/SOURCE_INSTALL.md) or [Docker](docs/DOCKER.md).
+
+Every command on this page can be run with `--plan` first, as the examples show. A plan downloads and changes nothing:
+it prints the download, the disk and the memory your computer needs, and names what your computer is missing.
 
 ## Models
 
-We recommend **ISTA-DASLab first**, then **Unsloth** and other providers, where a compatible model fits.
+We recommend **ISTA-DASLab first**, then **Unsloth** and other providers, where a compatible model fits
+([provider order](docs/MODELS.md#quick-start)). Our feed carries the **DeepSeek** engine today; the Qwen families need
+the Qwen engine pack, which we do not publish yet — today that means a [source build](docs/SOURCE_INSTALL.md).
+
+<details open>
+<summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b> — runs from our release today</summary>
+
+In the **desktop app** (a source build) and the **Terminal**. What does not fit in memory is read from your SSD, so it
+needs a lot of free disk space.
+
+| Set | Download | Free disk needed |
+| --- | ---: | ---: |
+| ISTA-DAS 1.75 bpw | 239 GB | about 245 GB |
+| ISTA-DAS 2.00 bpw | 257 GB | about 265 GB |
+| ISTA-DAS 2.25 bpw | 274 GB | about 280 GB |
+| ISTA-DAS Coder (half of the experts removed) | 191 GB | about 197 GB |
+| **Unsloth UD-IQ2_XXS** — ours to offer | 300 GB | about 309 GB |
+
+The last line is the fork's own work: this set's n-gram table is stored as Q5_K, which no engine could read until our
+0.1.59 grew that reader. It needs 48 GB of RAM or more and an NVIDIA card so far — the AMD and Mac runs of that reader
+are still open, so the set stays hidden there ([the whole story](docs/DEEPSEEK41.md)).
+
+```sh
+deepstrata launch --family deepseek41 --model ist-das-2.00bpw --plan
+deepstrata launch --family deepseek41 --model ud-iq2_xxs --plan      # our addition; needs engine 0.1.59
+```
+
+Output is the speed of the answer, prompt is how fast Strata reads your input. Both measured with the 2.00 bpw set on
+the machines named, on Linux with CUDA 13 — the boxes, the drives and the rest of the hardware are in
+[DEEPSEEK41.md](docs/DEEPSEEK41.md).
+
+| Hardware | Output | Prompt |
+| --- | ---: | ---: |
+| RTX 5070 12 GB, 64 GB RAM | about 4.7 tokens/s | 121 tokens/s (4K), 231 (8K) |
+| RTX 3060 12 GB, 46 GB RAM | 8 to 10 tokens/s | 149 tokens/s (8K) |
+
+[Memory, disk and details](docs/DEEPSEEK41.md) · [Release notes](https://github.com/ilfarpro/DeepStrata/releases)
+
+</details>
 
 <details>
 <summary><img src="docs/media/models/qwen.svg" width="22" alt="" align="middle"> &nbsp;<b>Qwen3.8-Flash-Next</b></summary>
@@ -52,109 +117,68 @@ We recommend **ISTA-DASLab first**, then **Unsloth** and other providers, where 
 
 </details>
 
-<details>
-<summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b></summary>
-
-In the **desktop app** and the **Terminal**. What does not fit in memory is read from your SSD, so it needs a lot of free
-disk space.
-
-| Set (ISTA-DAS) | Download | Free disk needed |
-| --- | ---: | ---: |
-| 1.75 bpw | 239 GB | about 245 GB |
-| 2.00 bpw | 257 GB | about 265 GB |
-| 2.25 bpw | 274 GB | about 280 GB |
-| ISTA-DAS Coder (half of the experts removed) | 191 GB | about 197 GB |
-
-Runs on NVIDIA RTX 30, 40 and 50 series (Windows and Linux), AMD Radeon AI PRO R9700 (Linux), AMD Ryzen AI Max — Strix Halo
-(Windows), and Apple Silicon Macs with 64 GB or more, text only ([Mac](docs/DEEPSEEK_MAC.md)). Setup downloads the files and the DeepSeek engine, then starts the model.
-
-```sh
-deepstrata launch --family deepseek41 --model ist-das-2.00bpw --plan
-```
-
-Measured with the 2.00 bpw set on Strata 0.2.5 (Strix Halo: 0.2.7). Output is the speed of the answer, prompt is how fast Strata reads your input.
-
-| Hardware | Output | Prompt |
-| --- | ---: | ---: |
-| RTX 5070 12 GB, 64 GB RAM | 4 to 6 tokens/s | about 110 tokens/s (4K) |
-| RTX 3060 12 GB, 46 GB RAM | 9 to 11 tokens/s | about 155 tokens/s (4K) |
-| 1x Radeon AI PRO R9700, 251 GB RAM | 21 to 25 tokens/s | 320 to 360 tokens/s (8K) |
-| 4x Radeon AI PRO R9700 | 74 to 77 tokens/s | 400 to 450 tokens/s (8K) |
-| Ryzen AI Max+ 395 (Strix Halo), 128 GB unified | 19 to 21 tokens/s (code), 11 (chat) | 87 tokens/s (4K), 125 tokens/s (8K) |
-
-[Memory, disk and details](docs/DEEPSEEK41.md) · [Release notes](https://github.com/ilfarpro/DeepStrata/releases)
-
-</details>
-
 <a id="the-other-sizes"></a>
 
 Not sure what fits? [Choose a model for your computer](docs/MODELS.md#pick-by-memory).
 
+<a id="install"></a>
+
 ## Install
 
-<a id="option-a-the-strata-app"></a>
-
-### Desktop app
-
-**[Download Strata for Windows, Linux or Mac →](https://github.com/ilfarpro/DeepStrata/releases/latest)**
-
-Install the app, choose a model, and start chatting. There is one installer for each system. On first start the app
-downloads the engine for your graphics card. [Help with the installer](docs/INSTALL.md#the-app).
-
-<sub>Files: `Strata-0.2.9-windows-x64-setup.exe` · `Strata-0.2.9-linux-x86_64.AppImage` · `Strata-0.2.9-macos-arm64.dmg`</sub>
-
-<p align="center">
-  <img src="docs/media/app-chat.png" width="900" alt="Strata desktop app with a chat and live code preview side by side">
-  <br><sub>Chat, files and a live preview in one window.</sub>
-</p>
-
-<a id="option-b-the-terminal-one-line"></a>
-
-### Terminal app
-
-Prefer the terminal? Install Strata, then run **`deepstrata launch`**.
-
-<details open>
-<summary><b>Install commands</b></summary>
-
-**Linux / Mac**
+### Linux x86-64 — what our release ships
 
 ```sh
 curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
 ```
 
-**Windows PowerShell**
-
-```powershell
-irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
-```
-
-On Windows, open a new terminal afterwards. Then:
+It needs no administrator rights, puts `deepstrata` on your PATH and installs beside Strata, never over it. Then:
 
 ```sh
-deepstrata launch
+deepstrata launch --family deepseek41 --model ist-das-2.00bpw
 ```
 
 Follow the prompts to download and start a model. [Terminal guide](docs/TERMINAL_LAUNCH.md).
 
-</details>
-
 <p align="center">
-  <img src="docs/media/terminal-monitor.png" width="900" alt="Strata terminal app showing model activity, speed, memory and recent requests">
+  <img src="docs/media/terminal-monitor.png" width="900" alt="DeepStrata terminal showing model activity, speed, memory and recent requests">
   <br><sub>Watch your model and hardware while it runs.</sub>
 </p>
 
-<a id="build-from-source"></a>
+### Windows, macOS, and the desktop app
 
-[Build from source](docs/SOURCE_INSTALL.md) · [Docker](docs/DOCKER.md) · [Full install guide](docs/INSTALL.md)
+Our release folder does not carry `install.ps1`, a macOS package or an app installer yet, so we do not print those
+commands here. [Build from source](docs/SOURCE_INSTALL.md) · [Docker](docs/DOCKER.md) ·
+[Full install guide](docs/INSTALL.md).
+
+<details>
+<summary>What a source build gives you today</summary>
+
+The desktop app (a window with chat, files and a live preview), the Terminal on Windows and macOS, and the engine
+backends our feed does not carry yet: AMD HIP, Intel SYCL, Apple Metal and Strix Halo. The same code our packages are
+built from; it builds on your machine instead of ours.
+
+<p align="center">
+  <img src="docs/media/app-chat.png" width="900" alt="The app with a chat and live code preview side by side">
+  <br><sub>Chat, files and a live preview in one window (source build today).</sub>
+</p>
+
+</details>
 
 <a id="what-you-need"></a>
 
 ## Hardware
 
-| Supported hardware | Guide |
+**Runs from our release today**
+
+| Supported hardware | Needs |
 | --- | --- |
-| **NVIDIA GeForce RTX 20 / 30 / 40 / 50 series** | [NVIDIA setup](docs/INSTALL.md#what-you-need) |
+| **Linux x86-64 with NVIDIA GeForce RTX 30 / 40 / 50, 12 GB or more** | Driver 580.65 or newer (CUDA 13). [NVIDIA setup](docs/INSTALL.md#what-you-need) |
+
+**Built and measured, our packages for them are still to come** — a [source build](docs/SOURCE_INSTALL.md) runs them now.
+
+| Hardware | Guide |
+| --- | --- |
+| **NVIDIA GeForce RTX 20 series** | [NVIDIA setup](docs/INSTALL.md#what-you-need) |
 | **AMD Radeon RX 7700 / 7800 / 7900, RX 9060 / 9070, AI PRO R9700** | [AMD setup](docs/AMD_HIP.md) |
 | **AMD Radeon RX 6800 / 6900 · experimental** | [RX 6000 setup](docs/AMD_HIP.md#rdna2-gfx1030) |
 | **Intel Arc · Linux** | [Intel setup](docs/INTEL_ARC.md) |
@@ -166,9 +190,13 @@ Follow the prompts to download and start a model. [Terminal guide](docs/TERMINAL
 
 ## Tools
 
-**Claude Code · Codex CLI · OpenCode · oh-my-pi · pi.dev · Hermes Agent · OpenClaw**, and more through the OpenAI- and Anthropic-compatible APIs.
+**Claude Code · Codex CLI · OpenCode · oh-my-pi · pi.dev · Hermes Agent · OpenClaw**, and more through the OpenAI- and
+Anthropic-compatible APIs.
 
-Run **`deepstrata connect`** to see setup instructions for your tool. [Connection guide](docs/TERMINAL_LAUNCH.md#connect-your-apps-deepstrata-connect).
+Run **`deepstrata connect`** to see setup instructions for your tool.
+[Connection guide](docs/TERMINAL_LAUNCH.md#connect-your-apps-deepstrata-connect).
+
+A tool talks to a model you are serving, so from our release today that means the Linux and NVIDIA path above.
 
 <a id="guides"></a>
 <a id="how-fast-is-it"></a>
@@ -177,33 +205,25 @@ Run **`deepstrata connect`** to see setup instructions for your tool. [Connectio
 
 ## Help
 
-[All guides](docs) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Report a bug](https://github.com/ilfarpro/DeepStrata/issues/new/choose) ·
+[All guides](docs) · [Troubleshooting](docs/TROUBLESHOOTING.md) ·
+[Report a bug](https://github.com/ilfarpro/DeepStrata/issues/new/choose) ·
 [Benchmarks](docs/COMMUNITY_BENCHMARKS.md) · [How it works](docs/HOW_IT_WORKS.md) · [Contribute](CONTRIBUTING.md)
 
-## Support Strata
+Issues and pull requests come to this repository. We do not send them upstream; the scope of a large change is agreed
+in an issue here first ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
-**Help keep local AI open to everyone.** A GitHub sponsorship or a coffee helps fund development and testing on more hardware.
+## Built on Strata
 
-<a href="https://github.com/sponsors/Niko1221"><img src="https://img.shields.io/badge/Sponsor_on_GitHub-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors: sponsor Strata" height="48"></a>
-<a href="https://buymeacoffee.com/strataengine"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee: support Strata" height="48"></a>
+DeepStrata is a fork of **Strata**, written and measured by
+[Niko1221](https://github.com/sponsors/Niko1221), whose original is at
+[github.com/Niko1221/Strata](https://github.com/Niko1221/Strata). The engine that makes these models fit on a home
+computer is his work; sponsoring him there is the direct way to say so.
 
-### Loyal supporters
-
-Thank you to everyone who supports Strata.
-
-<!-- supporters:start (one line per public supporter, newest last; copy a line and change the GitHub name in all four places) -->
-<a href="https://github.com/ryan4yin"><img src="https://github.com/ryan4yin.png?size=96" width="48" height="48" alt="ryan4yin" title="ryan4yin"></a>
-<a href="https://github.com/themactep"><img src="https://github.com/themactep.png?size=96" width="48" height="48" alt="themactep" title="themactep"></a>
-<a href="https://github.com/macintog"><img src="https://github.com/macintog.png?size=96" width="48" height="48" alt="macintog" title="macintog"></a>
-<a href="https://github.com/bisonbet"><img src="https://github.com/bisonbet.png?size=96" width="48" height="48" alt="bisonbet" title="bisonbet"></a>
-<a href="https://github.com/vizv"><img src="https://github.com/vizv.png?size=96" width="48" height="48" alt="vizv" title="vizv"></a>
-<!-- supporters:end -->
+DeepStrata is a separate project: our own releases, our own signed update feed, our own issues. What we changed and why
+is in [DIVERGENCE.md](DIVERGENCE.md).
 
 [MIT license](LICENSE) · [Credits and model licenses](docs/HOW_IT_WORKS.md#credits) · [Privacy](docs/SAFETY.md)
 
 <a id="option-c-let-your-ai-set-it-up"></a>
 
 <sub>For AI tools and automated readers: <a href="AGENTS.md">technical reference</a> · <a href="docs/AI_SETUP.md">setup instructions</a>.</sub>
-
-**Sponsorships, hardware partnerships or collaborations:** [niko.veit@outlook.com](mailto:niko.veit@outlook.com).
-

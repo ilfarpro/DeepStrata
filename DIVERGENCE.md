@@ -257,6 +257,41 @@ and the historical records (`docs/release-notes-*`, the two
 `test_fork_identity.py` guards both; when upstream edits a doc, take their
 text and re-apply the command and address spellings.
 
+### 12. The front page: ours, English-only, and true about our release
+
+The `README.md` rewrite of 2026-11-09:
+
+- `README.de.md`, `README.es.md`, `README.fr.md`, `README.ja.md`,
+  `README.pl.md`, `README.pt-BR.md` and `README.zh-CN.md` are **deleted**.
+  The front page is English-only; a reader who wants a guide goes to `docs/`.
+  The language row goes with them, and an upstream README edit does not bring
+  the files back.
+- The page says **DeepStrata**: the brand mark plus the word as text (the
+  upstream wordmark SVG spells "Strata" as outlines — we do not fake a
+  re-typeset one), a line on what the fork is, and links to this file and
+  `roadmap/`.
+- **Install claims follow our release folder, not the product's reach.** The
+  page prints the `install.sh` one-liner (Linux x86-64 — the Terminal and the
+  DeepSeek CUDA-13 engine are what our feed publishes today) and names what we
+  do not publish yet: `install.ps1`, the macOS and ARM64 Terminal packages,
+  the Qwen engine packs, the app installers and its updater manifest. Those
+  point at a source build; there is no link to a file our release folder does
+  not carry, and no `Strata-0.2.x-…exe` style file names.
+- Credit to the original is two lines under **Built on Strata** (the upstream
+  home page, the author's sponsor page). The Sponsor and coffee badges, the
+  "Loyal supporters" wall and the upstream contact email are off our page;
+  `.github/FUNDING.yml` still names the original author's sponsor account.
+- Tests: `test_tui2_023_versions.py` names `README.md` only and pins the
+  release and engine version the page states; `test_install_scripts_env.py`
+  checks its `install.sh` line; `test_fork_identity.py` lets the credit URL
+  through (`Niko1221/Strata(?![\w/])`) and still fails an upstream *download*
+  address.
+
+**Sync rule:** take upstream's README product text and re-apply ours — the
+DeepStrata heading and fork line, our addresses, the "what our release carries
+today" block rewritten from the live release folder, no installer file names we
+do not publish, no sponsor wall, no new translations.
+
 ## Tests a sync merge should run
 
 - `python -m pytest tests/terminal/test_fork_identity.py` (identity: values,

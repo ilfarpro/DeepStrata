@@ -3,8 +3,8 @@
   "keys": [
     {
       "alg": "ed25519",
-      "key_id": "9badd1d2b37076b5",
-      "public": "/iL+G8C+fY6z1QVGI0/g9yKOW9qSF5koqHvxcHpb2cc="
+      "key_id": "1648c3ebb4c4cc56",
+      "public": "fhqwc6eVqNxbvNGhf3rE46YtHMkudm4BNoV2EAt/5WI="
     }
   ],
   "app_minisign_public": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk3M0M1Rjc2NUY4REMyQkQKUldTWFBGOTJYNDNDdlpjOFgzWmZqY0s5L1RxWU9CL0NUSkVPY2UrWU4zRStXWGRsd3ZEcEtjdkMK"

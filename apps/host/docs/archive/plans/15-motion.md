@@ -1,6 +1,6 @@
 # 15 · Motion and fluidity
 
-**Across the app** · **Rules** [interaction-guidelines.md](../interaction-guidelines.md) · **Harness** `scripts/motion.mjs`
+**Across the app** · **Rules** [interaction-guidelines.md](../../interaction-guidelines.md) · **Harness** `scripts/motion.mjs`
 
 Motion is the layer that makes the app feel considered. It is also the layer most
 able to make a machine running a language model feel slow, so it is rationed

@@ -1,7 +1,7 @@
 # Strata · per-screen improvement plans
 
 One plan per page and per scenario, written against the two rulebooks the app is
-built on — [interaction-guidelines.md](../interaction-guidelines.md) (Strata's own
+built on — [interaction-guidelines.md](../../interaction-guidelines.md) (Strata's own
 rules) and Apple's Liquid Glass HIG — and against what the code actually does
 today, not what it is meant to do.
 

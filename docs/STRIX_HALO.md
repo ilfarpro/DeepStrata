@@ -253,7 +253,7 @@ arena on any OS. Reports with `amdgpu_top` and `dmesg` are welcome.
 ## 6. Measured
 
 **Measured on:** a Strix Halo PC (gfx1151, Windows), IQ3_S model, Strata 0.2.3 (engine 0.1.48), 3 pairs against 0.2.2, from
-[release-notes-0.2.3.md](release-notes-0.2.3.md). Answer speed +6% to +19% (tool calls +19%, code +18%, 64K prompt +13%, 8K prompt
+[release-notes-0.2.3.md](releases/release-notes-0.2.3.md). Answer speed +6% to +19% (tool calls +19%, code +18%, 64K prompt +13%, 8K prompt
 +12%, 4K prompt +8%, JSON +6%, agent chat +9%). Prompt speed +5% to +14% (8K +14%, 64K +5%, 4K unchanged because it is one chunk).
 Prompt speed at 4K, 8K and 64K is 685, 783 and 749 tokens per second. This is specific evidence, not validation of every APU or
 quantization.

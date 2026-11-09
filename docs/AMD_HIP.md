@@ -787,7 +787,7 @@ STRATA_PF_SWITCH_MIN_T=4096` 925 -> 1,092 tok/s; `--resident-experts` 1,092 -> 2
 
 **Package checks (0.2.1 to 0.2.3).** Initial package checks (build, link, `package_engine.py --verify`, GPU code listing,
 `strata --version` in a clean environment, feed selection by architecture) passed without an RX 7000 or Strix Halo card.
-Later evidence: [release 0.2.3](release-notes-0.2.3.md) records Windows Strix Halo inference with engine 0.1.48. An RX 7900 XTX
+Later evidence: [release 0.2.3](releases/release-notes-0.2.3.md) records Windows Strix Halo inference with engine 0.1.48. An RX 7900 XTX
 on Windows 11 ran the 0.1.40 Windows engine ([report #1173](../bench/results/2026-10-06-community-rx-7900-xtx/README.md));
 other RX 7900 owners ran Linux builds ([COMMUNITY.md](../bench/results/COMMUNITY.md)).
 

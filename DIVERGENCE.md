@@ -125,7 +125,7 @@ in `strata --help` is unchanged. Tests: `tests/terminal/test_flow2_022.py`.
 - `strata_control/dsv41_fit.py`: `UD_SETS` now plans both XL sets; the Q4
   figures are derived from the pinned sizes and say they are not timed.
 - `docs/DEEPSEEK41.md` says why the other five held-out sets wait.
-- Tests: `tools/test_setup_udq4.py`, `tools/test_setup_dsv41.py`,
+- Tests: `tests/tools/test_setup_udq4.py`, `tests/tools/test_setup_dsv41.py`,
   `tests/terminal/test_launch_dsv41.py`.
 
 ### 6. `roadmap/unsloth-sets/` — our own track (new, ours only)
@@ -142,7 +142,7 @@ Upstream has nothing here — conflicts are impossible, but keep the pins honest
 `serve/telemetry.py` and `serve/server.py` send each card's own PCIe link and
 traffic (`pcie_rx_mb`, `pcie_gen`, `pcie_gen_max`, `pcie_width` in `hardware.gpus`),
 per-card load/power/PCIe/temp history (`history.gpus`), and each card's power
-cap. One card sends exactly what it sent before. Tests in `serve/test_server.py`
+cap. One card sends exactly what it sent before. Tests in `tests/serve/test_server.py`
 (`AmdTelemetry.test_readings`). This came in with the Monitor branch and stays:
 it feeds the App Host's Monitor page.
 
@@ -250,7 +250,7 @@ purpose (a research contact line, a live web probe) and stay excluded.
 install line and runs it, so in `README*.md`, `AGENTS.md`, `CONTRIBUTING.md`,
 `SECURITY.md` and `docs/*` commands inside code blocks and backticks say
 `deepstrata` and addresses name our repository — prose keeps saying Strata,
-and the historical records (`docs/release-notes-*`, the two
+and the historical records (`docs/releases/release-notes-*`, the two
 `IMPLEMENTATION_STATUS` files) keep the upstream addresses they recorded.
 `test_fork_identity.py` guards both; when upstream edits a doc, take their
 text and re-apply the command and address spellings.
@@ -297,9 +297,9 @@ do not publish, no sponsor wall, no new translations.
 - `python -m pytest tests/terminal/test_fork_identity.py` (identity: values,
   the two copies, the pins, the purity scan — run this first after a merge)
 - `python -m pytest tests/terminal` (Terminal and Control)
-- `python tools/test_setup_udq4.py`, `python tools/test_setup_dsv41.py`, and
-  the other `tools/test_setup_*.py` that the merge touched
-- `python -m pytest serve/test_server.py serve/test_monitor.py serve/test_prometheus.py`
+- `python -m pytest tests/tools/test_setup_udq4.py tests/tools/test_setup_dsv41.py`, and
+  the other `tests/tools/test_setup_*.py` that the merge touched
+- `python -m pytest tests/serve/test_server.py tests/serve/test_monitor.py tests/serve/test_prometheus.py`
   (telemetry and the server)
 - `npm test` in `apps/host`
 - anything else the merge touched, named in its commit message

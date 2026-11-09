@@ -1,6 +1,6 @@
 # Strata app source
 
-Start with [the complete developer handoff](../handoff.md) and [the runbook](../docs/RUNBOOK.md).
+Start with [the developer integration handoff](../../docs/DEVELOPER_INTEGRATION_HANDOFF.md) and [the native UI integration handover](docs/native-engine-handover.md).
 
 ```sh
 npm ci

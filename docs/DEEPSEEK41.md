@@ -192,6 +192,20 @@ headers to under 0.1 GB; each SHA-256 is the file's LFS object id fetched at tha
   Metal engine build on a Mac). CUDA on RTX is done - `fails=0` on sm_89 and sm_120 (recorded in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md)); the
   AMD and Mac runs are still open, and the set stays hidden on those platforms (`not_here`) until they pass.
 
+### Running UD-IQ2_XXS once the release carries fmt 4
+
+On the Linux machine with an RTX card (about 309 GB of free NVMe, 48 GB of RAM or more):
+
+```sh
+deepstrata update                                                 # brings the engine to 0.1.59, the one that reads the Q5_K table
+deepstrata launch --family deepseek41 --model ud-iq2_xxs --plan   # the plan: 300 GB of download, the table is the set's own
+deepstrata launch --family deepseek41 --model ud-iq2_xxs --yes --no-tui
+```
+
+An engine older than 0.1.59 stops the setup before anything downloads and says to run `strata update`. On a 16 GB card the Faster speed is the
+default, as with the other sets (`docs/MODELS.md`). The serving run itself on an RTX 4000/5000 card is the measurement still open: it is made
+with the release, and its words go to [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
+
 ### Opening the four 2- and 3-bit sets - what it would take (scope open in [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1))
 
 Their n-gram tables are no longer the issue: Q6_K and MXFP8 (the 3-bit sets and UD-Q3_K_XL) the Engram reader already

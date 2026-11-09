@@ -120,13 +120,16 @@ of the five:
 - **The n-gram table** (`src/dsv41/ds4_model.cu:3454`): the Engram reader takes MXFP8, Q6_K and IQ4_NL - what the offered
   sets carry - and now also **Q5_K**, the type the two 2-bit sets use, as its fourth format. It decodes a Q5_K table row
   (`src/dsv41/ds4_q5k.cuh`) exactly as this engine already decodes a Q5_K dense weight; checked value for value against a
-  reference decoder on the real UD-IQ2_XXS bytes (its head_dim of 256 makes a row one whole superblock), and **not yet
-  built or run on hardware** - this checkout has no CUDA / HIP / Metal toolchain, so the cards run is requested in
+  reference decoder on the real UD-IQ2_XXS bytes (its head_dim of 256 makes a row one whole superblock), and **now run on a
+  real card**: on Linux/amd64 with CUDA 13.5.37 the device kernel matched the reference byte for byte - `fails=0` on 4096
+  random superblocks and on 4096 rows of the model's own shard-6 bytes - on an RTX 4080 SUPER (sm_89) and an RTX 5060 Ti
+  (sm_120), with the full engine building green with the new format. The HIP and Metal decoders are built from the same
+  source but have not yet been run on an AMD card or a Mac; those runs are still requested in
   [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
 
 | set | download | routed experts | n-gram table | what stops it |
 |---|---:|---|---|---|
-| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | nothing in the engine now: only the setup wiring and a release are left |
+| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | engine done and run on RTX; left: the setup wiring, an engine-version gate, and a release |
 | UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | the experts rule |
 | UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule |
 | UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule |
@@ -142,10 +145,12 @@ sets' 298 to 306, and its experts - the part that wants RAM - are 157 GB against
 for any of the five.
 
 The first of those two features - the Engram reader taking Q5_K - has landed on this branch, so UD-IQ2_XXS is no longer held
-by its table type: a Q5_K table is read on CUDA, HIP and Metal, each decoder verified against the reference decoder and none
-yet run on a real card. It is not on the version list yet, and it is not wired into the download either: a set is not offered
-until an engine release carries the code to run it, so the file list and `--model ud-iq2_xxs` land with that release, not
-before. What that landing needs is written down just below. The second feature - letting a layer
+by its table type: the CUDA/HIP source and the Metal kernels carry the format, each decoder verified against the reference
+decoder, and the CUDA device kernel is now **run on real NVIDIA cards** (an RTX 4080 SUPER sm_89 and an RTX 5060 Ti sm_120,
+`fails=0` on synthetic and on the model's own shard-6 bytes) with the full engine building green; the AMD and Mac runs stay
+open. It is not on the version list yet, and it is not wired into the download either: a set is not offered until an engine
+release carries the code to run it, so the file list and `--model ud-iq2_xxs` land with that release, not before. What that
+landing needs is written down just below. The second feature - letting a layer
 keep an MXFP4 `down` while gate and up stay low-bit - would open the other four (UD-Q2_K_XL needs both); it is bigger and is
 to be agreed in an issue. The offered sets and every default path stay exactly as they are.
 
@@ -157,15 +162,37 @@ For whoever wires it, with the facts read off the pinned set (repo `unsloth/Deep
 - Six files `DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-0000N-of-00006.gguf`. Shard 1 (5,780,923 B) is metadata, no tensors;
   shards 2-5 (49,955,895,008; 49,950,675,200; 48,971,469,632; 16,419,622,240 B) are the experts and dense weights - about
   165 GB, all types the engine already takes; shard 6 (135,172,021,792 B) is the n-gram table and nothing else.
-- The download follows the low-bit recipe the offered sets use (`setup.py`'s UD-IQ1_M shape): pack shards 1-5, take the
-  Engram table from shard 6 with the packer's `--engram`, `shared: []` (its table is its own Q5_K file, not the shared
-  IQ4_NL one), the same drafter and picture files the other DeepSeek sets share. The model key `ud-iq2_xxs` and its engine
-  minimum go into `strata_cli/launch/catalog.py` and `setup.py` together, gated on an engine that ships fmt 4 - never list
-  it under a release that cannot load it.
-- The sizes above are read from the Hub and cross-check with the tensor headers; take each file's SHA-256 from the pinned
-  revision when the pins are written, rather than from here, so no hash is claimed that was not fetched.
-- Build and run `tests/dsv41/q5k_engram_test` on the target card first (`tests/dsv41/build_q5k_test.sh`, CUDA and HIP; the
-  Metal engine build on a Mac), before listing the set - the hardware request is in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
+- The download follows the low-bit recipe the offered sets use (`setup.py`'s UD-IQ1_M shape; the recipe is resolved at
+  `setup.py:9272`, the pack command built at `setup.py:8940`): pack shards 1-5 and take the Engram table from shard 6 with the
+  packer's `--engram`. One thing must be written, not assumed: the offered low-bit sets feed the **shared IQ4_NL table**
+  (`DSV41_ISTA_ENGRAM`) as `--engram` and use their own `engram_shard` only as an alternate local copy (the resolution at
+  `setup.py:9296`), so a new recipe is needed that points `--engram` at shard 6's Q5_K file and still keeps the drafter
+  (`DSV41_DSPARK`) and the picture file in `shared` - `shared` carries the drafter too, not only the table. `pack_gguf.py` needs
+  no change: its type table already knows Q5_K (`tools/dsv41/pack_gguf.py:44`, `13: ("Q5_K", 256, 176)` - 176 bytes a block, the
+  same figure the reader uses).
+- The model key `ud-iq2_xxs`, its `dsv41_fit` fit entry, its `MODELS.md` line and its `setup.py` pins go in together, **gated on
+  an engine that ships fmt 4**. That gate does not exist for the DeepSeek family yet: an offered set is hidden from the list only
+  by `dsv41_fit.not_here` (a Mac or a DGX Spark), not by engine version - so adding the set without a version gate would offer it
+  to an engine that cannot read its table. The landing has to add that gate (hide the set until the engine carries fmt 4); never
+  list it under a release that cannot load it. A `tools/test_setup_udiq2.py` shape test (which runs with no GPU and no downloads,
+  like `tools/test_setup_udq4.py`) should check the recipe targets shard 6's table, that `shared` still carries the drafter, and
+  that the set is hidden below the fmt-4 engine.
+
+The six files, pinned from the Hub at revision `8a6ec9cf118e785a362ea94ee123c61c70553be6` (sizes cross-check with the tensor
+headers to under 0.1 GB; each SHA-256 is the file's LFS object id fetched at that revision, not copied from a doc):
+
+| shard | bytes | SHA-256 |
+|---|---:|---|
+| 00001 (metadata, no tensors) | 5,780,923 | `22ad51c224e499883c1a753ad35719af44c296bbc8bcb9c931de6bdf950fa3aa` |
+| 00002 | 49,955,895,008 | `6880d0483490504a530b72686d79c92daa46e58ca5b71763bbfa3778d8a6131a` |
+| 00003 | 49,950,675,200 | `04b3ec7947255efaf789da77557da9180e93128948644828798d07b8a6e7a60a` |
+| 00004 | 48,971,469,632 | `318762f39cd7ebf03e3d7b30feaf938fab0464a9c2d6c0e0e99fc030bbfcd820` |
+| 00005 | 16,419,622,240 | `34fa48fbe2237b1b71a4f18a04bbe10946f6b1c76b7bbff21c76da630da677b6` |
+| 00006 (the Q5_K n-gram table, and nothing else) | 135,172,021,792 | `406103485a7a7193337adee38b7178d3b636940aaa3ca033bc91e0d3687e3031` |
+
+- Before listing it, run `tests/dsv41/q5k_engram_test` on the target card (`tests/dsv41/build_q5k_test.sh`, CUDA and HIP; the
+  Metal engine build on a Mac). CUDA on RTX is done (the answer is recorded in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md)); the
+  AMD and Mac runs are still open.
 
 ### Opening the four 2- and 3-bit sets - what it would take (a scope to agree in an issue)
 

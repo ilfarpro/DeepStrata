@@ -169,10 +169,11 @@ a serving run of the set on an RTX card. The facts, read off the pinned set (rep
   file. `pack_gguf.py` needed no change: its type table already knows Q5_K (`tools/dsv41/pack_gguf.py:44`, `13: ("Q5_K", 256, 176)` - 176 bytes
   a block, the same figure the reader uses).
 - Setup checks the installed engine **before anything downloads**: `dsv41_reads_q5k` (next to the pack command in `setup.py`) reads the engine
-  version and says whether it can read fmt 4 - 0.1.59 or newer can, an older one stops the setup with "run `strata update`", nothing downloaded.
+  version and says whether it can read fmt 4 - 0.1.59 or newer can, an older one stops the setup before anything downloads and tells the
+  person to update the engine first.
   The fit entry counts this set's own 135.2 GB table, not the shared 110.6 GB one, and the plan's words say the table is the set's own. On a Mac
   and on a DGX Spark the set stays hidden (`dsv41_fit.MAC_NOT_YET` / `AARCH64_NOT_YET`) until its table is run there. On Linux with an fmt-4
-  engine the app's list, `strata launch`, setup's menu and the "I already have the model" check all know the six files.
+  engine the app's list, `deepstrata launch`, setup's menu and the "I already have the model" check all know the six files.
   `tools/test_setup_udiq2.py` (no GPU, no downloads) checks the recipe targets shard 6's table, that `shared` carries the drafter, the fit
   numbers, the version gate and the file recognition.
 
@@ -202,7 +203,7 @@ deepstrata launch --family deepseek41 --model ud-iq2_xxs --plan   # the plan: 30
 deepstrata launch --family deepseek41 --model ud-iq2_xxs --yes --no-tui
 ```
 
-An engine older than 0.1.59 stops the setup before anything downloads and says to run `strata update`. On a 16 GB card the Faster speed is the
+An engine older than 0.1.59 stops the setup before anything downloads and tells you to update the engine. On a 16 GB card the Faster speed is the
 default, as with the other sets (`docs/MODELS.md`). The serving run itself on an RTX 4000/5000 card is the measurement still open: it is made
 with the release, and its words go to [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
 

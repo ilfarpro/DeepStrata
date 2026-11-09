@@ -126,15 +126,18 @@ of the five:
 
 | set | download | routed experts | n-gram table | what stops it |
 |---|---:|---|---|---|
-| UD-IQ2_XXS | 300.5 GB | 156.9 GB: IQ1_S, IQ2_XXS/XS/S, IQ3_XXS, one layer's down Q2_K - all types the engine takes | Q5_K, 135.2 GB (read now) | nothing in the engine now: only the setup wiring and a release are left |
+| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | nothing in the engine now: only the setup wiring and a release are left |
 | UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers with an MXFP4 down | Q5_K, 135.2 GB (read now) | the experts rule |
 | UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
 | UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
 | UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers with an MXFP4 down | MXFP8, 202.8 GB | the experts rule |
 
-The experts columns are read from the shards' tensor headers; the sums cross-check with the pinned file sizes to under 0.1 GB. The smaller
-sets would be worth having on a smaller computer: UD-IQ2_XXS wants about 165 GB of weights against the offered sets' 298 to 306, and its
-experts - the part that wants RAM - are 157 GB against 289. Quality is not measured and not claimed for any of the five.
+The experts columns are read from the shards' tensor headers; the sums cross-check with the pinned file sizes to under 0.1 GB.
+UD-IQ2_XXS's was re-read value by value on this branch: 40 layers, gate and up matching in every one, no layer with an MXFP4
+down, one layer's down Q2_K - so it clears the experts rule, and with the table read now the engine has nothing left to refuse.
+The smaller sets would be worth having on a smaller computer: UD-IQ2_XXS wants about 165 GB of weights against the offered
+sets' 298 to 306, and its experts - the part that wants RAM - are 157 GB against 289. Quality is not measured and not claimed
+for any of the five.
 
 The first of those two features - the Engram reader taking Q5_K - has landed on this branch, so UD-IQ2_XXS is no longer held
 by its table type: a Q5_K table is read on CUDA, HIP and Metal, each decoder verified against the reference decoder and none

@@ -192,8 +192,10 @@ already gives and what it does not:
 - The four differ in how many layers mix an MXFP4 `down` with a low-bit `gate` and `up` - the layers the rule refuses, with
   all-MXFP4 layers aside (those are fine and not counted): **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4**, each
   read off the shards' headers on this branch. Gate and up match in every layer of all four, so the `down` is the only thing
-  in the way. Their low-bit gate/up types are not only i-quants - Q3_K turns up too - so where those gate/up layers land
-  (device or CPU lane) has to be settled alongside the new `down` route.
+  in the way. Their low-bit gate/up is not only i-quants - Q3_K turns up too - and on the CUDA/HIP path every such type is
+  already device-supported (`ds4_iq.cu`'s `supported` lists the i-quants and the K-quants, Q3_K included, and not MXFP4 -
+  which is exactly what the two gates key on); so there the only genuinely missing piece is the job-builder above. Metal
+  keeps its own narrower `supported` set (it sends some i-quants to the CPU lane) and has to be checked alongside.
   A current pack's bytes and every offered set stay identical either way.
 
 ## Install

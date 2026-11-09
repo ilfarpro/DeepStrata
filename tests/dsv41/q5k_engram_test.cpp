@@ -13,7 +13,9 @@
 // Without --file it builds N legal random superblocks (any bit pattern is one once the F16 scales are sane: d and dmin are
 // drawn as finite fp16) and checks all of them.  With --file it also decodes R rows of R*176 real bytes read at START (the
 // RTX server: point it at Unsloth's UD-IQ2_XXS shard that holds per_layer_token_embd.weight, with START its data offset), so
-// the check runs on the model's own bytes, not only on synthetic ones.
+// the check runs on the model's own bytes, not only on synthetic ones.  On the pinned release that tensor is shard 6 all by
+// itself, dims [256, 768022850], dtype Q5_K, tensor-info ending at byte 173 so its bytes start at offset 192:
+//   ./q5k_engram_test --file DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-00006-of-00006.gguf --off 192 --rows 4096
 // Prints one RESULT line and "SUMMARY ... fails=N"; the exit code is 1 when anything failed.
 #include "../../src/dsv41/ds4_q5k.cuh"
 #include "strata/dsv41/hip_or_cuda.h"   // HIP names on a HIP build, the CUDA runtime otherwise

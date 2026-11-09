@@ -61,7 +61,7 @@ with the installed release's `deepstrata launch --help` and a plan before a down
 
 | Parent model | Provider / variant | Family selector | Quantizations or packs |
 | --- | --- | --- | --- |
-| DeepSeek V4.1-Flash | ISTA-DAS | `deepseek41` | `ist-das-1.75bpw` (239 GB), `ist-das-2.00bpw` (257 GB), `ist-das-2.25bpw` (274 GB); Unsloth `ud-q8_k_xl` (508 GB, several cards) |
+| DeepSeek V4.1-Flash | ISTA-DAS | `deepseek41` | `ist-das-1.75bpw` (239 GB), `ist-das-2.00bpw` (257 GB), `ist-das-2.25bpw` (274 GB); Unsloth `ud-iq2_xxs` (308 GB; its Q5_K table needs DeepSeek engine 0.1.59 or newer, run on RTX so far), `ud-q8_k_xl` (508 GB, several cards) |
 | Qwen3.8-Flash-Next | ISTA-DASLab, original | `qwen` | Q2_0, IQ2_XS, IQ3_XXS, IQ3_S |
 | Qwen3.8-Flash-Next | ISTA-DASLab, Coder | `coder` | IQ1_M; pruned for coding, weaker outside code |
 | Qwen3.8-Flash-Next | Unsloth | `unsloth` | UD-IQ4_XS, UD-Q4_K_XL, UD-Q5_K_XL, UD-Q6_K_XL, Q8_0 |

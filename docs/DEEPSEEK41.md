@@ -127,14 +127,16 @@ of the five:
 | set | download | routed experts | n-gram table | what stops it |
 |---|---:|---|---|---|
 | UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | nothing in the engine now: only the setup wiring and a release are left |
-| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers with an MXFP4 down | Q5_K, 135.2 GB (read now) | the experts rule |
-| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
-| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers with an MXFP4 down | Q6_K, 161.3 GB | the experts rule |
-| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers with an MXFP4 down | MXFP8, 202.8 GB | the experts rule |
+| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | the experts rule |
+| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule |
+| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule |
+| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers mix an MXFP4 down with low-bit gate/up | MXFP8, 202.8 GB | the experts rule |
 
 The experts columns are read from the shards' tensor headers; the sums cross-check with the pinned file sizes to under 0.1 GB.
-UD-IQ2_XXS's was re-read value by value on this branch: 40 layers, gate and up matching in every one, no layer with an MXFP4
-down, one layer's down Q2_K - so it clears the experts rule, and with the table read now the engine has nothing left to refuse.
+All five were re-read value by value on this branch, layer by layer: gate and up match in every layer of every set, so the
+`down` is the only thing that can trip the rule. UD-IQ2_XXS has no mixed layer at all (40 layers, one with a Q2_K down, none
+MXFP4) and clears the rule; the other four are held by the mixed-layer counts in their rows above (UD-Q2_K_XL 7, UD-IQ3_XXS
+30, UD-IQ3_S 18, UD-Q3_K_XL 4), and with the table now read the engine has nothing else to refuse them on but that one rule.
 The smaller sets would be worth having on a smaller computer: UD-IQ2_XXS wants about 165 GB of weights against the offered
 sets' 298 to 306, and its experts - the part that wants RAM - are 157 GB against 289. Quality is not measured and not claimed
 for any of the five.
@@ -181,12 +183,17 @@ already gives and what it does not:
   matvec picks its kernel per matrix by `m.fmt` (`ds4_gguf.cu:1295`; MXFP4 to `mx_mv_kernel`, the rest to the i-quant or
   BF16 one), the runner calls `moe_gate_up` and `moe_down` separately, and the placement sizes are read per role already
   (`type_row_bytes(expert_type(...))`).
-- What is missing is a job-builder for "gate/up in one i-quant type **and** down in MXFP4" in the same layer - there are
-  two builders today, one for an all-MXFP4 layer (`tg = td = MXFP4`, `ds4_gguf.cu:1681`) and the i-quant one that needs
-  both ends i-quant. It would route gate and up through the i-quant GEMV/GEMM and down through the MXFP4 one for one
-  layer, relax both gates to that shape, and keep the fused prompt path (`moe_fused_iq.hpp`) and the CPU lane
-  (`lane_fmt_ok` / `iq_cpu_fmt`, `ds4_model.cu:2471`) - which today assume one family a layer - in step.
-- The four differ only in how many layers carry an MXFP4 down: UD-Q3_K_XL 4, UD-Q2_K_XL 7, UD-IQ3_S 18, UD-IQ3_XXS 30.
+- What is missing is a job-builder for "gate/up in one low-bit type (an i-quant, and in these sets Q3_K too) **and** down in
+  MXFP4" in the same layer - there are two builders today, one for an all-MXFP4 layer (`tg = td = MXFP4`,
+  `ds4_gguf.cu:1681`) and the i-quant one that needs both ends i-quant. It would route gate and up through the GEMV/GEMM for
+  that low-bit type and down through the MXFP4 one for one layer, relax both gates to that shape, and keep the fused prompt
+  path (`moe_fused_iq.hpp`) and the CPU lane (`lane_fmt_ok` / `iq_cpu_fmt`, `ds4_model.cu:2471`) - which today assume one
+  family a layer - in step.
+- The four differ in how many layers mix an MXFP4 `down` with a low-bit `gate` and `up` - the layers the rule refuses, with
+  all-MXFP4 layers aside (those are fine and not counted): **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4**, each
+  read off the shards' headers on this branch. Gate and up match in every layer of all four, so the `down` is the only thing
+  in the way. Their low-bit gate/up types are not only i-quants - Q3_K turns up too - so where those gate/up layers land
+  (device or CPU lane) has to be settled alongside the new `down` route.
   A current pack's bytes and every offered set stay identical either way.
 
 ## Install

@@ -162,6 +162,30 @@ For whoever wires it, with the facts read off the pinned set (repo `unsloth/Deep
 - Build and run `tests/dsv41/q5k_engram_test` on the target card first (`tests/dsv41/build_q5k_test.sh`, CUDA and HIP; the
   Metal engine build on a Mac), before listing the set - the hardware request is in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
 
+### Opening the four 2- and 3-bit sets - what it would take (a scope to agree in an issue)
+
+Their n-gram tables are no longer the issue: Q6_K and MXFP8 (the 3-bit sets and UD-Q3_K_XL) the Engram reader already
+takes, and Q5_K (UD-Q2_K_XL) landed this branch. All four are stopped only by an MXFP4 `down` sitting beside low-bit gate
+and up in some of their layers - the experts rule above. This is a proposal, not a change: it is a change to the MoE
+forward every DeepSeek layer reads, across CUDA, HIP and Metal, the prompt path and the CPU lane alike, so per
+CONTRIBUTING the scope is agreed in an issue first and every backend is built and measured before review. What the code
+already gives and what it does not:
+
+- Two gates refuse the mixed shape today: the front one at `ds4_model.cu:2419`, and the IQ layer setup at
+  `ds4_gguf.cu:1180`, which needs gate and up to match and **both** gate/up and down to be i-quant types (`type_on_device`
+  counts MXFP4 as on-device, but `iq::supported` does not, so an MXFP4 `down` is refused there too).
+- Part of the machinery is already per matrix: each role keeps its own ggml type (`lay.K[r]`, `expert_type`), the decode
+  matvec picks its kernel per matrix by `m.fmt` (`ds4_gguf.cu:1295`; MXFP4 to `mx_mv_kernel`, the rest to the i-quant or
+  BF16 one), the runner calls `moe_gate_up` and `moe_down` separately, and the placement sizes are read per role already
+  (`type_row_bytes(expert_type(...))`).
+- What is missing is a job-builder for "gate/up in one i-quant type **and** down in MXFP4" in the same layer - there are
+  two builders today, one for an all-MXFP4 layer (`tg = td = MXFP4`, `ds4_gguf.cu:1681`) and the i-quant one that needs
+  both ends i-quant. It would route gate and up through the i-quant GEMV/GEMM and down through the MXFP4 one for one
+  layer, relax both gates to that shape, and keep the fused prompt path (`moe_fused_iq.hpp`) and the CPU lane
+  (`lane_fmt_ok` / `iq_cpu_fmt`, `ds4_model.cu:2471`) - which today assume one family a layer - in step.
+- The four differ only in how many layers carry an MXFP4 down: UD-Q3_K_XL 4, UD-Q2_K_XL 7, UD-IQ3_S 18, UD-IQ3_XXS 30.
+  A current pack's bytes and every offered set stay identical either way.
+
 ## Install
 
 ```

@@ -1,0 +1,25 @@
+name: Repository hygiene
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: Sizes and changed Markdown links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check tracked sizes and newly broken links
+        env:
+          HYGIENE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python .github/scripts/repo_hygiene.py --base "${HYGIENE_BASE:-HEAD}"

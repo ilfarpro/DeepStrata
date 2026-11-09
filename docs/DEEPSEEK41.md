@@ -152,7 +152,7 @@ open. It is not on the version list yet, and it is not wired into the download e
 release carries the code to run it, so the file list and `--model ud-iq2_xxs` land with that release, not before. What that
 landing needs is written down just below. The second feature - letting a layer
 keep an MXFP4 `down` while gate and up stay low-bit - would open the other four (UD-Q2_K_XL needs both); it is bigger and is
-to be agreed in an issue. The offered sets and every default path stay exactly as they are.
+open for scope as [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1). The offered sets and every default path stay exactly as they are.
 
 ### Landing UD-IQ2_XXS when a release carries fmt 4
 
@@ -194,13 +194,13 @@ headers to under 0.1 GB; each SHA-256 is the file's LFS object id fetched at tha
   Metal engine build on a Mac). CUDA on RTX is done (the answer is recorded in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md)); the
   AMD and Mac runs are still open.
 
-### Opening the four 2- and 3-bit sets - what it would take (a scope to agree in an issue)
+### Opening the four 2- and 3-bit sets - what it would take (scope open in [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1))
 
 Their n-gram tables are no longer the issue: Q6_K and MXFP8 (the 3-bit sets and UD-Q3_K_XL) the Engram reader already
 takes, and Q5_K (UD-Q2_K_XL) landed this branch. All four are stopped only by an MXFP4 `down` sitting beside low-bit gate
 and up in some of their layers - the experts rule above. This is a proposal, not a change: it is a change to the MoE
 forward every DeepSeek layer reads, across CUDA, HIP and Metal, the prompt path and the CPU lane alike, so per
-CONTRIBUTING the scope is agreed in an issue first and every backend is built and measured before review. What the code
+CONTRIBUTING the scope goes through an issue first (open as [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1)) and every backend is built and measured before review. What the code
 already gives and what it does not:
 
 - Two gates refuse the mixed shape today: the front one at `ds4_model.cu:2419`, and the IQ layer setup at

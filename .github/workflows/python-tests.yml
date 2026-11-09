@@ -1,0 +1,56 @@
+name: Python tests
+
+on:
+  push:
+    paths:
+      - .github/workflows/python-tests.yml
+      - conftest.py
+      - pyproject.toml
+      - requirements.txt
+      - setup.py
+      - tests/tools/**
+      - tools/**
+  pull_request:
+    paths:
+      - .github/workflows/python-tests.yml
+      - conftest.py
+      - pyproject.toml
+      - requirements.txt
+      - setup.py
+      - tests/tools/**
+      - tools/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup-tests:
+    name: Linux / setup tests without a GPU
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Install runtime requirements and pytest
+        run: python -m pip install --disable-pip-version-check -r requirements.txt pytest
+      - name: Check that every setup test imports
+        run: python -m pytest tests/tools --collect-only -q
+      - name: Run representative setup tests
+        run: >
+          python -m pytest -q
+          tests/tools/test_setup_coder.py
+          tests/tools/test_setup_udq4.py
+          tests/tools/test_setup_udiq2.py
+          tests/tools/test_draft_vocab.py
+          tests/tools/test_gguf_paths.py
+          tests/tools/test_iq_pack.py
+          tests/tools/test_check_isa_guard.py
+          tests/tools/test_dflash2_pack.py
+          tests/tools/test_quant_formats_hf.py
+          tests/tools/test_source_nul_bytes.py
+          tests/tools/test_cyrillic_paths.py

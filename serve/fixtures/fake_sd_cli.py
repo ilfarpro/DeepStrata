@@ -1,4 +1,4 @@
-"""A stand-in for stable-diffusion.cpp's sd-cli (serve/test_images.py): reads the arguments serve/images.py passes and
+"""A stand-in for stable-diffusion.cpp's sd-cli (tests/serve/test_images.py): reads the arguments serve/images.py passes and
 writes one small PNG per image whose pixels encode the seed, size and prompt, so a test can tell the images apart.
 FAKE_SD_FAIL=1: exits 1 after a log line.  FAKE_SD_SLEEP=<s>: waits that long first (cancel tests).
 FAKE_SD_ARGS=<file>: writes its argument list there (JSON)."""

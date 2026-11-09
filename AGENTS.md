@@ -75,8 +75,9 @@ Source setup does not make an unsupported model or backend compatible. Strata's 
 - AMD (HIP) build and validation: [docs/AMD_HIP.md](docs/AMD_HIP.md); multi-GPU: [docs/MULTI_GPU.md](docs/MULTI_GPU.md);
   Mac (Metal): [docs/MAC.md](docs/MAC.md).
 - Tests: the Terminal and Control tests are in `tests/terminal` (`python -m pytest tests/terminal`). The app's UI
-  tests run with `npm test` in `apps/host`. Setup's own tests run without a GPU or downloads:
-  `python tools/test_setup_<name>.py` (for example `tools/test_setup_amd.py`, `tools/test_setup_choices.py`).
+  tests run with `npm test` in `apps/host`. Server and setup tests are in `tests/serve` and `tests/tools` and run
+  without a GPU or downloads: `python -m pytest tests/serve tests/tools` (one setup test:
+  `python -m pytest tests/tools/test_setup_amd.py`). [tests/README.md](tests/README.md) lists the folders.
 - Keep the docs' style: plain words, short sentences, written for non-technical users first. Give measured numbers
   with what they were measured on. Make no claim without a measurement.
 

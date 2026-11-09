@@ -13,7 +13,7 @@ Search and image generation are supplied by configured MCP servers. Strata does 
 ## Validation without a GPU
 
 ```powershell
-python -m unittest serve.test_mcp serve.test_mcp_media
+python -m pytest tests/serve/test_mcp.py tests/serve/test_mcp_media.py
 git diff --check
 ```
 

@@ -1,4 +1,4 @@
-"""serve/mcp_fake_server.py - a small MCP server for serve/test_mcp.py (no MCP SDK, no network beyond localhost).
+"""serve/mcp_fake_server.py - a small MCP server for tests/serve/test_mcp.py (no MCP SDK, no network beyond localhost).
 
     python serve/mcp_fake_server.py                  stdio: JSON-RPC lines on stdin/stdout
     python serve/mcp_fake_server.py --http 8765      Streamable HTTP on 127.0.0.1:8765/mcp

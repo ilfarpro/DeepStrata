@@ -1590,7 +1590,7 @@ def two_socket_note(sockets) -> list[str]:
             "the config's args (START-HERE --calibrate measures it on this PC)"]
 
 
-# The engine's default count of CPU expert workers (include/strata/kernels/cpu/pool_plan.hpp, which tools/test_pool_plan.py
+# The engine's default count of CPU expert workers (include/strata/kernels/cpu/pool_plan.hpp, which tests/tools/test_pool_plan.py
 # keeps in step with these numbers).  Setup writes no worker count on an ordinary CPU: the engine picks it, from the
 # physical cores (not the SMT siblings), minus the host thread's core and a reserve on a big CPU, on the host thread's
 # socket, under a cap.  What setup does write (a hybrid CPU's count, the vision encoder's threads) is capped the same way.
@@ -4237,7 +4237,7 @@ def rocm_wanted(index, listing=None):
 # Strix Halo (Ryzen AI Max 380 / 385 / 390 / 395 + PRO: Radeon 8040S / 8050S / 8060S, RDNA 3.5, gfx1151) and the other
 # integrated Radeons it must never be taken for.  pci.ids lists ONE device id for the whole Strix Halo family
 # ("1586  Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics]"; the 8040S shares it: the
-# three differ by their CU count, 40 / 32 / 16, not by id).  Aurora's real answers (tools/test_setup_strix_halo.py):
+# three differ by their CU count, 40 / 32 / 16, not by id).  Aurora's real answers (tests/tools/test_setup_strix_halo.py):
 # KFD gfx_target_version 110501, vendor_id 4098, device_id 5510 (0x1586), simd_count 80.
 STRIX_HALO_ARCH = "gfx1151"
 STRIX_HALO_PCI_IDS = frozenset({0x1586})
@@ -4614,7 +4614,7 @@ def amd_pci_devices(sysfs="/sys") -> list[dict]:
 def amd_gpus(sysfs="/sys"):
     """AMD GPUs from the kernel's KFD topology (the amdgpu driver; no ROCm needed), numbered as HIP numbers them:
     the GPU nodes in order, the CPU nodes skipped.  Integrated GPUs are listed too (not supported).
-    sysfs: the tree to read (tools/test_setup_amd.py passes a mocked one).  Windows: amd_gpus_win."""
+    sysfs: the tree to read (tests/tools/test_setup_amd.py passes a mocked one).  Windows: amd_gpus_win."""
     if WIN:
         return amd_gpus_win()
     base = Path(sysfs) / "class/kfd/kfd/topology/nodes"
@@ -4816,7 +4816,7 @@ def win_amd_arch(device_id: int | None, name: str) -> str:
 def amd_gpus_windows(adapters=None, registry=None) -> list[dict]:
     """The AMD display adapters present, in display-adapter order (setup's numbering until the HIP engine is
     installed), with the arch Strata would run them as ("" = unknown: listed, not supported).  adapters / registry:
-    tools/test_setup_amd.py passes mocked ones."""
+    tests/tools/test_setup_amd.py passes mocked ones."""
     adapters = _win_display_adapters() if adapters is None else adapters
     registry = _win_display_registry() if registry is None else registry
     if not adapters:                                   # no WMI answer: the registry alone (it can list removed cards)

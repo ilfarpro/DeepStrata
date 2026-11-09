@@ -174,7 +174,7 @@ a serving run of the set on an RTX card. The facts, read off the pinned set (rep
   The fit entry counts this set's own 135.2 GB table, not the shared 110.6 GB one, and the plan's words say the table is the set's own. On a Mac
   and on a DGX Spark the set stays hidden (`dsv41_fit.MAC_NOT_YET` / `AARCH64_NOT_YET`) until its table is run there. On Linux with an fmt-4
   engine the app's list, `deepstrata launch`, setup's menu and the "I already have the model" check all know the six files.
-  `tools/test_setup_udiq2.py` (no GPU, no downloads) checks the recipe targets shard 6's table, that `shared` carries the drafter, the fit
+  `tests/tools/test_setup_udiq2.py` (no GPU, no downloads) checks the recipe targets shard 6's table, that `shared` carries the drafter, the fit
   numbers, the version gate and the file recognition.
 
 The six files, pinned from the Hub at revision `8a6ec9cf118e785a362ea94ee123c61c70553be6` (sizes cross-check with the tensor

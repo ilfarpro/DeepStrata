@@ -206,5 +206,5 @@ If a config of the folder sets an `api_key`, the tool sends that key with its ow
   `.strata-mcp/setup.log`. Setup's `[X]` line says what to fix. Then install again: every finished step is skipped.
 - **The model does not start.** Get the server log with `strata_logs`, and the engine log with `source: engine`.
   [Troubleshooting](DETAILS.md#troubleshooting) has the usual causes.
-- **Tests.** `python -m unittest tools/test_strata_mcp.py` runs the tests with a fake setup and server. They do not
+- **Tests.** `python -m pytest tests/tools/test_strata_mcp.py` runs the tests with a fake setup and server. They do not
   download anything or use the GPU.

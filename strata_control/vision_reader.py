@@ -17,7 +17,7 @@ ARM).  So a Mac reads on the GPU unless the person asks for the CPU.
 An Intel Arc engine folder (engine-sycl/) carries the CPU reader; `strata-vision-sycl` (llama.cpp's SYCL backend, tools/vision with
 STRATA_VISION_SYCL, built by `setup --backend sycl --vision gpu` on a PC that has the oneAPI compiler) is the GPU reader there.
 
-`choose` is the whole decision; setup.py calls it, and tools/test_vision_reader.py checks every branch.
+`choose` is the whole decision; setup.py calls it, and tests/tools/test_vision_reader.py checks every branch.
 """
 from __future__ import annotations
 

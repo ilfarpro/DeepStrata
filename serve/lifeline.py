@@ -156,7 +156,7 @@ def _start_token(pid: int) -> str:
     line, so the token changed whenever the process changed state - measured here: one child reported
     '... R' once and '... S' eleven times inside 150 ms. The watcher then compared its own reading with
     the token from start time, saw "different process", and exited without ending the child, which is
-    exactly the flake `serve/test_lifeline.py` reported as "the child outlived a killed server".
+    exactly the flake `tests/serve/test_lifeline.py` reported as "the child outlived a killed server".
     """
     if sys.platform.startswith("linux"):
         try:

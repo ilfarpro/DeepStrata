@@ -151,7 +151,7 @@ backend, built for the package's `archs`; BUILD.json `vision_archs`). Pictures a
 and the CPU reader as `vision.cpu_exe`, and the GPU reader does not start (the card is not in its build, the HIP runtime does not load, the card is
 busy) the server starts the CPU reader by itself and prints one line. Both programs have RUNPATH `$ORIGIN` on Linux; on Windows the
 ROCm DLLs they import sit beside the programs or in `rocm/bin` (the engine's PATH entry, `lib_dirs`). `strata_control/vision_reader.py`
-holds the choice; `tools/test_vision_reader.py` the tests.
+holds the choice; `tests/tools/test_vision_reader.py` the tests.
 
 ## History / older measurements
 

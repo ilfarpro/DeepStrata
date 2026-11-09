@@ -19,7 +19,7 @@ UD-IQ1_S, UD-IQ1_M — все измерены). Оставшиеся 5 блок
 ## Фаза 0 — готовое слито в main (merge `0405bd77`, 2026-11-07)
 
 - [x] UD-Q4_K_XL в setup: девять шардов (298 GB весов, 500.7 GB качать), своя MXFP8-таблица;
-      `--family deepseek41 --model ud-q4_k_xl`; тесты `tools/test_setup_udq4.py`.
+      `--family deepseek41 --model ud-q4_k_xl`; тесты `tests/tools/test_setup_udq4.py`.
 - [x] `docs/DEEPSEEK41.md` объясняет, почему остальных пяти нет (оба правила движка, с
       цитатами строк; статический анализ, без оценок качества/скорости).
 - [x] Веб-монитор с плитками по GPU (`f-web-monitor-gpu-tiles`) — в main.

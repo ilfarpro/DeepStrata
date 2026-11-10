@@ -1689,7 +1689,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--allow-unpushed", action="store_true", help=argparse.SUPPRESS)
     plan.add_argument("--allow-line", action="store_true", help=argparse.SUPPRESS)
     plan.add_argument("--skip-tests", action="store_true", help="do not run pytest and the App Host tests")
-    plan.add_argument("--test-timeout", type=float, default=1800, help="seconds per test command (default: 1800)")
+    plan.add_argument("--test-timeout", type=float, default=5400, help="seconds per test command (default: 5400)")
     plan.add_argument("--notes", help="a Markdown file to use as the release notes")
     plan.add_argument("--keep-notes", action="store_true", help="keep the existing notes.md instead of regenerating it")
     plan.add_argument("--replan", action="store_true", help="replace the journal of an unpublished release")

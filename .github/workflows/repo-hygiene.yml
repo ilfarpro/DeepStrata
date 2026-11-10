@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   hygiene:
-    name: Sizes and changed Markdown links
+    name: Sizes, links, references and file damage
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -19,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Check tracked sizes and newly broken links
+      - name: Check what this change breaks (sizes, links, docs references, mojibake, line endings)
         env:
           HYGIENE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: python .github/scripts/repo_hygiene.py --base "${HYGIENE_BASE:-HEAD}"

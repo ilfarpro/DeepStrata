@@ -10,6 +10,7 @@ on:
       - setup.py
       - tests/tools/**
       - tools/**
+      - .github/scripts/**
   pull_request:
     paths:
       - .github/workflows/python-tests.yml
@@ -19,6 +20,7 @@ on:
       - setup.py
       - tests/tools/**
       - tools/**
+      - .github/scripts/**
   workflow_dispatch:
 
 permissions:
@@ -26,7 +28,7 @@ permissions:
 
 jobs:
   setup-tests:
-    name: Linux / setup tests without a GPU
+    name: Linux / setup and repository-hygiene tests without a GPU
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -54,3 +56,4 @@ jobs:
           tests/tools/test_quant_formats_hf.py
           tests/tools/test_source_nul_bytes.py
           tests/tools/test_cyrillic_paths.py
+          tests/tools/test_repo_hygiene.py

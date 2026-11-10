@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""A tiny terminal chat for a running Strata server (start it with run-<model>.bat / run-<model>.sh first).
+"""A tiny terminal chat for a running Strata server (start one with `deepstrata launch`, or `python setup.py` in a source checkout, which writes
+run-<model>.bat / run-<model>.sh).
 
     python chat.py [--port 8080] [--think none|low|medium|high]
 

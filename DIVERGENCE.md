@@ -6,7 +6,7 @@ rules for merging the original in without losing our work. Read it before a
 sync merge, and update it in the same merge that changes a divergence.
 
 The fork works in fork mode: no pull requests or issues to the original
-repository. Our plan and our engine specs live here, in `roadmap/`.
+repository. Our own plan lives here, in `roadmap/`.
 
 ## Remotes and sync mechanics
 

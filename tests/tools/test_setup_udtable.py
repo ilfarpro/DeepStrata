@@ -100,6 +100,16 @@ class Fit(unittest.TestCase):
             self.assertIn(model, dsv41_fit.AARCH64_NOT_YET)
 
 
+class Catalog(unittest.TestCase):
+    def test_the_app_counts_the_whole_download_including_the_table(self):
+        import strata_mcp as M
+        s = M.Strata(ROOT)
+        for model, (_model_bytes, table_bytes, _n, _shard1) in SETS.items():
+            row = s.own_size("deepseek41", model)
+            self.assertAlmostEqual(row["download_gb"], (dsv41_fit.ista_download_bytes(model) - 0) / 1e9, places=1, msg=model)
+            self.assertGreater(row["download_gb"], table_bytes / 1e9, model)
+
+
 class ExpectedFiles(unittest.TestCase):
     def test_the_app_download_plan_has_the_own_table_too(self):
         import strata_mcp as M

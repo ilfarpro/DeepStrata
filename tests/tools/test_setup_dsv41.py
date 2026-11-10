@@ -438,7 +438,7 @@ class OfficialSets(unittest.TestCase):
     def test_the_pinned_files(self):
         fam = setup.MULTI_FILE_FAMILIES["deepseek41"]
         self.assertEqual(list(fam["models"]), ["IST-DAS-2.00bpw", "IST-DAS-2.25bpw", "IST-DAS-1.75bpw", "ISTA-DAS-Coder", "UD-IQ1_S", "UD-IQ1_M",
-                                               "UD-IQ2_XXS", "UD-Q4_K_XL", "UD-Q8_K_XL"])         # the official sets first
+                                               "UD-IQ2_XXS", "UD-Q2_K_XL", "UD-IQ3_XXS", "UD-IQ3_S", "UD-Q3_K_XL", "UD-Q4_K_XL", "UD-Q8_K_XL"])         # the official sets first
         repo = "ISTA-DASLab/DeepSeek-V4.1-Flash-1017-GSQ-RCO-GGUF"
         self.assertEqual(setup.HF_REVISIONS[repo], "cb02422c900df489cea5833e8a92171224059b3c")
         self.assertIs(setup.REPO_PINS[repo], setup.DSV41_ISTA_FILES)

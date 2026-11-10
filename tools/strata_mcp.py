@@ -584,11 +584,13 @@ class Strata:
         The download is the GGUF; the picture reader (mmproj, ~0.9 GB) is counted by the plan when pictures are on."""
         big = self.multi_family(family)
         if big and model in big["models"]:
-            # nine shards; the memory the weights need is VRAM + RAM together WITHOUT the n-gram table (it stays on the SSD)
-            gb = sum(big["sha256"][n][0] for n in [*big["models"][model]["shards"], *big["models"][model].get("shared", [])]) / 1e9
+            # the model, the set's own n-gram table when it has one (UD-IQ2_XXS and the four udtable sets), and the shared files
+            md = big["models"][model]
+            own = [md["engram_shard"]] if md.get("recipe") in ("udiq2", "udtable") else []
+            gb = sum(big["sha256"][n][0] for n in [*md["shards"], *own, *md.get("shared", [])]) / 1e9
             return {"about": big["models"][model]["about"], "download_gb": round(gb, 1), "ram_gb": big["models"][model]["ram_gb"],
                     "arena_gb": round(float(big["models"][model]["ram_gb"]) - 17.0, 1), "mem_total": True, "vision": bool(big.get("vision", True)),
-                    "engine": None, "families": (family,), "multi_file": True}
+                    "engine": md.get("min_engine"), "families": (family,), "multi_file": True}
         d = (getattr(self.setup_module(), "OWN_PATH_FAMILIES", None) or {}).get(family)
         if not d or model not in d["models"]:
             return None
@@ -1674,11 +1676,13 @@ def expected_files(S, family: str, model: str, models_dir: Path, vision: bool) -
     out = []
     try:
         big = (getattr(S, "MULTI_FILE_FAMILIES", None) or {}).get(family)
-        if big:                                         # DeepSeek-V4.1-Flash: its nine shards in the model's folder
+        if big:                                         # DeepSeek-V4.1-Flash: its shards in the model's folder
             folder = Path(models_dir) / (big["tag"] + model)
             shared = Path(models_dir) / (big["tag"] + "shared")        # the Engram, the drafter and the metadata shard of the official sets
-            return ([{"path": str(folder / n), "bytes": big["sha256"][n][0], "role": "model"} for n in big["models"][model]["shards"]]
-                    + [{"path": str(shared / n), "bytes": big["sha256"][n][0], "role": "model"} for n in big["models"][model].get("shared", [])])
+            md = big["models"][model]
+            own = [md["engram_shard"]] if md.get("recipe") in ("udiq2", "udtable") else []   # the set's own n-gram table in its last shard
+            return ([{"path": str(folder / n), "bytes": big["sha256"][n][0], "role": "model"} for n in [*md["shards"], *own]]
+                    + [{"path": str(shared / n), "bytes": big["sha256"][n][0], "role": "model"} for n in md.get("shared", [])])
         own = (getattr(S, "OWN_PATH_FAMILIES", None) or {}).get(family)
         if own:                                         # Qwen3.6: the GGUF and the picture reader in the model's folder
             folder = Path(models_dir) / (own["tag"] + model)

@@ -133,11 +133,20 @@ class Lifeline(unittest.TestCase):
             out = subprocess.run(["ps", "-o", "stat=", "-p", str(child.pid)], capture_output=True, text=True).stdout
             return out.strip()[:1]
 
-        while_spinning = lifeline._start_token(child.pid)
-        spinning_state = state()
-        time.sleep(2.0)                                        # asleep by now
-        while_sleeping = lifeline._start_token(child.pid)
-        sleeping_state = state()
+        deadline = time.monotonic() + 5.0                      # a loaded machine may take a moment to schedule the child
+        while True:
+            while_spinning = lifeline._start_token(child.pid)
+            spinning_state = state()
+            if spinning_state == "R" or time.monotonic() >= deadline:
+                break
+            time.sleep(0.02)
+        deadline = time.monotonic() + 5.0
+        while True:
+            while_sleeping = lifeline._start_token(child.pid)
+            sleeping_state = state()
+            if sleeping_state == "S" or time.monotonic() >= deadline:
+                break
+            time.sleep(0.05)
         self.assertEqual((spinning_state, sleeping_state), ("R", "S"),
                          "the child did not go from running to sleeping, so this proves nothing about the token")
         self.assertTrue(while_spinning and while_sleeping, (while_spinning, while_sleeping))
@@ -161,7 +170,7 @@ class Lifeline(unittest.TestCase):
     def test_the_child_is_recorded_while_it_runs_and_forgotten_after(self):
         from strata_control import procs
         proc, info = self.launch("sleep")
-        base = Path(self.temp.name) / "Strata" / "procs" if not POSIX else Path(self.temp.name) / "strata" / "procs"
+        base = Path(self.temp.name) / "DeepStrata" / "procs" if not POSIX else Path(self.temp.name) / "deepstrata" / "procs"
         record = base / f"{info['child']}.json"
         deadline = time.monotonic() + 5
         while not record.exists() and time.monotonic() < deadline:

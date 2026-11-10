@@ -14,7 +14,8 @@ qualify every GPU, model or feature on its platform.
 | --- | --- |
 | Build the Terminal archive (the page rides along) | [The Terminal archive](#the-terminal-archive) |
 | Build an engine package | [ENGINE-COMPONENT.md](ENGINE-COMPONENT.md#building-a-package) |
-| Sign and publish a release | [UPDATES.md](UPDATES.md#releasing) |
+| Make a release: plan, build, sign, verify, publish | [UPDATES.md](UPDATES.md#releasing) (`python packaging/release.py --help`) |
+| Sign and publish a release by hand | [UPDATES.md](UPDATES.md#releasing) |
 | Test an update against a local feed | [UPDATES.md](UPDATES.md#testing-locally) |
 
 ## The target matrix

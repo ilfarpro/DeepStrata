@@ -2416,13 +2416,15 @@ struct Model::Impl {
             off += align256(bytes) + (store_gb() > 0 ? ExpertStore::kSlack : 0);   // (the store's aligned reads spill into the gaps)
         }
         l.lay.fmt = gg::kFmtMXFP4;
-        if (!gg::mx_experts(l.lay) && (gg::expert_type(l.lay, 0) != gg::expert_type(l.lay, 1) ||
-                                       gg::expert_type(l.lay, 0) == gg::kTypeMXFP4 ||
-                                       gg::expert_type(l.lay, 2) == gg::kTypeMXFP4)) {
-            err = P + ": gate / up / down of types " + gg::type_name(l.lay.K[0]) + " / " +
-                  gg::type_name(l.lay.K[1]) + " / " + gg::type_name(l.lay.K[2]) +
-                  " (gate and up must match; MXFP4 does not mix with the others)";
-            return false;
+        {
+            std::string shape_why;
+            if (!gg::expert_shape_ok(gg::expert_type(l.lay, 0), gg::expert_type(l.lay, 1), gg::expert_type(l.lay, 2),
+                                     shape_why)) {
+                err = P + ": gate / up / down of types " + gg::type_name(gg::expert_type(l.lay, 0)) + " / " +
+                      gg::type_name(gg::expert_type(l.lay, 1)) + " / " + gg::type_name(gg::expert_type(l.lay, 2)) +
+                      ": " + shape_why;
+                return false;
+            }
         }
         l.blob = off;
         // a type the device kernels do not take (none of the i-quants now: gg::type_on_device lists them): the layer stays on the CPU lane, where
@@ -2472,6 +2474,15 @@ struct Model::Impl {
         const int E = g.dim, FF = g.ff;
         if (gg::mx_experts(l.lay)) return true;   // (cpu_experts_mx's own kernels)
         gg::IqCpu fm;
+        if (gg::mixed_down_mx(l.lay)) {   // gate / up low-bit, down MXFP4: the two halves of the mixed CPU rows
+            if (!gg::mixed_cpu_ready(gg::expert_type(l.lay, 0), E, FF, fm, why)) return false;
+            const size_t row = (size_t) E * 4;
+            if (fm.act_bytes > row || gg::mx_act_bytes(FF) > row) {
+                why = "activation rows too large";
+                return false;
+            }
+            return true;
+        }
         if (!gg::iq_cpu_fmt(gg::expert_type(l.lay, 0), gg::expert_type(l.lay, 2), E, FF, fm, why)) return false;
         const size_t row = (size_t) E * 4;
         if (fm.act_bytes > row || fm.h_bytes > row) {
@@ -8004,7 +8015,10 @@ struct Model::Impl {
     // number of entries take it, and each job its band of h straight into the down's int8 input.
     // (ord: the order the entries are computed in - their slots, so the sums, stay the same; null: as they are)
     void cpu_experts_mx(const Layer& l, const float* x, const std::vector<Ent>& ents, size_t ldx, const int* ord) {
-        if (!gg::mx_experts(l.lay)) return cpu_experts_iq(l, x, ents, ldx, ord);
+        if (!gg::mx_experts(l.lay)) {
+            if (gg::mixed_down_mx(l.lay)) return cpu_experts_mixed(l, x, ents, ldx, ord);
+            return cpu_experts_iq(l, x, ents, ldx, ord);
+        }
         constexpr int RB = 64;   // rows a job (whole blocks of h: RB % 32 == 0)
         const int E = g.dim, FF = g.ff, FFh = FF / NH, Eh = E / NH;
         const int GB = (FFh + RB - 1) / RB, DB = (Eh + RB - 1) / RB, ne = (int) ents.size();
@@ -8174,6 +8188,83 @@ struct Model::Impl {
         }
     }
 #endif
+    // the mixed shape on the CPU lane: gate/up one low-bit type (ggml-cpu's dots) and down MXFP4 (gg::mx_rows).  The
+    // gate/up are computed first (their bands as cpu_experts_mx's), h is kept whole in c_xhd and quantized to the MX
+    // form once an entry's tokens are done, then the down rows split as the all-MXFP4 lane's do.
+    void cpu_experts_mixed(const Layer& l, const float* x, const std::vector<Ent>& ents, size_t ldx, const int* ord) {
+        constexpr int RB = 64;   // rows a job
+        const int E = g.dim, FF = g.ff, FFh = FF / NH, Eh = E / NH, ne = (int) ents.size();
+        const float lim = g.lim;
+        gg::IqCpu fm;
+        std::string ferr;
+        if (!gg::mixed_cpu_ready(gg::expert_type(l.lay, 0), E, FF, fm, ferr)) {
+            std::fprintf(stderr, "ds4: layer %d's mixed CPU-lane experts: %s (cannot compute them; aborting)\n", l.il,
+                         ferr.empty() ? "not covered" : ferr.c_str());
+            std::fflush(stderr);
+            std::abort();
+        }
+        {   // (as cpu_experts_mx's prefetch: the experts read from the files)
+            std::vector<std::pair<const void*, size_t>> want;
+            for (const Ent& en : ents)
+                if (!store && (l.ram.empty() || l.ram[(size_t) en.e] < 0))
+                    for (int r = 0; r < 3; ++r) want.push_back({mx_mat(l, en.e, r), mx_part_bytes(l, r)});
+            os::prefetch_cold(want);
+        }
+        const size_t xa = fm.act_bytes, ha = gg::mx_act_bytes(FF);
+        const int GB = (FFh + RB - 1) / RB, DB = (Eh + RB - 1) / RB;
+        // c_xh's bytes: each token's x (the gate/up activation format), then each slot's h (the MX down's format)
+        uint8_t* xq = (uint8_t*) c_xh.data();
+        uint8_t* hq = xq + (size_t) kWin * xa;
+        uint8_t* xq_extra = hq + (size_t) kSlots * ha;
+        auto x_act = [&](const Ent& en, int i) -> const void* {
+            const int t = en.tok[i];
+            return t < kWin ? xq + (size_t) t * xa : xq_extra + (size_t) (en.slot0 + i) * xa;
+        };
+        {
+            bool done[kWin] = {};
+            for (const Ent& en : ents)
+                for (int i = 0; i < en.n; ++i) {
+                    const int t = en.tok[i];
+                    if (t < kWin && done[t]) continue;
+                    if (t < kWin) done[t] = true;
+                    gg::iq_cpu_quant(fm.gu_act, x + (size_t) t * ldx, E, (void*) x_act(en, i));
+                }
+        }
+        std::function<void(int)> f[4];
+        for (int X = 0; X < NH; ++X)
+            f[X] = [&, X](int j) {
+                const Ent& en = ents[(size_t) (ord != nullptr ? ord[j / GB] : j / GB)];
+                const int r0 = X * FFh + (j % GB) * RB, r1 = std::min(X * FFh + FFh, r0 + RB);
+                const void* ap[kEntMax];
+                float* hp[kEntMax];
+                for (int i = 0; i < en.n; ++i) {
+                    ap[i] = x_act(en, i);
+                    hp[i] = c_xhd.data() + (size_t) (en.slot0 + i) * FF + X * FFh;   // (iq_cpu_gate_up writes at r0)
+                }
+                gg::mixed_cpu_gate_up(fm, mx_part_ptr(l, en.e, 0, X), mx_part_ptr(l, en.e, 1, X), ap, en.n, hp,
+                                      r0 - X * FFh, r1 - X * FFh, lim);
+            };
+        run_nodes(ne * GB, f);
+        for (const Ent& en : ents) {   // h whole, once a slot's tokens are all computed
+            const float* hp[kEntMax];
+            for (int i = 0; i < en.n; ++i) hp[i] = c_xhd.data() + (size_t) (en.slot0 + i) * FF;
+            gg::mixed_cpu_h_quant(hp, en.n, FF, hq + (size_t) en.slot0 * ha);
+        }
+        for (int X = 0; X < NH; ++X)
+            f[X] = [&, X](int j) {
+                const Ent& en = ents[(size_t) (ord != nullptr ? ord[j / DB] : j / DB)];
+                const int r0 = X * Eh + (j % DB) * RB, r1 = std::min(X * Eh + Eh, r0 + RB);
+                const void* ap[kEntMax];
+                float* yp[kEntMax];
+                for (int i = 0; i < en.n; ++i) {
+                    ap[i] = hq + (size_t) (en.slot0 + i) * ha;
+                    yp[i] = c_yd.data() + (size_t) (en.slot0 + i) * E + r0;
+                }
+                gg::mixed_cpu_down(mx_part_ptr(l, en.e, 2, X), FF, r0 - X * Eh, r1 - X * Eh, ap, en.n, yp);
+            };
+        run_nodes(ne * DB, f);
+    }
+
     void cpu_experts_iq(const Layer& l, const float* x, const std::vector<Ent>& ents, size_t ldx, const int* ord) {
         constexpr int RB = 64;   // rows a job
         const int E = g.dim, FF = g.ff, FFh = FF / NH, Eh = E / NH;

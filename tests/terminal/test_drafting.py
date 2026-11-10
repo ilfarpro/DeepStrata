@@ -801,7 +801,7 @@ class FetchAndPack(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         sys.path.insert(0, str(ROOT / "tools"))
-        spec = importlib.util.spec_from_file_location("t_pack", ROOT / "tools" / "test_dflash2_pack.py")
+        spec = importlib.util.spec_from_file_location("t_pack", ROOT / "tests" / "tools" / "test_dflash2_pack.py")
         cls.synth = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.synth)
 

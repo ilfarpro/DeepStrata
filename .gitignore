@@ -53,6 +53,8 @@ build-vision-cuda12.bat
 /engine-cuda12/
 /build-release*/
 /dist/
+# release journals, signed feeds and archives (packaging/release.py): never committed
+/RELEASE/
 *.done
 /third_party/*.zip
 

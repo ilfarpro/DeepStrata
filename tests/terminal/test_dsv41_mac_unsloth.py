@@ -1,7 +1,7 @@
 """Unsloth's DeepSeek sets on a Mac: UD-IQ1_S runs on the Metal engine (IQ1_S kernels, run on an M5 Max) and is offered like the ISTA-DAS sets;
-UD-IQ1_M was never run on a Mac, and the owner chose to offer it anyway with a plain "not run yet" line; UD-IQ2_XXS is held back there (and on a DGX
-Spark) until its Q5_K n-gram table is run on Apple Silicon (the gate: model list, `--model`, `--model-path`, the app's "I already have the model"
-check, setup).
+UD-IQ1_M was never run on a Mac, and the owner chose to offer it anyway with a plain "not run yet" line; the five 2- and 3-bit Unsloth sets
+(UD-IQ2_XXS, UD-Q2_K_XL, UD-IQ3_XXS, UD-IQ3_S, UD-Q3_K_XL) are held back there (and on a DGX Spark) until their tables and mixed layers are run on
+Apple Silicon (the gate: model list, `--model`, `--model-path`, the app's "I already have the model" check, setup).
 On every other computer nothing changes."""
 
 from __future__ import annotations
@@ -19,12 +19,13 @@ from strata_control import dsv41_fit, dsv41_sets, models
 from tests.terminal.launch_support import HW_12, Home, catalog
 
 LINE = "Unsloth's UD-IQ2_XXS doesn't run on a Mac yet (its Q5_K n-gram table has not been run on Apple Silicon); the 2.00, 2.25 and the 1-bit sets do."
+OLD = ("UD-IQ2_XXS",)        # the old gate line and tuple, used by the mechanism tests below
 MAC = {**HW_12, "mac": True, "ram_gb": 128.0, "disk_free_gb": 900.0, "gpus": [], "engine_vendor": "apple"}
 PC = {**HW_12, "ram_gb": 64.0, "disk_free_gb": 900.0, "engine_vendor": "nvidia"}
-UD = ("UD-IQ1_M",)          # the set the mechanism held back on a Mac in the old runs (the product now holds back UD-IQ2_XXS; UD-IQ1_M is offered, not run there)
+UD = ("UD-IQ1_M",)          # the set the mechanism held back on a Mac in the old runs (the product now holds back the five 2-/3-bit sets; UD-IQ1_M is offered, not run there)
 RUNS = "UD-IQ1_S"            # the one that was run there
-OFF = ("UD-IQ2_XXS",)       # the product's Mac gate today: the Q5_K table (fmt 4) has run on RTX cards only
-BOTH = ("UD-IQ1_S", "UD-IQ1_M")   # both ran on a DGX Spark (10-30): the Spark gate holds only UD-IQ2_XXS; SparkGate patches the old rule back to test the mechanism
+OFF = ("UD-IQ2_XXS", "UD-Q2_K_XL", "UD-IQ3_XXS", "UD-IQ3_S", "UD-Q3_K_XL")   # the product's Mac gate: the Q5_K table and the mixed expert layers ran on RTX cards only
+BOTH = ("UD-IQ1_S", "UD-IQ1_M")   # both ran on a DGX Spark (10-30); SparkGate patches the old rule back to test the mechanism
 
 
 def hidden(fn):
@@ -34,7 +35,7 @@ def hidden(fn):
     @functools.wraps(fn)
     def run(*a, **k):
         pack = {m: v for m, v in dsv41_fit.MAC_SET_PACK.items() if m not in UD}
-        with mock.patch.object(dsv41_fit, "MAC_NOT_YET", UD + OFF), mock.patch.object(dsv41_fit, "MAC_NOT_YET_LINE", LINE), \
+        with mock.patch.object(dsv41_fit, "MAC_NOT_YET", UD + OLD), mock.patch.object(dsv41_fit, "MAC_NOT_YET_LINE", LINE), \
                 mock.patch.object(dsv41_fit, "MAC_SET_PACK", pack):
             return fn(*a, **k)
     return run
@@ -151,14 +152,15 @@ class OfferedOnAMac(unittest.TestCase):
         p.start()
         self.addCleanup(p.stop)
 
-    def test_the_gate_holds_the_q5k_set_and_offers_the_rest(self):
+    def test_the_gate_holds_the_five_2_and_3_bit_sets_and_offers_the_rest(self):
         self.assertEqual(dsv41_fit.MAC_NOT_YET, OFF)
         for m in ("UD-IQ1_S", "UD-IQ1_M"):
             self.assertIn(m, dsv41_fit.MAC_SET_PACK)
         with mock.patch.object(sys, "platform", "darwin"):
             for m in ("UD-IQ1_S", "UD-IQ1_M", "IST-DAS-2.25bpw"):
                 self.assertIsNone(dsv41_fit.not_here(m))
-            self.assertIsNotNone(dsv41_fit.not_here("UD-IQ2_XXS"))
+            for m in OFF:
+                self.assertIsNotNone(dsv41_fit.not_here(m))
 
     def test_the_list_and_the_flag(self):
         got = [r.model for r in catalog(self.hw).rows() if r.family == "deepseek41"]
@@ -352,14 +354,15 @@ class SparkGate(unittest.TestCase):
 
 
 class SparkOffered(unittest.TestCase):
-    """Both 1-bit Unsloth sets ran on a DGX Spark (2026-10-30): the Spark gate holds back only the Q5_K table, which ran on RTX cards only."""
+    """Both 1-bit Unsloth sets ran on a DGX Spark (2026-10-30); the five 2- and 3-bit sets are held back there, like on a Mac."""
 
-    def test_only_the_q5k_set_is_hidden_on_a_spark(self):
+    def test_the_five_2_and_3_bit_sets_are_hidden_on_a_spark(self):
         self.assertEqual(dsv41_fit.AARCH64_NOT_YET, OFF)
         with spark():
             for m in BOTH + ("IST-DAS-2.25bpw",):
                 self.assertIsNone(dsv41_fit.not_here(m))
-            self.assertIsNotNone(dsv41_fit.not_here("UD-IQ2_XXS"))
+            for m in OFF:
+                self.assertIsNotNone(dsv41_fit.not_here(m))
 
 
 if __name__ == "__main__":

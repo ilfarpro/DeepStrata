@@ -112,6 +112,31 @@ ISTA_SETS["UD-IQ2_XXS"] = {"title": "Unsloth UD-IQ2_XXS", "set_bytes": 165_303_4
                            "ppl": "?", "ram_ok_gb": 48.0, "disk_total": 308.0,
                            "quality": "Unsloth's 2-bit dynamic version, a little more than ISTA-DAS 2.00 bpw and with its n-gram table in Q5_K of its own; "
                                       "needs engine 0.1.59 or newer; not measured here yet"}
+# Unsloth's four 2- and 3-bit XL sets (2026-11-10 pins, setup.py DSV41_UDQ2K/IQ3X/IQ3S/Q3K_FILES).  Shard 1 is the metadata, the middle shards are the
+# model, and the LAST shard is the set's OWN n-gram table (never the shared IQ4_NL file).  Seven, seven, eight and eight shards.  The experts are read
+# off the tensor headers (191.1 / 224.3 / 253.4 / 271.6 GB); dense = set_bytes minus experts (8.52 / 9.15 / 8.95 / 10.71 GB); RAM class derived from
+# the experts against the measured 2.00 set (132.07 GB experts on 40 GB of RAM).  Some layers keep an MXFP4 down under a low-bit gate/up (7 / 30 /
+# 18 / 4 layers), which the engine from 0.1.60 runs; the quality of none is measured against the original yet.
+ISTA_SETS["UD-Q2_K_XL"] = {"title": "Unsloth UD-Q2_K_XL", "set_bytes": 199_621_523_044, "experts_gb": 191.1, "dense_gb": 8.52,
+                           "profile": "profile-2.00.bin", "meta_bytes": 0, "engram_bytes": 135_172_021_792,
+                           "ppl": "?", "ram_ok_gb": 58.0, "disk_total": 343.0,
+                           "quality": "Unsloth's 2-bit XL dynamic version (seven layers mix an MXFP4 down with low-bit gate/up), with its own Q5_K n-gram "
+                                      "table; needs engine 0.1.60 or newer; not measured here yet"}
+ISTA_SETS["UD-IQ3_XXS"] = {"title": "Unsloth UD-IQ3_XXS", "set_bytes": 233_451_798_175, "experts_gb": 224.3, "dense_gb": 9.15,
+                           "profile": "profile-2.00.bin", "meta_bytes": 0, "engram_bytes": 161_284_798_692,
+                           "ppl": "?", "ram_ok_gb": 68.0, "disk_total": 403.0,
+                           "quality": "Unsloth's 3-bit i-quant XL dynamic version (30 mixed layers), with its own Q6_K n-gram table; needs engine 0.1.60 "
+                                      "or newer; not measured here yet"}
+ISTA_SETS["UD-IQ3_S"] = {"title": "Unsloth UD-IQ3_S", "set_bytes": 262_346_221_302, "experts_gb": 253.4, "dense_gb": 8.95,
+                         "profile": "profile-2.00.bin", "meta_bytes": 0, "engram_bytes": 161_284_798_692,
+                         "ppl": "?", "ram_ok_gb": 77.0, "disk_total": 432.0,
+                         "quality": "Unsloth's larger 3-bit i-quant XL dynamic version (18 mixed layers), with its own Q6_K n-gram table; needs engine "
+                                    "0.1.60 or newer; not measured here yet"}
+ISTA_SETS["UD-Q3_K_XL"] = {"title": "Unsloth UD-Q3_K_XL", "set_bytes": 282_310_606_623, "experts_gb": 271.6, "dense_gb": 10.71,
+                           "profile": "profile-2.00.bin", "meta_bytes": 0, "engram_bytes": 202_758_032_592,
+                           "ppl": "?", "ram_ok_gb": 82.0, "disk_total": 493.0,
+                           "quality": "Unsloth's 3-bit XL dynamic version (four mixed layers), with its own MXFP8 n-gram table; needs engine 0.1.60 or "
+                                      "newer; not measured here yet"}
 # The ISTA-DAS Coder (2026-11-01): ISTA-DAS's coding variant, "the layout of the IQ2_XXS set with experts removed": 192 routed experts a layer instead of 384 (read from the header of its
 # shards: the experts, the router and the routing biases are half as wide; every other tensor is the 2.00 set's).  Where the repository, the commit and the files are is ONE
 # file, data/dsv41/coder-set.json (tools/dsv41/pin_coder.py writes it); the sizes here come from it.  Shard 1 = the metadata, shards 2-3 = the model, shard 4 = the Engram
@@ -161,7 +186,7 @@ ISTA_DENSE_ON_GPU_GB = 4.5            # (the old plan's figure, kept for the Uns
 # ISTA-DAS Coder: the engine's startup lines on r9700 with this branch at 128K context, 11-01: one R9700 weights 5.70 GB, experts 24.91 GB (2,859 of 7,680); four R9700 weights
 # 0.74 + 0.87 + 2.25 + 2.56 = 6.42 GB and all 7,680 experts in graphics memory -> base 5.46 + 0.24 for each card (5.70 on one, 6.42 on four).
 ISTA_DENSE_GPU_BASE_GB = {CODER_MODEL: 5.46, "IST-DAS-2.00bpw": 5.62, "IST-DAS-2.25bpw": 5.62, "IST-DAS-1.75bpw": 5.62, "UD-IQ1_S": 6.34, "UD-IQ1_M": 7.37,
-                          "UD-IQ2_XXS": 7.1}     # UD-IQ2_XXS: dense 8.4 GB (derived, see the set entry) minus the ~1.3 GB embedding that stays on the CPU, the UD-Q4_K_XL rule
+                          "UD-IQ2_XXS": 7.1, "UD-Q2_K_XL": 7.2, "UD-IQ3_XXS": 7.9, "UD-IQ3_S": 7.7, "UD-Q3_K_XL": 9.4}     # UD-IQ2_XXS: dense 8.4 GB (derived, see the set entry) minus the ~1.3 GB embedding that stays on the CPU, the UD-Q4_K_XL rule
 CARD_DENSE_REPEAT_GB = 0.24
 ENGINE_FREE_GB = 0.62
 CARD_OTHER_GB = {"amd": 1.60, "amd_low_share": 2.58, "other": 3.6}
@@ -820,12 +845,12 @@ MAC_SET_PACK = {"IST-DAS-2.00bpw": "IQ2_XXS", "IST-DAS-2.25bpw": "IQ2_XS", "UD-I
 # Unsloth's UD-IQ1_S was run on an M5 Max (f-039-mac-dsu).  UD-IQ1_M has the same kernels and was not run there; the owner chose to offer it anyway ("they
 # will tell if it works"), with a plain "not run yet" line in its plan.  The gate is the mechanism that keeps a set off a Mac
 # (the model lists, setup, the launch and the "I already have the model" check all read it through not_here()).
-MAC_NOT_YET = ("UD-IQ2_XXS",)     # the Q5_K n-gram table (fmt 4) has run on RTX cards only; drop the name when a Mac run passes, the way UD-IQ1_M was dropped
-MAC_NOT_YET_LINE = "Unsloth's UD-IQ2_XXS doesn't run on a Mac yet (its Q5_K n-gram table has not been run on Apple Silicon); the 2.00, 2.25 and the 1-bit sets do."
+MAC_NOT_YET = ("UD-IQ2_XXS", "UD-Q2_K_XL", "UD-IQ3_XXS", "UD-IQ3_S", "UD-Q3_K_XL")     # the Q5_K table and the mixed expert layers ran on RTX cards only; drop a name when a Mac run passes
+MAC_NOT_YET_LINE = "Unsloth's 2- and 3-bit sets (UD-IQ2_XXS, UD-Q2_K_XL, UD-IQ3_XXS, UD-IQ3_S, UD-Q3_K_XL) don't run on a Mac yet (their tables and mixed layers have not been run on Apple Silicon); the 2.00, 2.25 and the 1-bit sets do."
 # The same two sets were kept off a DGX Spark (linux-aarch64, GB10) until a Spark run passed: both passed there on 2026-10-30 (real `strata launch --model-path`,
 # 10 of 10 answers, tool call correct), so the tuple is empty.  Put a name back here to hide a set from the Spark again.
-AARCH64_NOT_YET = ("UD-IQ2_XXS",)     # same reason as on the Mac: the Q5_K table was read on RTX sm_89 / sm_120 only; drop the name when a Spark run passes
-AARCH64_NOT_YET_LINE = "Unsloth's UD-IQ2_XXS was not tested on a DGX Spark yet (its Q5_K n-gram table was read on RTX cards only); the 2.00 and 2.25 sets were."
+AARCH64_NOT_YET = ("UD-IQ2_XXS", "UD-Q2_K_XL", "UD-IQ3_XXS", "UD-IQ3_S", "UD-Q3_K_XL")     # the same reason as on the Mac; drop a name when a Spark run passes
+AARCH64_NOT_YET_LINE = "Unsloth's 2- and 3-bit sets (UD-IQ2_XXS, UD-Q2_K_XL, UD-IQ3_XXS, UD-IQ3_S, UD-Q3_K_XL) were not tested on a DGX Spark yet; the 2.00 and 2.25 sets were."
 
 
 def not_here(model: str | None) -> str | None:

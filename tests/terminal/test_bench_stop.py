@@ -93,7 +93,7 @@ class StopEngine(unittest.TestCase):
         self.procs.append(outsider)
         self.assertTrue(alive(kid))
         self.assertIsNone(bench_standard.stop_engine(proc))
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + 30                 # a loaded machine may need a moment to reap the group
         while alive(kid) and time.monotonic() < deadline:
             time.sleep(0.1)
         self.assertFalse(alive(proc.pid), "the engine's server survived")
@@ -107,7 +107,7 @@ class StopEngine(unittest.TestCase):
         with mock.patch.object(bench_standard.subprocess, "run", return_value=refused):
             problem = bench_standard.stop_engine(proc)
         self.assertIsNone(problem, "the tree is gone, so there is nothing to report")
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + 30                 # a loaded machine may need a moment to reap the group
         while alive(kid) and time.monotonic() < deadline:
             time.sleep(0.1)
         self.assertFalse(alive(kid))

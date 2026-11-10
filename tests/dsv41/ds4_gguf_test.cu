@@ -782,7 +782,9 @@ struct QExperts {
     const uint8_t* mat(int e, int r) const { return host.data() + e * blob + lay.trellis[r]; }
     size_t rb(int r) const { return gg::type_row_bytes(r < 2 ? tg : td, r < 2 ? D : F); }
     double dot(int e, int r, int row, const float* x) const {
-        return q_dot(r < 2 ? tg : td, mat(e, r) + row * rb(r), r < 2 ? D : F, x);
+        const int ty = r < 2 ? tg : td, k = r < 2 ? D : F;
+        if (ty == gg::kTypeMXFP4) return mx_dot(mat(e, r), k, row, x);
+        return q_dot(ty, mat(e, r) + (size_t) row * rb(r), k, x);
     }
 };
 QExperts make_q(int D, int F, int n_exp, int tg, int td) {
@@ -798,7 +800,9 @@ QExperts make_q(int D, int F, int n_exp, int tg, int td) {
     E.host.assign(E.blob * n_exp, 0);
     for (int e = 0; e < n_exp; ++e)
         for (int r = 0; r < 3; ++r) {
-            const std::vector<uint8_t> m = q_rand(E.lay.K[r], r < 2 ? F : D, r < 2 ? D : F);
+            const int ty = E.lay.K[r];
+            const std::vector<uint8_t> m = ty == gg::kTypeMXFP4 ? mx_rand(r < 2 ? F : D, r < 2 ? D : F)
+                                                               : q_rand(ty, r < 2 ? F : D, r < 2 ? D : F);
             std::memcpy(E.host.data() + e * E.blob + E.lay.trellis[r], m.data(), m.size());
         }
     E.dev = dev(E.host);
@@ -842,7 +846,7 @@ void test_experts_q(int D, int F, int tg, int td, cudaStream_t s) {
             const int e = pick[t * 8 + i];
             std::vector<float> h(F);
             for (int f = 0; f < F; ++f) h[f] = (float) swiglu(E.dot(e, 0, f, xr.data()), E.dot(e, 1, f, xr.data()), lim);
-            const std::vector<float> hr = act_round(h.data(), F);
+            const std::vector<float> hr = td == gg::kTypeMXFP4 ? q8_round(h.data(), F) : act_round(h.data(), F);
             for (int d = 0; d < D; ++d) want[(size_t) t * D + d] += pw[t * 8 + i] * E.dot(e, 2, d, hr.data());
         }
         for (int d = 0; d < D; ++d)
@@ -982,66 +986,111 @@ void test_experts_q(int D, int F, int tg, int td, cudaStream_t s) {
         expect(sw, y.data(), ywant.data(), ywant.size(), n_light == R ? 1e-4 : 2e-3);
         cudaFree(dxs), cudaFree(dbd), cudaFree(didx), cudaFree(dh16), cudaFree(dy);
     }
-    {   // the CPU lane: 3 tokens of expert 4, gate / up rows [7, 107) then all its down rows from the CPU's own h
-        gg::IqCpu fm;
+    {   // the CPU lane: 3 tokens of expert 4, gate / up rows [7, 107) then all its down rows from the CPU's own h -
+        // the low-bit pair (ggml-cpu's rows) or the mixed shape (low-bit gate/up, MXFP4 down)
+        const int n = 3, e = 4, r0 = 7, r1 = std::min(107, F);
+        std::vector<std::vector<float>> ff(n, std::vector<float>(F, 0.0f)), yo(n, std::vector<float>(D, 0.0f));
+        std::vector<float*> fp(n), yp(n);
+        for (int i = 0; i < n; ++i) fp[i] = ff[i].data(), yp[i] = yo[i].data();
         std::string err;
-        if (!gg::iq_cpu_fmt(tg, td, D, F, fm, err)) {
-            std::printf("%-44s FAIL  %s\n", "  CPU lane", err.c_str());
-            ++g_fail;
-        } else {
-            const int n = 3, e = 4, r0 = 7, r1 = std::min(107, F);
-            std::vector<std::vector<uint8_t>> aq(n, std::vector<uint8_t>(fm.act_bytes)),
-                hq(n, std::vector<uint8_t>(fm.h_bytes));
-            std::vector<std::vector<float>> ff(n, std::vector<float>(F, 0.0f)), yo(n, std::vector<float>(D, 0.0f));
-            const void* ap[n];
-            const void* hp[n];
-            float* fp[n];
-            float* yp[n];
-            for (int i = 0; i < n; ++i) {
-                gg::iq_cpu_quant(fm.gu_act, x.data() + (size_t) i * D, D, aq[i].data());
-                ap[i] = aq[i].data();
-                fp[i] = ff[i].data();
+        // the reference on the Q8_K values the CPU took (block_q8_K: F32 d, int8 qs[256], int16 bsums[16])
+        auto q8k = [](const std::vector<uint8_t>& q, int kk) {
+            std::vector<float> v(kk);
+            for (int b = 0; b < kk / 256; ++b) {
+                const uint8_t* p = q.data() + (size_t) b * 292;
+                float d;
+                std::memcpy(&d, p, 4);
+                for (int j = 0; j < 256; ++j) v[b * 256 + j] = d * (float) (int8_t) p[4 + j];
             }
-            gg::iq_cpu_gate_up(fm, E.mat(e, 0), E.mat(e, 1), ap, n, fp, r0, r1, lim);
-            gg::iq_cpu_gate_up(fm, E.mat(e, 0), E.mat(e, 1), ap, n, fp, 0, r0, lim);
-            gg::iq_cpu_gate_up(fm, E.mat(e, 0), E.mat(e, 1), ap, n, fp, r1, F, lim);
-            for (int i = 0; i < n; ++i) {
-                gg::iq_cpu_quant(fm.d_act, ff[i].data(), F, hq[i].data());
-                hp[i] = hq[i].data();
-                yp[i] = yo[i].data();
-            }
-            gg::iq_cpu_down(fm, E.mat(e, 2), hp, n, yp, 0, D);
-            // the reference on the Q8_K values the CPU took (block_q8_K: F32 d, int8 qs[256], int16 bsums[16])
-            auto q8k = [](const std::vector<uint8_t>& q, int kk) {
-                std::vector<float> v(kk);
-                for (int b = 0; b < kk / 256; ++b) {
-                    const uint8_t* p = q.data() + (size_t) b * 292;
-                    float d;
-                    std::memcpy(&d, p, 4);
-                    for (int j = 0; j < 256; ++j) v[b * 256 + j] = d * (float) (int8_t) p[4 + j];
-                }
-                return v;
-            };
-            const bool k8 = fm.gu_act == GGML_TYPE_Q8_K && fm.d_act == GGML_TYPE_Q8_K;
-            std::vector<float> got_h, got_y;
-            std::vector<double> want_h, want_y;
-            for (int i = 0; i < n && k8; ++i) {
-                const std::vector<float> xa = q8k(aq[i], D), ha = q8k(hq[i], F);
-                for (int f = 0; f < F; ++f) {
-                    got_h.push_back(ff[i][f]);
-                    want_h.push_back(swiglu(E.dot(e, 0, f, xa.data()), E.dot(e, 1, f, xa.data()), lim));
-                }
-                for (int d = 0; d < D; ++d) {
-                    got_y.push_back(yo[i][d]);
-                    want_y.push_back(E.dot(e, 2, d, ha.data()));
-                }
-            }
-            if (!k8) {
-                std::printf("%-44s FAIL  activation types %d / %d\n", "  CPU lane", fm.gu_act, fm.d_act);
+            return v;
+        };
+        if (td == gg::kTypeMXFP4) {
+            gg::IqCpu gm;
+            if (!gg::mixed_cpu_ready(tg, D, F, gm, err)) {
+                std::printf("%-44s FAIL  %s\n", "  CPU lane (mixed)", err.c_str());
                 ++g_fail;
             } else {
-                expect("  CPU lane gate/up (Q8_K)", got_h.data(), want_h.data(), want_h.size(), 1e-4);
-                expect("  CPU lane down (Q8_K)", got_y.data(), want_y.data(), want_y.size(), 1e-4);
+                const size_t ha = gg::mx_act_bytes(F);
+                std::vector<std::vector<uint8_t>> aq(n, std::vector<uint8_t>(gm.act_bytes)),
+                    hq(n, std::vector<uint8_t>(ha));
+                std::vector<const void*> ap(n), hp(n);
+                for (int i = 0; i < n; ++i) {
+                    gg::iq_cpu_quant(gm.gu_act, x.data() + (size_t) i * D, D, aq[i].data());
+                    ap[i] = aq[i].data();
+                }
+                gg::mixed_cpu_gate_up(gm, E.mat(e, 0), E.mat(e, 1), ap.data(), n, fp.data(), r0, r1, lim);
+                gg::mixed_cpu_gate_up(gm, E.mat(e, 0), E.mat(e, 1), ap.data(), n, fp.data(), 0, r0, lim);
+                gg::mixed_cpu_gate_up(gm, E.mat(e, 0), E.mat(e, 1), ap.data(), n, fp.data(), r1, F, lim);
+                for (int i = 0; i < n; ++i) {
+                    const float* hr[1] = {ff[i].data()};
+                    gg::mixed_cpu_h_quant(hr, 1, F, hq[i].data());
+                    hp[i] = hq[i].data();
+                }
+                gg::mixed_cpu_down(E.mat(e, 2), F, 0, D, hp.data(), n, yp.data());
+                const bool k8 = gm.gu_act == GGML_TYPE_Q8_K;
+                std::vector<float> got_h, got_y;
+                std::vector<double> want_h, want_y;
+                for (int i = 0; i < n && k8; ++i) {
+                    const std::vector<float> xa = q8k(aq[i], D), hx = q8_round(ff[i].data(), F);
+                    for (int f = 0; f < F; ++f) {
+                        got_h.push_back(ff[i][f]);
+                        want_h.push_back(swiglu(E.dot(e, 0, f, xa.data()), E.dot(e, 1, f, xa.data()), lim));
+                    }
+                    for (int d = 0; d < D; ++d) {
+                        got_y.push_back(yo[i][d]);
+                        want_y.push_back(E.dot(e, 2, d, hx.data()));
+                    }
+                }
+                if (!k8) {
+                    std::printf("%-44s FAIL  activation type %d\n", "  CPU lane (mixed)", gm.gu_act);
+                    ++g_fail;
+                } else {
+                    expect("  CPU lane gate/up (mixed, Q8_K)", got_h.data(), want_h.data(), want_h.size(), 1e-4);
+                    expect("  CPU lane down (mixed, q8_round)", got_y.data(), want_y.data(), want_y.size(), 1e-4);
+                }
+            }
+        } else {
+            gg::IqCpu fm;
+            if (!gg::iq_cpu_fmt(tg, td, D, F, fm, err)) {
+                std::printf("%-44s FAIL  %s\n", "  CPU lane", err.c_str());
+                ++g_fail;
+            } else {
+                std::vector<std::vector<uint8_t>> aq(n, std::vector<uint8_t>(fm.act_bytes)),
+                    hq(n, std::vector<uint8_t>(fm.h_bytes));
+                std::vector<const void*> ap(n), hp(n);
+                for (int i = 0; i < n; ++i) {
+                    gg::iq_cpu_quant(fm.gu_act, x.data() + (size_t) i * D, D, aq[i].data());
+                    ap[i] = aq[i].data();
+                }
+                gg::iq_cpu_gate_up(fm, E.mat(e, 0), E.mat(e, 1), ap.data(), n, fp.data(), r0, r1, lim);
+                gg::iq_cpu_gate_up(fm, E.mat(e, 0), E.mat(e, 1), ap.data(), n, fp.data(), 0, r0, lim);
+                gg::iq_cpu_gate_up(fm, E.mat(e, 0), E.mat(e, 1), ap.data(), n, fp.data(), r1, F, lim);
+                for (int i = 0; i < n; ++i) {
+                    gg::iq_cpu_quant(fm.d_act, ff[i].data(), F, hq[i].data());
+                    hp[i] = hq[i].data();
+                }
+                gg::iq_cpu_down(fm, E.mat(e, 2), hp.data(), n, yp.data(), 0, D);
+                const bool k8 = fm.gu_act == GGML_TYPE_Q8_K && fm.d_act == GGML_TYPE_Q8_K;
+                std::vector<float> got_h, got_y;
+                std::vector<double> want_h, want_y;
+                for (int i = 0; i < n && k8; ++i) {
+                    const std::vector<float> xa = q8k(aq[i], D), ha2 = q8k(hq[i], F);
+                    for (int f = 0; f < F; ++f) {
+                        got_h.push_back(ff[i][f]);
+                        want_h.push_back(swiglu(E.dot(e, 0, f, xa.data()), E.dot(e, 1, f, xa.data()), lim));
+                    }
+                    for (int d = 0; d < D; ++d) {
+                        got_y.push_back(yo[i][d]);
+                        want_y.push_back(E.dot(e, 2, d, ha2.data()));
+                    }
+                }
+                if (!k8) {
+                    std::printf("%-44s FAIL  activation types %d / %d\n", "  CPU lane", fm.gu_act, fm.d_act);
+                    ++g_fail;
+                } else {
+                    expect("  CPU lane gate/up (Q8_K)", got_h.data(), want_h.data(), want_h.size(), 1e-4);
+                    expect("  CPU lane down (Q8_K)", got_y.data(), want_y.data(), want_y.size(), 1e-4);
+                }
             }
         }
     }
@@ -1055,6 +1104,12 @@ const std::pair<int, int> kQPairs[] = {
     {gg::iq::kIQ2_XXS, gg::iq::kIQ3_XXS}, {gg::iq::kIQ2_S, gg::iq::kIQ3_S},  {gg::iq::kIQ3_XXS, gg::iq::kIQ3_S},
     {gg::iq::kIQ4_XS, gg::iq::kQ4_K},     {gg::iq::kQ2_K, gg::iq::kQ3_K},    {gg::iq::kQ4_K, gg::iq::kIQ4_XS},
     {gg::iq::kQ3_K, gg::iq::kQ2_K},       {gg::iq::kIQ3_S, gg::iq::kIQ2_XXS}, {gg::iq::kIQ3_S, gg::iq::kIQ2_S}};
+
+// the mixed shape (Unsloth's 2- and 3-bit sets): gate/up low-bit, down MXFP4
+const std::pair<int, int> kMixedPairs[] = {
+    {gg::iq::kIQ1_S, gg::kTypeMXFP4},    {gg::iq::kIQ2_XXS, gg::kTypeMXFP4}, {gg::iq::kIQ2_XS, gg::kTypeMXFP4},
+    {gg::iq::kIQ2_S, gg::kTypeMXFP4},    {gg::iq::kIQ3_XXS, gg::kTypeMXFP4},  {gg::iq::kIQ3_S, gg::kTypeMXFP4},
+    {gg::iq::kQ3_K, gg::kTypeMXFP4}};
 
 // a token's 6 low-bit experts at full size: GB/s of the weights read
 void bench_q(cudaStream_t s) {
@@ -1854,11 +1909,18 @@ void test_q8k(cudaStream_t s) {
         cudaFree(dpp), cudaFree(dw), cudaFree(dxs), cudaFree(dh), cudaFree(dsh), cudaFree(dout), cudaFree(Q.dev);
     }
 }
-void test_lanes(cudaStream_t s) {   // MXFP4 and every low-bit pair
+void test_lanes(cudaStream_t s) {   // MXFP4, every low-bit pair, and the mixed shape
     Experts M = make_experts(512, 256, 6);
     test_lane("MXFP4", M.lay, M.dev, M.host.data(), M.blob, 512, 256, s);
     cudaFree(M.dev);
     for (const auto& pr : kQPairs) {
+        QExperts Q = make_q(512, 256, 6, pr.first, pr.second);
+        char nm[64];
+        std::snprintf(nm, sizeof nm, "%s/%s", tn(pr.first), tn(pr.second));
+        test_lane(nm, Q.lay, Q.dev, Q.host.data(), Q.blob, 512, 256, s);
+        cudaFree(Q.dev);
+    }
+    for (const auto& pr : kMixedPairs) {
         QExperts Q = make_q(512, 256, 6, pr.first, pr.second);
         char nm[64];
         std::snprintf(nm, sizeof nm, "%s/%s", tn(pr.first), tn(pr.second));
@@ -1896,7 +1958,93 @@ void test_engram_q6k(cudaStream_t s) {
     cudaFree(d_rows), cudaFree(d_out);
 }
 
+// the mixed shape's CPU lane alone (no GPU needed): low-bit gate/up and MXFP4 down, against the double reference on
+// the Q8_K activation the gate/up took and q8_round's values for the down
+void test_mixed_cpu() {
+    {   // the shape's predicates (the one gate that opens it, and the two that still refuse other mixes)
+        x3::ExpertLayout lay{};
+        lay.K[0] = lay.K[1] = gg::iq::kIQ2_XXS;
+        lay.K[2] = gg::kTypeMXFP4;
+        bool ok = gg::mixed_down_mx(lay) && !gg::mx_gate_up(lay) && gg::mx_down(lay) && !gg::mx_experts(lay);
+        lay.K[1] = gg::iq::kIQ3_S;
+        ok = ok && !gg::mixed_down_mx(lay);
+        lay.K[0] = lay.K[1] = lay.K[2] = gg::kTypeMXFP4;
+        ok = ok && gg::mx_experts(lay) && !gg::mixed_down_mx(lay);
+        std::string why;
+        ok = ok && gg::expert_shape_ok(gg::iq::kIQ2_XXS, gg::iq::kIQ2_XXS, gg::kTypeMXFP4, why);
+        ok = ok && gg::expert_shape_ok(gg::kTypeMXFP4, gg::kTypeMXFP4, gg::kTypeMXFP4, why);
+        ok = ok && gg::expert_shape_ok(gg::iq::kIQ2_XXS, gg::iq::kIQ2_XXS, gg::iq::kIQ3_S, why);
+        ok = ok && !gg::expert_shape_ok(gg::iq::kIQ2_XXS, gg::iq::kIQ3_S, gg::kTypeMXFP4, why);
+        ok = ok && !gg::expert_shape_ok(gg::kTypeMXFP4, gg::kTypeMXFP4, gg::iq::kIQ2_XXS, why);
+        ok = ok && !gg::expert_shape_ok(gg::kTypeMXFP4, gg::kTypeMXFP4, gg::iq::kQ3_K, why);
+        if (!ok) ++g_fail;
+        std::printf("%-44s %s\n", "mixed shape predicates", ok ? "ok" : "FAIL");
+    }
+    const int D = 512, F = 256, n = 3;
+    const int tg = gg::iq::kIQ2_XXS;
+    const std::vector<uint8_t> gate = q_rand(tg, F, D), up = q_rand(tg, F, D), down = mx_rand(D, F);
+    gg::IqCpu gm;
+    std::string err;
+    if (!gg::mixed_cpu_ready(tg, D, F, gm, err)) {
+        std::printf("%-44s FAIL  %s\n", "mixed CPU geometry", err.c_str());
+        ++g_fail;
+        return;
+    }
+    const size_t ha = gg::mx_act_bytes(F);
+    std::vector<std::vector<float>> x(n, std::vector<float>(D)), ff(n, std::vector<float>(F, 0.0f)),
+        yo(n, std::vector<float>(D, 0.0f));
+    for (auto& v : x)
+        for (auto& f : v) f = frand();
+    std::vector<std::vector<uint8_t>> aq(n, std::vector<uint8_t>(gm.act_bytes));
+    std::vector<uint8_t> hq((size_t) n * ha);
+    std::vector<const void*> ap(n), hp(n);
+    std::vector<const float*> hsrc(n);
+    std::vector<float*> fp(n), yp(n);
+    for (int i = 0; i < n; ++i) {
+        gg::iq_cpu_quant(gm.gu_act, x[i].data(), D, aq[i].data());
+        ap[i] = aq[i].data();
+        fp[i] = ff[i].data();
+        yp[i] = yo[i].data();
+    }
+    const int r0 = 7, r1 = 100;
+    gg::mixed_cpu_gate_up(gm, gate.data(), up.data(), ap.data(), n, fp.data(), r0, r1, 10.0f);
+    gg::mixed_cpu_gate_up(gm, gate.data(), up.data(), ap.data(), n, fp.data(), 0, r0, 10.0f);
+    gg::mixed_cpu_gate_up(gm, gate.data(), up.data(), ap.data(), n, fp.data(), r1, F, 10.0f);
+    for (int i = 0; i < n; ++i) hsrc[i] = ff[i].data();
+    gg::mixed_cpu_h_quant(hsrc.data(), n, F, hq.data());   // (the model's call: n token rows -> n contiguous slots)
+    for (int i = 0; i < n; ++i) hp[i] = hq.data() + (size_t) i * ha;
+    gg::mixed_cpu_down(down.data(), F, 0, D, hp.data(), n, yp.data());
+    std::vector<float> got_h, got_y;
+    std::vector<double> want_h, want_y;
+    for (int i = 0; i < n; ++i) {
+        std::vector<float> xa(D);
+        for (int b = 0; b < D / 256; ++b) {
+            const uint8_t* p = aq[i].data() + (size_t) b * 292;
+            float d;
+            std::memcpy(&d, p, 4);
+            for (int j = 0; j < 256; ++j) xa[b * 256 + j] = d * (float) (int8_t) p[4 + j];
+        }
+        const std::vector<float> hx = q8_round(ff[i].data(), F);
+        for (int f = 0; f < F; ++f) {
+            got_h.push_back(ff[i][f]);
+            want_h.push_back(swiglu(q_dot(tg, gate.data() + (size_t) f * gm.gu_row, D, xa.data()),
+                                     q_dot(tg, up.data() + (size_t) f * gm.gu_row, D, xa.data()), 10.0));
+        }
+        for (int d = 0; d < D; ++d) {
+            got_y.push_back(yo[i][d]);
+            want_y.push_back(mx_dot(down.data(), F, d, hx.data()));
+        }
+    }
+    expect("mixed CPU gate/up (Q8_K)", got_h.data(), want_h.data(), want_h.size(), 1e-4);
+    expect("mixed CPU down (MXFP4, q8_round)", got_y.data(), want_y.data(), want_y.size(), 1e-4);
+}
+
 int main(int argc, char** argv) {
+    if (argc >= 2 && std::strcmp(argv[1], "--mixed-cpu") == 0) {   // no GPU: the mixed shape's CPU lane alone
+        test_mixed_cpu();
+        std::printf("%s (%d failed)\n", g_fail ? "FAILED" : "ALL OK", g_fail);
+        return g_fail ? 1 : 0;
+    }
     cudaStream_t s;
     CU(cudaStreamCreate(&s));
     if (!gg::prepare(s)) return 1;
@@ -1942,10 +2090,12 @@ int main(int argc, char** argv) {
         test_mv_q(t, s);
     test_mv_rows(s);
     for (const auto& pr : kQPairs) test_experts_q(512, 256, pr.first, pr.second, s);
+    for (const auto& pr : kMixedPairs) test_experts_q(512, 256, pr.first, pr.second, s);
     test_lanes(s);
     if (argc >= 3) {
         test_experts(std::atoi(argv[1]), std::atoi(argv[2]), s);
         for (int i : {0, 4}) test_experts_q(std::atoi(argv[1]), std::atoi(argv[2]), kQPairs[i].first, kQPairs[i].second, s);
+        test_experts_q(std::atoi(argv[1]), std::atoi(argv[2]), gg::iq::kIQ2_XXS, gg::kTypeMXFP4, s);
     }
     if (gg::launch_errors() != 0) {
         std::printf("launch errors: %d\n", gg::launch_errors());

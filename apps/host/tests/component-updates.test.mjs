@@ -313,7 +313,7 @@ test('packaged: an app update that ends the app is recorded as finished by the n
 });
 
 test('packaged: an update job an OLDER host left running is finished when the app program file is newer than the job', async () => {
-  const exe = new URL('../../deepstrata-desktop.exe', import.meta.url);      // <install>/deepstrata-desktop.exe as seen from <install>/host
+  const exe = new URL(process.platform === 'win32' ? '../../deepstrata-desktop.exe' : '../../deepstrata-desktop', import.meta.url);      // <install>/deepstrata-desktop[.exe] as seen from <install>/host
   const f = fixture({ withApp: true });
   try {
     const { fileURLToPath } = await import('node:url');

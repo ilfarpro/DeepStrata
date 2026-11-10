@@ -40,14 +40,16 @@ def tables() -> dict | None:
         new1, six = getattr(module, "DSV41_NEW_SHARD1", {}), getattr(module, "DSV41_ISTA6_FILES", {})
         result: dict = {"sets": {}, "engram": {}}
         for model, entry in family["models"].items():
-            if entry.get("recipe") not in ("ista", "udlow", "coder", "udiq2"):
+            if entry.get("recipe") not in ("ista", "udlow", "coder", "udiq2", "udtable"):
                 continue                                # Unsloth's 508 GB set is not an "already have it" case of the app
-            ista = {**ista, **getattr(module, "DSV41_UD_FILES", {}), **getattr(module, "DSV41_CODER_FILES", {}), **getattr(module, "DSV41_UDIQ2_FILES", {})}
+            ista = {**ista, **getattr(module, "DSV41_UD_FILES", {}), **getattr(module, "DSV41_CODER_FILES", {}), **getattr(module, "DSV41_UDIQ2_FILES", {}),
+                    **getattr(module, "DSV41_UDQ2K_FILES", {}), **getattr(module, "DSV41_UDIQ3X_FILES", {}),
+                    **getattr(module, "DSV41_UDIQ3S_FILES", {}), **getattr(module, "DSV41_UDQ3K_FILES", {})}
             shards = {name: ista[name][0] for name in entry["shards"]}
             old = {renamed[name]: legacy[renamed[name]][0] for name in entry["shards"] if name in renamed and renamed[name] in legacy}
             alt = entry.get("engram_shard")             # Unsloth's UD-IQ1 sets: shard 5 is the Engram (the same data as ISTA-DAS's file); UD-IQ2_XXS: its Q5_K shard 6, its own data
             result["sets"][model] = {"label": entry.get("label", model), "shards": shards, "legacy": old, "generic": bool(entry.get("generic_names")),
-                                     "engram_alt": {alt: ista[alt][0]} if alt else {}, "own_engram": entry.get("recipe") == "udiq2",
+                                     "engram_alt": {alt: ista[alt][0]} if alt else {}, "own_engram": entry.get("recipe") in ("udiq2", "udtable"),
                                      "new1": {name: new1[name][0] for name in entry["shards"] if name in new1},
                                      "six": {name: six[name][0] for name in entry.get("shards6") or [] if name in six}}
         for name in (module.DSV41_ISTA_ENGRAM, renamed.get(module.DSV41_ISTA_ENGRAM)):

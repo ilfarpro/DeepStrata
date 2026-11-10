@@ -269,7 +269,7 @@ CUDA12_WHEELS = ["nvidia-cublas-cu12==12.9.1.4", "nvidia-cuda-runtime-cu12==12.9
 # (575.51 / 576.02), which `strata update` enforces.  cuda12_min_driver() reads that from the package or the feed (#4247 #4188).
 CUDA12_COMPAT_DRIVER = 528 if WIN else 525
 ENGINE12_DIR = "engine-cuda12"
-MIN_ENGINE = (0, 1, 46)                # versions compare all numbers; v0.1.59: the DeepSeek Engram reader takes Q5_K (fmt 4), which opens Unsloth UD-IQ2_XXS (device reader verified on RTX sm_89 + sm_120); v0.1.58: engine rounds 0215-0217 (tuned drafters, the file-tier re-check, prefill and Q5_0 fixes; git log c3b3f5035..HEAD); v0.1.46: the 0.2 release engine (UPDATE.bat and setup fetch it from the signed feed, #3469 #3437); v0.1.45: Qwen3.6 parallel requests and pictures, fixes #2346 #2372 #2396; v0.1.44.1: CPUs without AVX2 start again (#2324: an illegal instruction before main in the NVFP4 CPU rows), the CUDA 12.0/12.1 toolkits build (#2322), a crashed engine start is named instead of retried as a GPU runtime start, Mac M2 (#2323); v0.1.44: UD-Q4/Q5/Q6_K_XL and Q8_0 Unsloth files in setup (K-quant experts, MMQ prompt library strata_kq), NVFP4 packs, Qwen3.6-35B-A3B, Intel Arc A-series kernels, the pipelined-decode and latency work; v0.1.43.1: the adaptive overlap no longer collapses decode on pinned-host desktops (#1964 #1975), Windows PLE mmap stall (#1984), pinned prompt uploads (#1996), the I/O watchdog allowance; v0.1.43: adaptive-tier copies overlap on CUDA, P100 (sm_60) kernel tables, RDNA4 (gfx1200/gfx1201) defaults (route tail skip, measured PCIe share, 16K prompt chunks, fused IQ3 prompt experts); v0.1.42.1: the GGUF-in-place file tier on Windows unmaps every shard, dual-socket starts judge each NUMA node and STRATA_DROP_CACHE_ON_EXIT, tools/strata_bench.py; v0.1.42: STRATA_ROUTE_TAIL_SKIP=7 default on CUDA (+13-16% decode), the AMD 2-GPU checkpoint fix (H13), Phase 2 fixes and opt-ins; v0.1.41.1 (folded into 0.1.42): the #1576 card order, #1616 stage size, #1595 CPU share, #1630/#1607 Windows HIP chunk cap and commit-limit warning, #1603 parallel-request bookkeeping; v0.1.41: CPU prefill share on by default (NVIDIA, chunks < 1024), --batch-groups auto, the file tier read in batches on Windows, Pascal decode fix, per-arch tables; v0.1.40.3: the #1357 MTP router guard, the #1376 Windows HIP cache floor, #461 runtime DLLs, Intel A750 first-request fix; v0.1.40.2: F4 verify windows, the Linux file tier (#1194), the stager wait (#1057), #1264/#1201/#1139 fixes, opt-in CPU share (#1282), Intel Arc; v0.1.40: --resident-experts on a layer split with the split+resident variant (#848), --kv k8v4 with KV streaming (#711); v0.1.39: the #577 file-tier regression fixed, the OpenAI Responses API (#451, Codex), a reply stuck on one token ended (#606), the head before the arena (#620), effort_position (#458), --vram-reserve hot resize opt-in (#533), PR batch; v0.1.38: prompts faster (one gather per expert group #372, the first chunk's PLE rows beside layer 0 #374, DeltaNet three heads per thread #413), --kv q4_0 prompts on tensor cores (#452), Q5_0 experts on the GPU (#473), IQ4_XS on AVX-2 (#415), unbuffered expert loading on Windows (#357 #362), --peer-device (#531), a 6 GB card starts (#496), PR batch; v0.1.37: a silent engine is restarted (#481), Windows AMD counts the desktop's VRAM (#380 #377 #497), a steadier PCIe probe (#485), fixes #496 #495 #498 #505 #493; v0.1.36: a cancelled prompt logged as read so far (#471), the draft-head hint (#474), UPDATE.bat (#475), --expert-profile-save (#477); v0.1.35: Windows AMD uses its bundled HIP runtime (#468 #461), the low-RAM resident mode on Windows 32 GB (#467), fixes #460 #459 #446 #447 #457 #448 #444; v0.1.34: AMD on Windows (a ready-made HIP engine), an MCP server for AI assistants (tools/strata_mcp.py), a shorter README; v0.1.33: a portable image encoder again (#411 #412), setup recommends instead of forcing (#406 #403 #364 #384), fixes #352 #365 #369 #371 #375 #393 #408 #414; v0.1.32: split prompts faster (#340), AMD router +12%, Unsloth Q4 in setup, faster Q4 prompts, #326/#327/#342/#344 fixes, PR batch; v0.1.31: Unsloth UD-Q4_K_XL (experimental), GGUF-in-place low-RAM mode, Windows GGUF load 2x, server race + tokenizer fixes, AMD intrinsics; v0.1.30: short prompts faster (streaming from 1024 tokens), resident low-RAM variant, multi-GPU session carve, RDNA4; v0.1.29: sampled answers faster (split top-k), #154 correctness fixes; v0.1.28: the expert cache reserves the draft head, a cancelled request no longer fails the next; v0.1.27: RTX 20 (sm_75) in the ready-made engine, the HIP build without CUDA headers; v0.1.26: the draft layer's prompt pass in batches; v0.1.25: faster prompts (grouping off the copy engine, fused hyper-connection kernels), AMD HIP backend, --kv k8v4; v0.1.24: long prompts faster (QSA select on tensor cores); v0.1.23: image requests honor sampling, 8 GB cards start, batched verify window; v0.1.22: faster prompts (tensor-core attention), multi-GPU across images/steering/KV streaming; v0.1.21: multi-GPU layer split (--gpus); v0.1.20: system-prompt checkpoint, PCIe probe, hit rate; v0.1.19: penalties
+MIN_ENGINE = (0, 1, 46)                # versions compare all numbers; v0.1.60: the DeepSeek engine takes an MXFP4 down under a low-bit gate/up (Unsloth's 2-/3-bit XL sets, issue #1); v0.1.59: the DeepSeek Engram reader takes Q5_K (fmt 4), which opens Unsloth UD-IQ2_XXS (device reader verified on RTX sm_89 + sm_120); v0.1.58: engine rounds 0215-0217 (tuned drafters, the file-tier re-check, prefill and Q5_0 fixes; git log c3b3f5035..HEAD); v0.1.46: the 0.2 release engine (UPDATE.bat and setup fetch it from the signed feed, #3469 #3437); v0.1.45: Qwen3.6 parallel requests and pictures, fixes #2346 #2372 #2396; v0.1.44.1: CPUs without AVX2 start again (#2324: an illegal instruction before main in the NVFP4 CPU rows), the CUDA 12.0/12.1 toolkits build (#2322), a crashed engine start is named instead of retried as a GPU runtime start, Mac M2 (#2323); v0.1.44: UD-Q4/Q5/Q6_K_XL and Q8_0 Unsloth files in setup (K-quant experts, MMQ prompt library strata_kq), NVFP4 packs, Qwen3.6-35B-A3B, Intel Arc A-series kernels, the pipelined-decode and latency work; v0.1.43.1: the adaptive overlap no longer collapses decode on pinned-host desktops (#1964 #1975), Windows PLE mmap stall (#1984), pinned prompt uploads (#1996), the I/O watchdog allowance; v0.1.43: adaptive-tier copies overlap on CUDA, P100 (sm_60) kernel tables, RDNA4 (gfx1200/gfx1201) defaults (route tail skip, measured PCIe share, 16K prompt chunks, fused IQ3 prompt experts); v0.1.42.1: the GGUF-in-place file tier on Windows unmaps every shard, dual-socket starts judge each NUMA node and STRATA_DROP_CACHE_ON_EXIT, tools/strata_bench.py; v0.1.42: STRATA_ROUTE_TAIL_SKIP=7 default on CUDA (+13-16% decode), the AMD 2-GPU checkpoint fix (H13), Phase 2 fixes and opt-ins; v0.1.41.1 (folded into 0.1.42): the #1576 card order, #1616 stage size, #1595 CPU share, #1630/#1607 Windows HIP chunk cap and commit-limit warning, #1603 parallel-request bookkeeping; v0.1.41: CPU prefill share on by default (NVIDIA, chunks < 1024), --batch-groups auto, the file tier read in batches on Windows, Pascal decode fix, per-arch tables; v0.1.40.3: the #1357 MTP router guard, the #1376 Windows HIP cache floor, #461 runtime DLLs, Intel A750 first-request fix; v0.1.40.2: F4 verify windows, the Linux file tier (#1194), the stager wait (#1057), #1264/#1201/#1139 fixes, opt-in CPU share (#1282), Intel Arc; v0.1.40: --resident-experts on a layer split with the split+resident variant (#848), --kv k8v4 with KV streaming (#711); v0.1.39: the #577 file-tier regression fixed, the OpenAI Responses API (#451, Codex), a reply stuck on one token ended (#606), the head before the arena (#620), effort_position (#458), --vram-reserve hot resize opt-in (#533), PR batch; v0.1.38: prompts faster (one gather per expert group #372, the first chunk's PLE rows beside layer 0 #374, DeltaNet three heads per thread #413), --kv q4_0 prompts on tensor cores (#452), Q5_0 experts on the GPU (#473), IQ4_XS on AVX-2 (#415), unbuffered expert loading on Windows (#357 #362), --peer-device (#531), a 6 GB card starts (#496), PR batch; v0.1.37: a silent engine is restarted (#481), Windows AMD counts the desktop's VRAM (#380 #377 #497), a steadier PCIe probe (#485), fixes #496 #495 #498 #505 #493; v0.1.36: a cancelled prompt logged as read so far (#471), the draft-head hint (#474), UPDATE.bat (#475), --expert-profile-save (#477); v0.1.35: Windows AMD uses its bundled HIP runtime (#468 #461), the low-RAM resident mode on Windows 32 GB (#467), fixes #460 #459 #446 #447 #457 #448 #444; v0.1.34: AMD on Windows (a ready-made HIP engine), an MCP server for AI assistants (tools/strata_mcp.py), a shorter README; v0.1.33: a portable image encoder again (#411 #412), setup recommends instead of forcing (#406 #403 #364 #384), fixes #352 #365 #369 #371 #375 #393 #408 #414; v0.1.32: split prompts faster (#340), AMD router +12%, Unsloth Q4 in setup, faster Q4 prompts, #326/#327/#342/#344 fixes, PR batch; v0.1.31: Unsloth UD-Q4_K_XL (experimental), GGUF-in-place low-RAM mode, Windows GGUF load 2x, server race + tokenizer fixes, AMD intrinsics; v0.1.30: short prompts faster (streaming from 1024 tokens), resident low-RAM variant, multi-GPU session carve, RDNA4; v0.1.29: sampled answers faster (split top-k), #154 correctness fixes; v0.1.28: the expert cache reserves the draft head, a cancelled request no longer fails the next; v0.1.27: RTX 20 (sm_75) in the ready-made engine, the HIP build without CUDA headers; v0.1.26: the draft layer's prompt pass in batches; v0.1.25: faster prompts (grouping off the copy engine, fused hyper-connection kernels), AMD HIP backend, --kv k8v4; v0.1.24: long prompts faster (QSA select on tensor cores); v0.1.23: image requests honor sampling, 8 GB cards start, batched verify window; v0.1.22: faster prompts (tensor-core attention), multi-GPU across images/steering/KV streaming; v0.1.21: multi-GPU layer split (--gpus); v0.1.20: system-prompt checkpoint, PCIe probe, hit rate; v0.1.19: penalties
 # KV bytes per context token and attention layer: 8-bit 1056, rotated 4-bit 576, hybrid K8V4 (8-bit K, 4-bit V) 816
 KV_CELL_BYTES = {"q4_0": 576, "k8v4": 816}
 PY_PACKAGES = ["numpy", "jinja2", "regex", "pyyaml", "tqdm", "requests", "pillow", "psutil"]
@@ -942,6 +942,61 @@ DSV41_UDIQ2_FILES = {
     "DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-00006-of-00006.gguf": (135172021792, "406103485a7a7193337adee38b7178d3b636940aaa3ca033bc91e0d3687e3031"),
 }
 DSV41_FILES.update(DSV41_UDIQ2_FILES)   # (the repository's pins: REPO_PINS)
+
+# Unsloth's four 2- and 3-bit XL sets (pinned 2026-11-10 from the Hub at the revision above; the same commit serves every file of the repository).
+# Shard 1 is metadata, the middle shards are the model, and the LAST shard is the set's own n-gram table - never the shared IQ4_NL file.
+# Their expert headers were read back on this branch: 40 layers each, gate = up in every layer, and 7 / 30 / 18 / 4 layers keep an
+# MXFP4 down under a low-bit gate/up (IQ2_XS, IQ2_XXS, IQ2_S, IQ3_XXS, Q3_K) - the shape engine 0.1.60 runs. Quality is not measured.
+# UD-Q2_K_XL: 7 shards, its table (shard 7) is Q5_K.
+DSV41_UDQ2K_SHARD = "DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-{i:05d}-of-00007.gguf"
+DSV41_UDQ2K_FILES = {
+    "DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-00001-of-00007.gguf": (5780868, "6b6e9ace54298156974cc3e024e5ba86d50c40c06482da8f64fece77d7f73452"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-00002-of-00007.gguf": (49290279808, "fa56e7cb79f88d992170bbc41b192991bd89b9534c53106e328fc03a5d26afed"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-00003-of-00007.gguf": (49745070208, "b279f9bbb331460d182658a9ec6a49eb232ef7d8c69600a2c53d5d797bf037b4"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-00004-of-00007.gguf": (48680128800, "c7fed7b94a11aeafbf07e164940718fab26e99a5f1d9986af0602c6515d18bff"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-00005-of-00007.gguf": (49970937696, "c8d6bd8063607e788db7daed01487f4e87a9529d5756dd561481bed78fea7d6d"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-00006-of-00007.gguf": (1929325664, "2f62bf418b0f722254728bdd88b4b1c88c1b64a4d664c7b696c08fecd49abd76"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q2_K_XL-00007-of-00007.gguf": (135172021792, "a653c5309b7c74a6c41580aaa8c2d2bbdae0342253bca2cd3fc9e69d05f3d0eb"),
+}
+DSV41_FILES.update(DSV41_UDQ2K_FILES)
+# UD-IQ3_XXS: 7 shards, its table (shard 7) is Q6_K.
+DSV41_UDIQ3X_SHARD = "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-{i:05d}-of-00007.gguf"
+DSV41_UDIQ3X_FILES = {
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00001-of-00007.gguf": (5780927, "0c2a2031bd93ebd60aa6a4f3912775ba3990b5f39b24c6edf9ea029d2f387a28"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00002-of-00007.gguf": (49485970112, "aa7827cc3c88958f4bc4134fab2c2d63dff1e53f947f76cbb34ce429205d551c"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00003-of-00007.gguf": (49037273088, "7e5bc7c88e2bbcdadafcf672a1959581aeb2f2b23732ffd77823a756151a4e76"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00004-of-00007.gguf": (49580635872, "a6b33c1cc73bbd2a54617f0714c5144ee8ee6d6403ceea49628633a7a2be21de"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00005-of-00007.gguf": (48448165536, "5e392a945c534eb439279bbb638e7ea47e5a1cfca620b96c3fd47da87d5923a8"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00006-of-00007.gguf": (36893972640, "e1b4a74844e637d8b15c94c30757e2359f81f287824c421e8b5b746b010e030e"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_XXS-00007-of-00007.gguf": (161284798692, "9d21807ac1a40cd1635634c14135b5acca1c8b855dae228170361602c7de560b"),
+}
+DSV41_FILES.update(DSV41_UDIQ3X_FILES)
+# UD-IQ3_S: 8 shards, its table (shard 8) is Q6_K.
+DSV41_UDIQ3S_SHARD = "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-{i:05d}-of-00008.gguf"
+DSV41_UDIQ3S_FILES = {
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00001-of-00008.gguf": (5780886, "1d3027d28a1c749a5a185420640d2849849e5d42e7719df5d852572e1771de25"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00002-of-00008.gguf": (49714948320, "a5c5b3a1d56fc64e2018442170371348683a6ca31d805040946635c508698c89"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00003-of-00008.gguf": (49249617536, "0182203a6278cd29702003589b11635a8b6c58a17613270a94532a7487760092"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00004-of-00008.gguf": (49262124864, "5e1aed1952f95ada91abb3332adb8d77eff6a98281a09c246e827c6031ba0a93"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00005-of-00008.gguf": (49616016928, "69dd858b60744b9430be3b69684120d1bcb33ba4b5a740b60ddf8fc5a2875dee"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00006-of-00008.gguf": (49262122592, "962c493b4f41f2dedfb31ebbfe725d14b55d97a442f0cd14296a42ac51345ff7"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00007-of-00008.gguf": (15235610176, "c96d4a18a86dcdb3ed10e3e367bc9f3070d61a1da0144926519d2987c4e41b26"),
+    "DeepSeek-V4.1-Flash-1017-UD-IQ3_S-00008-of-00008.gguf": (161284798692, "e70b4bf3ac5b26aa2addb048cff61a6be5490e99ba88cfbc29f7fb7279000141"),
+}
+DSV41_FILES.update(DSV41_UDIQ3S_FILES)
+# UD-Q3_K_XL: 8 shards, its table (shard 8) is MXFP8 - the same bytes as the 4- and 8-bit sets' table.
+DSV41_UDQ3K_SHARD = "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-{i:05d}-of-00008.gguf"
+DSV41_UDQ3K_FILES = {
+    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00001-of-00008.gguf": (5780927, "427a6be72b502c52562b1f1f7c5c764cad2a4cb3af991e9aaf02a33d958cc322"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00002-of-00008.gguf": (48856795552, "9a3500224d10ca5565f010f57154f5b1999406c9453d86e4a0903a8183503697"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00003-of-00008.gguf": (48089732928, "ba5c295631a392c7f929a14b633f6c9badc0eb1c9d719ecad92ec43efd4ddc6d"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00004-of-00008.gguf": (49795067616, "4dd4ea5d34219cd1444218352def2977dd153739853464154a3936276f31ffbb"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00005-of-00008.gguf": (49964720992, "1a733e505a723fb1a5ccc15a45547c6d42097d8830d8fa4c4d17ca7bbb580855"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00006-of-00008.gguf": (49332666816, "0592a53ddba5a57062e266116bae26e9f1a97c268acb5287c8f4be5bb1741314"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00007-of-00008.gguf": (36265841792, "e6e8dd016ffbb2820f0e6a37f4f8a531f5365fbdd009e758dda1c054453f9ffc"),
+    "DeepSeek-V4.1-Flash-1017-UD-Q3_K_XL-00008-of-00008.gguf": (202758032592, "18ddc73eea11981cb6317c6d3c4a4e58ec71baaea2de41b071d9127bc15c2a94"),
+}
+DSV41_FILES.update(DSV41_UDQ3K_FILES)
 # The ISTA-DAS Coder (2026-11-01; the official ISTA-DASLab repository since 2026-11-02): ISTA-DAS's coding variant of this model, "the layout of the
 # IQ2_XXS set with half of the experts removed": 192 routed experts a layer instead of 384 (the router, the experts and the routing biases are narrower; every other tensor has the 2.00
 # set's name, shape and type).  Five model files in the folder IQ2_XXS/ (shard 1 = the metadata, shards 2-5 = the model; the Engram would be the sixth shard of the split) plus two files at
@@ -971,6 +1026,7 @@ DSV41_ALT_NAMES = {DSV41_MMPROJ: (DSV41_CODER["mmproj"],)} if (DSV41_CODER_REPO 
 # The Coder repository's Engram file is the unpruned release's Engram under the same name (DSV41_ISTA_ENGRAM, converted: DSV41_ENGRAM_CONVERTED's SHA-256, accepted beside the pinned one
 # by DSV41_SHA_ALSO), so it never replaces that pin: one Engram file, on the SSD, shared by every set (a copy of either file already here is used where it is).
 DSV41_ALL_FILES = {**DSV41_FILES, **DSV41_ISTA_FILES, **DSV41_ISTA6_FILES, **DSV41_LEGACY_FILES, **DSV41_UD_FILES, **DSV41_UDQ4_FILES, **DSV41_UDIQ2_FILES,
+                   **DSV41_UDQ2K_FILES, **DSV41_UDIQ3X_FILES, **DSV41_UDIQ3S_FILES, **DSV41_UDQ3K_FILES,
                    **{n: v for n, v in DSV41_CODER_FILES.items() if n not in (DSV41_MMPROJ, DSV41_ISTA_ENGRAM)}}
 
 
@@ -1051,9 +1107,52 @@ MULTI_FILE_FAMILIES["deepseek41"]["models"] = {
                  "n-gram table in Q5_K (the sixth shard, not the shared table of the other sets) + 8 GB drafter (308 GB of disk). Its table is read by the engine's "
                  "Q5_K reader, so it needs engine 0.1.59 or newer. A 2-bit version: expect weaker answers than the 2.00 and 2.25 versions on long, detailed or careful "
                  "work (its quality is not measured against the original yet). Pick 2.00 or 2.25 if they fit",
-        "ram_gb": 48, "recipe": "udiq2", "subdir": "UD-IQ2_XXS", "legacy_subdir": None, "profile": "profile-2.00.bin", "hf": hf(DSV41_REPO) + "UD-IQ2_XXS/",
+        "ram_gb": 48, "recipe": "udiq2", "min_engine": (0, 1, 59), "subdir": "UD-IQ2_XXS", "legacy_subdir": None, "profile": "profile-2.00.bin",
+        "hf": hf(DSV41_REPO) + "UD-IQ2_XXS/",
         "shards": [DSV41_UDIQ2_SHARD.format(i=i) for i in range(1, 6)],
         "engram_shard": DSV41_UDIQ2_SHARD.format(i=6),
+        "shared": [DSV41_DSPARK]},
+    "UD-Q2_K_XL": {
+        "label": "Unsloth UD-Q2_K_XL",
+        "about": "Unsloth's 2-bit XL dynamic version: 199.6 GB of model (seven layers mix an MXFP4 down with 2-bit IQ2 gate and up; the other "
+                 "experts are IQ2 and IQ3 types, attention in Q6_K) + its OWN 135 GB n-gram table in Q5_K (shard 7, not the shared table) + "
+                 "8 GB drafter (343 GB of disk). Its mixed layers need the engine from 0.1.60. A 2-bit version: quality is not measured "
+                 "against the original yet; pick 2.00 or 2.25 if they fit",
+        "ram_gb": 58, "recipe": "udtable", "min_engine": (0, 1, 60), "ngram": "Q5_K", "subdir": "UD-Q2_K_XL", "legacy_subdir": None,
+        "profile": "profile-2.00.bin", "hf": hf(DSV41_REPO) + "UD-Q2_K_XL/",
+        "shards": [DSV41_UDQ2K_SHARD.format(i=i) for i in range(1, 7)],
+        "engram_shard": DSV41_UDQ2K_SHARD.format(i=7),
+        "shared": [DSV41_DSPARK]},
+    "UD-IQ3_XXS": {
+        "label": "Unsloth UD-IQ3_XXS",
+        "about": "Unsloth's 3-bit i-quant XL dynamic version: 233.5 GB of model (30 layers mix an MXFP4 down with IQ2 / IQ3 / Q3_K gate and "
+                 "up; the other experts are IQ2 / IQ3 / Q3_K types, attention in Q6_K) + its OWN 161 GB n-gram table in Q6_K (shard 7) + 8 GB drafter "
+                 "(403 GB of disk). Its mixed layers need the engine from 0.1.60. Quality is not measured against the original yet",
+        "ram_gb": 68, "recipe": "udtable", "min_engine": (0, 1, 60), "ngram": "Q6_K", "subdir": "UD-IQ3_XXS", "legacy_subdir": None,
+        "profile": "profile-2.00.bin", "hf": hf(DSV41_REPO) + "UD-IQ3_XXS/",
+        "shards": [DSV41_UDIQ3X_SHARD.format(i=i) for i in range(1, 7)],
+        "engram_shard": DSV41_UDIQ3X_SHARD.format(i=7),
+        "shared": [DSV41_DSPARK]},
+    "UD-IQ3_S": {
+        "label": "Unsloth UD-IQ3_S",
+        "about": "Unsloth's larger 3-bit i-quant XL dynamic version: 262.3 GB of model (18 layers mix an MXFP4 down with IQ2 / IQ3 / Q3_K gate "
+                 "and up; 15 layers are all-MXFP4 and the rest all-low-bit, attention in Q6_K) + its OWN 161 GB n-gram table in Q6_K (shard 8) + 8 GB drafter "
+                 "(432 GB of disk). Its mixed layers need the engine from 0.1.60. Quality is not measured against the original yet",
+        "ram_gb": 77, "recipe": "udtable", "min_engine": (0, 1, 60), "ngram": "Q6_K", "subdir": "UD-IQ3_S", "legacy_subdir": None,
+        "profile": "profile-2.00.bin", "hf": hf(DSV41_REPO) + "UD-IQ3_S/",
+        "shards": [DSV41_UDIQ3S_SHARD.format(i=i) for i in range(1, 8)],
+        "engram_shard": DSV41_UDIQ3S_SHARD.format(i=8),
+        "shared": [DSV41_DSPARK]},
+    "UD-Q3_K_XL": {
+        "label": "Unsloth UD-Q3_K_XL",
+        "about": "Unsloth's 3-bit XL dynamic version: 282.3 GB of model (four layers mix an MXFP4 down with IQ2_S / IQ3_XXS gate and up; "
+                 "29 layers are all-MXFP4 and the rest all-low-bit, attention in Q6_K) + its OWN 203 GB n-gram table in MXFP8 (shard 8, the same bytes as "
+                 "the 4- and 8-bit sets) + 8 GB drafter (493 GB of disk). Its mixed layers need the engine from 0.1.60. Quality is not "
+                 "measured against the original yet",
+        "ram_gb": 82, "recipe": "udtable", "min_engine": (0, 1, 60), "ngram": "MXFP8", "subdir": "UD-Q3_K_XL", "legacy_subdir": None,
+        "profile": "profile-2.00.bin", "hf": hf(DSV41_REPO) + "UD-Q3_K_XL/",
+        "shards": [DSV41_UDQ3K_SHARD.format(i=i) for i in range(1, 8)],
+        "engram_shard": DSV41_UDQ3K_SHARD.format(i=8),
         "shared": [DSV41_DSPARK]},
     "UD-Q4_K_XL": {
         "label": "Unsloth UD-Q4_K_XL",
@@ -8967,11 +9066,17 @@ def dsv41_pack_cmd(folder: Path, shards: list, engram: Path, meta: Path, dspark:
             "--dspark-noise-token", "128799", "--dspark-markov-rank", "256", *(["--mmproj", str(mmproj)] if mmproj else []), "--out", str(pack)]
 
 
+def dsv41_version_at_least(version, want) -> bool | None:
+    """Is the engine version `version` at least `want`?  None when the version is not a number (a source build has no BUILD.json version:
+    a build of this source carries the code)."""
+    m = re.match(r"(\d+)\.(\d+)\.(\d+)", str(version or ""))
+    return None if not m else tuple(int(x) for x in m.groups()) >= tuple(want)
+
+
 def dsv41_reads_q5k(version) -> bool | None:
     """Does an engine of `version` read the Q5_K Engram table (fmt 4: 0.1.59 and newer, docs/DEEPSEEK41.md)?  None when the version is not a number
     (a source build has no BUILD.json version: a build of this source carries the reader)."""
-    m = re.match(r"(\d+)\.(\d+)\.(\d+)", str(version or ""))
-    return None if not m else tuple(int(x) for x in m.groups()) >= (0, 1, 59)
+    return dsv41_version_at_least(version, (0, 1, 59))
 
 
 # Pictures on a card with memory of its own (HIP / CUDA): the engine keeps --reserve-mib free on each card (default 600) and a picture turn takes the tower's encode buffers and
@@ -9303,7 +9408,9 @@ def install_dsv41(a, family, gpu, hip, amd, cuda_tk, multi, port, ram, adopted, 
                               if md.get("recipe") == "coder" else "Unsloth (huggingface.co/unsloth/DeepSeek-V4.1-Flash-1017-GGUF)"))
     udlow = md.get("recipe") in ("udlow", "coder")     # Unsloth's UD-IQ1_S / UD-IQ1_M and the ISTA-DAS Coder: packed and checked like the ISTA-DAS sets; the set's last file is the Engram
     udiq2 = md.get("recipe") == "udiq2"                # Unsloth's UD-IQ2_XXS: packed like the udlow sets, but the set's own sixth shard (its Q5_K table) is the Engram, and the shared IQ4_NL file plays no part
-    ista = md.get("recipe") in ("ista", "udlow", "coder", "udiq2")
+    udtable = md.get("recipe") == "udtable"             # Unsloth's XL 2- and 3-bit sets: their own n-gram table is the last shard, and the mixed expert layers need 0.1.60
+    own_table = udiq2 or udtable
+    ista = md.get("recipe") in ("ista", "udlow", "coder", "udiq2", "udtable")
     tag = fam["tag"] + model
     named = cards_named(a, hip)
     cards = dsv41_cards(gpu, all_cards, named)
@@ -9319,7 +9426,7 @@ def install_dsv41(a, family, gpu, hip, amd, cuda_tk, multi, port, ram, adopted, 
     if layout == "six" and any((folder / n).exists() for n in md["shards"]):
         say(f"  {folder} holds both the older four-shard files and the six-shard files ISTA's converter wrote: the six-shard files are used (they carry the current chat template).")
     shards = [dsv41_pick(folder, n) for n in (md["shards6"] if layout == "six" else md["shards"])]
-    if udiq2:      # the set's own shard 6 (its Q5_K n-gram table) downloads and verifies with the model, and goes to the packer as --engram, never as --shards
+    if own_table:      # the set's own last shard (its n-gram table) downloads and verifies with the model, and goes to the packer as --engram, never as --shards
         shards = [*shards, dsv41_pick(folder, md["engram_shard"])]
     if layout == "six":
         say(f"  {folder} holds ISTA-DASLab's six-shard files of 2026-10-27 ({len(shards)} files and the Engram as the sixth): they are used where they are.")
@@ -9453,6 +9560,11 @@ def install_dsv41(a, family, gpu, hip, amd, cuda_tk, multi, port, ram, adopted, 
     if udiq2 and dsv41_reads_q5k(engine_version_of(eng)) is False:   # the Q5_K n-gram table (fmt 4) an engine from 0.1.59 reads: said BEFORE the 300 GB are fetched
         fail(f"the DeepSeek engine installed here ({engine_version_of(eng)}) cannot read UD-IQ2_XXS's Q5_K n-gram table",
              "run `strata update` (or the app's Update engine) to engine 0.1.59 or newer, then run the same command again; nothing has been downloaded")
+    if udtable and dsv41_version_at_least(engine_version_of(eng), md["min_engine"]) is False:   # low-bit gate/up with an MXFP4 down: said BEFORE the hundreds of GB are fetched
+        want = ".".join(str(x) for x in md["min_engine"])
+        fail(f"the DeepSeek engine installed here ({engine_version_of(eng)}) cannot load {model}'s mixed expert layers "
+             f"(a low-bit gate and up beside an MXFP4 down; they need engine {want} or newer)",
+             f"run `strata update` (or the app's Update engine) to engine {want} or newer, then run the same command again; nothing has been downloaded")
     step(5, f"downloading {fam['title']} {model}")
     for f in shards:
         if f.exists() and done(f):
@@ -9504,7 +9616,7 @@ def install_dsv41(a, family, gpu, hip, amd, cuda_tk, multi, port, ram, adopted, 
         if ista:
             if udlow:       # the set's own shard 1 carries the metadata (and the drafter's geometry); shared = [Engram, drafter]
                 run(dsv41_pack_cmd(folder, [f.name for f in shards], shared[0], shards[0], shared[1], pack, mmproj_file))
-            elif udiq2:     # the same recipe with the Engram swapped: --engram is the set's own shard 6 (the Q5_K table, the last file of `shards`), the drafter is shared[0]
+            elif own_table: # the same recipe with the Engram swapped: --engram is the set's own last shard (its n-gram table), the drafter is shared[0]
                 run(dsv41_pack_cmd(folder, [f.name for f in shards[:-1]], shards[-1], shards[0], shared[0], pack, mmproj_file))
             else:
                 run(dsv41_pack_cmd(folder, [f.name for f in shards], shared[0], shared[1], shared[2], pack, mmproj_file))

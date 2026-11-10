@@ -133,12 +133,11 @@ class DeepSeekWithAModel(Dsv41Engine):
         self.assertEqual(self.starts, [("launch-deepseek", self.old)], "started again, on the engine it had")
         self.assertIn("old engine is unchanged", self.script.asked[1][0])
 
-    @unittest.skipUnless(LINUX, "the stand-in model process is a copy of /bin/sleep")
+    @unittest.skipUnless(LINUX, "the stand-in model process is a shell sleep")
     def test_the_file_a_loaded_model_runs_from_is_never_touched(self):
-        import shutil
-        shutil.copy("/bin/sleep", self.old)
+        self.old.write_text("#!/bin/sh\n/bin/sleep 300\n", encoding="utf-8")   # (a copy of /bin/sleep may be a coreutils multicall that refuses its new name)
         self.old.chmod(0o755)
-        proc = subprocess.Popen([str(self.old), "300"])
+        proc = subprocess.Popen([str(self.old)])
         self.addCleanup(lambda: (proc.kill(), proc.wait()))
         time.sleep(0.3)
         before = self.old.read_bytes()

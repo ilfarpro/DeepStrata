@@ -18,6 +18,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+
 #include <cuda_runtime.h>
 
 namespace strata::ds4::gguf {
@@ -39,12 +41,24 @@ __host__ __device__ inline size_t q8_row_bytes(int64_t k) { return (size_t) (k /
 
 /// A GGUF expert layer (x3::ExpertLayout::fmt kFmtMXFP4: block-quantized experts read in place) keeps each role's ggml
 /// type in lay.K[r] (r: gate, up, down; 0 = MXFP4): MXFP4 takes these kernels, the low-bit types ds4_iq.cuh's
-/// (gate and up of one type).  Roles of one layer may differ (down of another type); MXFP4 and a low-bit type do not
-/// mix.
+/// (gate and up of one type).  Roles of one layer may differ (down of another type).  All three MXFP4 is one shape;
+/// gate and up low-bit with down MXFP4 is the other (Unsloth's 2- and 3-bit sets).  Every other mix is refused: gate
+/// and up must match, and MXFP4 gate/up beside a low-bit down is not covered.
 inline int expert_type(const x3::ExpertLayout& l, int r) { return l.K[r] == 0 ? kTypeMXFP4 : l.K[r]; }
 inline bool mx_experts(const x3::ExpertLayout& l) {
     return expert_type(l, 0) == kTypeMXFP4 && expert_type(l, 1) == kTypeMXFP4 && expert_type(l, 2) == kTypeMXFP4;
 }
+/// Whether gate and up are MXFP4 (then all three are: see mx_experts), and whether down is.
+inline bool mx_gate_up(const x3::ExpertLayout& l) {
+    return expert_type(l, 0) == kTypeMXFP4 && expert_type(l, 1) == kTypeMXFP4;
+}
+inline bool mx_down(const x3::ExpertLayout& l) { return expert_type(l, 2) == kTypeMXFP4; }
+/// gate/up low-bit, down MXFP4, gate == up: the mixed shape the per-role builders take.
+inline bool mixed_down_mx(const x3::ExpertLayout& l) {
+    return !mx_experts(l) && mx_down(l) && expert_type(l, 0) != kTypeMXFP4 && expert_type(l, 0) == expert_type(l, 1);
+}
+/// The one rule of a layer's three roles (expert_layout_mx / this header's comment).  `why` says what refused it.
+bool expert_shape_ok(int tg, int tu, int td, std::string& why);
 /// Bytes of a row of k values of an expert type (0: not one the device kernels take, or k not whole blocks).
 size_t type_row_bytes(int type, int64_t k);
 /// Values a block of an expert type (32: MXFP4, 256: the low-bit ones; 0: neither).

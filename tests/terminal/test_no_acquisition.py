@@ -80,8 +80,10 @@ class ImportGraphTests(unittest.TestCase):
             "from strata_control import runtime\n"
             "c.parser()\n"
             "root = os.getcwd()\n"
+            "prefix = os.path.abspath(sys.prefix) + os.sep\n"
             "mods = {n: os.path.relpath(m.__file__, root).replace(os.sep, '/') for n, m in list(sys.modules.items())\n"
-            "        if getattr(m, '__file__', None) and os.path.abspath(m.__file__).startswith(root)}\n"
+            "        if getattr(m, '__file__', None) and os.path.abspath(m.__file__).startswith(root)\n"
+            "        and not os.path.abspath(m.__file__).startswith(prefix)}\n"
             "print(json.dumps({'mods': mods, 'names': sorted(sys.modules)}))\n")
         r = subprocess.run([sys.executable, "-c", script], cwd=ROOT, capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr[-1000:])

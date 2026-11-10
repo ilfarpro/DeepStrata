@@ -130,10 +130,10 @@ of the five:
 | set | download | routed experts | n-gram table | what stops it |
 |---|---:|---|---|---|
 | UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | done on this branch: the engine (run on RTX) and the setup wiring, the fit entry and an engine-version gate; left: a release that carries fmt 4, a serving run on the card, and a quality measurement |
-| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | the experts rule; taken on this branch, wired into setup; left: a release carrying it, the device and real-set runs |
-| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule; taken on this branch, wired into setup; left: a release carrying it, the device and real-set runs |
-| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule; taken on this branch, wired into setup; left: a release carrying it, the device and real-set runs |
-| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers mix an MXFP4 down with low-bit gate/up | MXFP8, 202.8 GB | the experts rule; taken on this branch, wired into setup; left: a release carrying it, the device and real-set runs |
+| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | the mixed shape; wired into setup and device-tested on both target cards; left: a real-set load, quality and a release |
+| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the mixed shape; wired into setup and device-tested on both target cards; left: a real-set load, quality and a release |
+| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the mixed shape; wired into setup and device-tested on both target cards; left: a real-set load, quality and a release |
+| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers mix an MXFP4 down with low-bit gate/up | MXFP8, 202.8 GB | the mixed shape; wired into setup and device-tested on both target cards; left: a real-set load, quality and a release |
 
 The experts columns are read from the shards' tensor headers; the sums cross-check with the pinned file sizes to under 0.1 GB.
 All five were re-read value by value on this branch, layer by layer: gate and up match in every layer of every set, so the
@@ -244,11 +244,21 @@ now covers every one of those gate/up types against MXFP4 down.
 
 Validation so far: CUDA 13.5.37 builds green for both target architectures (sm_89 for the RTX 4080 SUPER and sm_120 for
 the RTX 5060 Ti; `cuobjdump --list-elf` shows both cubins), and the CPU lane's mixed composition passes its synthetic
-Q8_K / MXFP4 reference test (`ds4_gguf_test --mixed-cpu`). Device parity tests for the token, window, set, PCIe-lane and CPU-lane paths
-were added in `tests/dsv41/ds4_gguf_test.cu` but **not run** here (this machine has no CUDA driver), and no real set was
-loaded. HIP and Metal were not built, and Metal also keeps a narrower `iq::supported` set. The four sets are therefore
-not offered yet: the release needs the device runs and the real-set perplexity and tok/s measurements on the target
-cards. Their counts are unchanged: **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4** mixed layers (gate and up
+Q8_K / MXFP4 reference test (`ds4_gguf_test --mixed-cpu`).
+
+The CUDA device suite was then run on both target cards in the same session: `CUDA_VISIBLE_DEVICES=0 ds4_gguf_test` on
+the RTX 4080 SUPER (sm_89) and `CUDA_VISIBLE_DEVICES=1 ds4_gguf_test` on the RTX 5060 Ti (sm_120). Both runs printed
+`ALL OK (0 failed)` (351 checks each). For every one of the five real gate/up types against an MXFP4 down they covered
+the token path, the window path, the three set paths (90/200/400 rows, one light and all light), the CPU lane's two
+halves, and the PCIe lane with 3 of 6 and none streamed, in place and copied: "bit for bit all in VRAM". The mixed
+pairs' token errors were 1.35e-7 (IQ2_XS), 2.18e-7 (IQ2_S), 2.21e-7 (IQ3_XXS), 1.40e-7 (IQ3_S) and 1.81e-7 (Q3_K)
+against the CPU reference, and the set paths stayed within 3.1e-4 to 6.6e-4 (F16 activation rounding), well inside the
+test's limits.
+
+No real set was loaded (the target sets need 343-493 GB of files; this machine has 848 GB free, but the current model
+uses the same two cards and 151 GB of RAM, so a second model must not run beside it). HIP and Metal were not built, and
+Metal also keeps a narrower `iq::supported` set. The four sets are therefore not offered yet: the release needs a
+real-set load and the real-set perplexity and tok/s measurements on the target cards. Their counts are unchanged: **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4** mixed layers (gate and up
 match in every layer of all four, and each set's other layers are all-MXFP4 or all-low-bit as before). Existing packs
 and their bytes are untouched; a mixed layer is read in the role each matrix already has.
 

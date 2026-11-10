@@ -120,7 +120,10 @@ SCAN_DIRS = [
     "strata_control", "strata_cli", "serve", "sycl", "packaging", "docker", "tools", "bin",
     "apps/host/server", "apps/host/src", "apps/host/scripts",
 ]
-SCAN_FILES = ["setup.py", "update.sh", "strata.py", "apps/host/vite.config.ts"]
+# the root launchers a person runs by hand: the Windows twins carry the same addresses as `update.sh`, and one of them
+# sent Windows users to the original repository because only the Unix twin was scanned
+SCAN_FILES = ["setup.py", "update.sh", "bench.sh", "strata.py", "apps/host/vite.config.ts",
+              "START-HERE.bat", "SETUP.bat", "UPDATE.bat", "BENCH.bat"]
 SKIP_PARTS = {"node_modules", "__pycache__", "target", "dist", "fixtures"}           # fixtures hold capture samples, not product code
 TEXT_EXTS = {".py", ".mjs", ".js", ".ts", ".tsx", ".rs", ".nsi", ".sh", ".ps1", ".cmd", ".bat",
              ".toml", ".md", ".txt", ".yml", ".yaml"}                                 # plus extensionless files (bin/deepstrata, docker/Dockerfile)
@@ -151,7 +154,9 @@ WORKSPACE_SKIP_LINE = re.compile(r"\.git\b")
 
 
 def scanned_files():
-    paths = [ROOT / rel for rel in SCAN_FILES]
+    # SCAN_FILES first: they name single files at the root, which no SCAN_DIRS walk reaches. Yielding them was missing, so
+    # `setup.py`, `update.sh`, `strata.py` and the root launchers were never scanned and the scan passed by covering nothing.
+    yield from (ROOT / rel for rel in SCAN_FILES)
     for rel in SCAN_DIRS:
         for path in sorted((ROOT / rel).rglob("*")):
             if path.is_file():

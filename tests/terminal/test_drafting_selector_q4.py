@@ -2,7 +2,7 @@
 
 The idea and the bytes are nazeshinjite's (https://huggingface.co/nazeshinjite/Qwen3.8-Flash-Next-DFlash2-GGUF, Apache-2.0): the community GGUF stores the selector's two
 codebooks as Q4_0, and tools/dflash2_pack.py --q4_0-selector writes exactly those bytes (checked against the GGUF with the real checkpoint: RESULTS-DF2MEM.md section 15).
-These tests use the small synthetic checkpoint of tools/test_dflash2_pack.py: the real pins cannot be exercised without the 1.2 GB download, so the pinned numbers are
+These tests use the small synthetic checkpoint of tests/tools/test_dflash2_pack.py: the real pins cannot be exercised without the 1.2 GB download, so the pinned numbers are
 checked for consistency and the mechanism with pins of the synthetic pack.
 """
 
@@ -48,7 +48,7 @@ class SmallPacks(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.synth = _load("t_pack_sel", "tools/test_dflash2_pack.py")
+        cls.synth = _load("t_pack_sel", "tests/tools/test_dflash2_pack.py")
         cls.packer = _load("strata_dflash2_pack_sel", "tools/dflash2_pack.py")
 
     def setUp(self):

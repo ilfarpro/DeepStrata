@@ -725,11 +725,13 @@ def _host_tests(directory: Path, timeout: float | None) -> dict:
     results = []
     commands = [([sys.executable, "-m", "pytest", "-q", "tests/terminal", "tests/serve", "tests/tools"], ROOT, "pytest.log"),
                 ([npm, "test"], host, "host-npm-test.log")]
+    test_env = {**os.environ, "TERM": "xterm-256color", "COLORTERM": "truecolor", "PYTHONIOENCODING": "utf-8"}
+    test_env.pop("NO_COLOR", None)       # the page and the Terminal tests check colours and the Unicode cursor
     for cmd, cwd, name in commands:
         log = log_dir / name
         started = time.monotonic()
         say(f"running {name} ...")
-        code = run_command(cmd, cwd=cwd, env=env if cmd[0] == npm else None, log=log, check=False, timeout=timeout)
+        code = run_command(cmd, cwd=cwd, env=env if cmd[0] == npm else test_env, log=log, check=False, timeout=timeout)
         item = {"command": shlex.join(cmd), "cwd": str(cwd), "exit": code, "seconds": round(time.monotonic() - started, 1),
                 "log": str(log.relative_to(directory))}
         results.append(item)

@@ -84,12 +84,13 @@ class KeepAwakeTests(unittest.TestCase):
         svc.keep_awake = ka = KeepAwake(rec)
         kinds = [k for k, _ in svc.run(tok.encode("hi"), False, None, 8, {}, threading.Event())]
         self.assertIn("done", kinds)
-        self.assertTrue(wait_for(lambda: rec.calls == [ON, ES_CONTINUOUS]))
+        # A request shorter than the worker thread's next wake needs no hold at all: only a request that is
+        # still running when the hold is taken proves the pair.  The generator below is that request.
         gen = svc.run(tok.encode("hi"), False, None, 8, {}, threading.Event())
         next(gen)
-        self.assertTrue(wait_for(lambda: rec.calls[-1] == ON))
+        self.assertTrue(wait_for(lambda: rec.calls and rec.calls[-1] == ON))
         gen.close()                                           # the client left
-        self.assertTrue(wait_for(lambda: rec.calls[-1] == ES_CONTINUOUS))
+        self.assertTrue(wait_for(lambda: rec.calls and rec.calls[-1] == ES_CONTINUOUS))
         ka.close()
 
     def test_default_service_has_none(self):

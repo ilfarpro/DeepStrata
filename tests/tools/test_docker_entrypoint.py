@@ -199,7 +199,7 @@ class Entrypoint(unittest.TestCase):
         (data / "models" / "t" / "f.gguf").write_text("old")
         (data / "Strata-data" / "models" / "t").mkdir(parents=True)
         (data / "Strata-data" / "models" / "t" / "f.gguf").write_text("new")
-        p = self.start(MODEL="IQ3_XXS")
+        p = self.start(MODEL="IQ3_XXS", ALLOW_DOWNLOAD="1")     # the old folder would otherwise stop the start; this case is about never overwriting the new file
         self.wait_for("--show-key")
         self.stop(p)
         self.assertEqual((data / "Strata-data" / "models" / "t" / "f.gguf").read_text(), "new")   # never overwritten
@@ -265,7 +265,7 @@ class Entrypoint(unittest.TestCase):
         self.assertIn("Starting Strata: the model files in " + str(self.tmp / "g"), out)
 
     def test_other_commands_run_instead_of_the_server(self):
-        r = subprocess.run([SH, str(self.script), "strata", "launch", "--plan", "--model", "q2_0"], env=self.env(), capture_output=True,
+        r = subprocess.run([SH, str(self.script), "deepstrata", "launch", "--plan", "--model", "q2_0"], env=self.env(), capture_output=True,
                            text=True, timeout=30)
         self.assertEqual(r.returncode, 0)
         self.assertIn("launch --plan --model q2_0", self.log.read_text())

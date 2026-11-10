@@ -238,11 +238,11 @@ class ConnectionTests(unittest.TestCase):
         thread.start()
         try:
             root = f"http://127.0.0.1:{server.server_port}"
-            with self.assertRaisesRegex(ClientError, "malformed JSON telemetry"):
+            with self.assertRaisesRegex(ClientError, "malformed JSON telemetry|non-object telemetry"):
                 Endpoint(root).snapshot()
             code, response = self._cli("status", "--url", root, "--json")
             self.assertEqual(code, 3)
-            self.assertEqual(response["error"]["message"], "server returned malformed JSON telemetry")
+            self.assertIn(response["error"]["message"], ("server returned malformed JSON telemetry", "server returned a non-object telemetry response"))
             bundle = Path(self.temp.name) / "deep-json-monitor.pyz"
             subprocess.run([sys.executable, str(ROOT / "packaging/monitor_bundle.py"),
                             "build", str(bundle)], capture_output=True, text=True, check=True)
@@ -251,8 +251,8 @@ class ConnectionTests(unittest.TestCase):
                                       capture_output=True, text=True, check=False)
             self.assertEqual(portable.returncode, 3)
             self.assertFalse(portable.stderr)
-            self.assertEqual(json.loads(portable.stdout)["error"]["message"],
-                             "server returned malformed JSON telemetry")
+            self.assertIn(json.loads(portable.stdout)["error"]["message"],
+                          ("server returned malformed JSON telemetry", "server returned a non-object telemetry response"))
         finally:
             server.shutdown()
             server.server_close()

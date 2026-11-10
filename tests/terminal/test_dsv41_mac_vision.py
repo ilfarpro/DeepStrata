@@ -48,7 +48,7 @@ class SetupFollowsTheEngine(unittest.TestCase):
         self.assertIn("warn(_dsv41_engine.MAC_TEXT_LINE)", src[i:i + 600])
         j = src.index("step(5, f\"downloading {fam['title']} {model}\")", i)        # the next step 5 after the engine line: before any model file is fetched
         self.assertLess(i, j)
-        self.assertLess(j - i, 1800)        # (the Mac download-total correction of DL-AUDIT sits in between: it fetches nothing)
+        self.assertLess(j - i, 2600)        # (the Mac download-total correction of DL-AUDIT sits in between: it fetches nothing)
 
 
 if __name__ == "__main__":

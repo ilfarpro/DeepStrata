@@ -69,8 +69,8 @@ class Feed(unittest.TestCase):
             src = ROOT / name
             (shutil.copytree(src, top / name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc")) if src.is_dir() else shutil.copy2(src, top / name))
         (top / "bin").mkdir(parents=True, exist_ok=True)
-        shutil.copy2(ROOT / "bin" / "strata", top / "bin" / "strata")
-        (top / "bin" / "strata").chmod(0o755)
+        shutil.copy2(ROOT / "bin" / "deepstrata", top / "bin" / "deepstrata")
+        (top / "bin" / "deepstrata").chmod(0o755)
         (top / "VERSION").write_text("9.9.9\n", encoding="utf-8")
         archive = work / ("strata-terminal-9.9.9-" + PLAT + ".tar.gz")
         with tarfile.open(archive, "w:gz") as tf:
@@ -119,8 +119,8 @@ class Feed(unittest.TestCase):
                 self.assertIn("Checksum ok", r.stdout)
                 self.assertIn("Signature ok", r.stdout)
                 self.assertIn("Installed. Run:", r.stdout)
-                self.assertTrue((home / ".local" / "bin" / "strata").exists())
-                v = subprocess.run([str(home / ".local" / "bin" / "strata"), "--version"], capture_output=True, text=True, env=env, timeout=60)
+                self.assertTrue((home / ".local" / "bin" / "deepstrata").exists())
+                v = subprocess.run([str(home / ".local" / "bin" / "deepstrata"), "--version"], capture_output=True, text=True, env=env, timeout=60)
                 self.assertEqual(v.returncode, 0, v.stderr)
                 # an archive with one top folder (a terminal archive, not the feed's control package) installs too
                 data = archive.read_bytes()
@@ -130,7 +130,7 @@ class Feed(unittest.TestCase):
                 home3.mkdir()
                 r = subprocess.run(["sh", str(feed / "install.sh")], capture_output=True, text=True, env={**env, "HOME": str(home3)}, timeout=240)
                 self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-                self.assertTrue((home3 / ".local" / "share" / "strata" / "terminal" / "9.9.9" / "bin" / "strata").exists())
+                self.assertTrue((home3 / ".local" / "share" / "deepstrata" / "terminal" / "9.9.9" / "bin" / "deepstrata").exists())
                 (feed / "install-manifest.txt").write_text(" ".join(line) + chr(10))
                 # a damaged download is refused and nothing is installed
                 data = (feed / line[2]).read_bytes()
@@ -140,7 +140,7 @@ class Feed(unittest.TestCase):
                 r = subprocess.run(["sh", str(feed / "install.sh")], capture_output=True, text=True, env={**env, "HOME": str(home2)}, timeout=240)
                 self.assertNotEqual(r.returncode, 0)
                 self.assertIn("does not match the release's checksum", r.stderr)
-                self.assertFalse((home2 / ".local" / "share" / "strata" / "terminal" / "9.9.9").exists())
+                self.assertFalse((home2 / ".local" / "share" / "deepstrata" / "terminal" / "9.9.9").exists())
             finally:
                 server.shutdown()
 
@@ -187,7 +187,7 @@ class Feed(unittest.TestCase):
                 self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
                 self.assertIn("Checksum ok", r.stdout)
                 self.assertIn("Signature ok", r.stdout)
-                self.assertTrue((home / ".local" / "bin" / "strata").exists())
+                self.assertTrue((home / ".local" / "bin" / "deepstrata").exists())
             finally:
                 server.shutdown()
 

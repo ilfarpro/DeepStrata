@@ -306,7 +306,7 @@ class Resume(unittest.TestCase):
             "setup.file_pin = lambda u: pin\n"
             "setup.download(sys.argv[1], __import__('pathlib').Path(sys.argv[2]) / %r, 'the model')\n"
             % (str(ROOT), str(ROOT / "tools"), CHUNK, len(DATA), hashlib.sha256(DATA).hexdigest(), NAME))
-        with small_pieces(), Server(delay=0.05) as srv, tempfile.TemporaryDirectory() as d:
+        with small_pieces(), Server(delay=0.2) as srv, tempfile.TemporaryDirectory() as d:     # slow enough to kill mid-file on a loaded machine
             env = dict(os.environ, STRATA_SOURCE="huggingface")
             proc = subprocess.Popen([sys.executable, "-c", runner, srv.url, d], env=env,
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

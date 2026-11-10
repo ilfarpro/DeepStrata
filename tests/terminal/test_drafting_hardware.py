@@ -205,7 +205,7 @@ class OfflineAndReuse(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         sys.path.insert(0, str(ROOT / "tools"))
-        spec = importlib.util.spec_from_file_location("t_pack2", ROOT / "tools" / "test_dflash2_pack.py")
+        spec = importlib.util.spec_from_file_location("t_pack2", ROOT / "tests" / "tools" / "test_dflash2_pack.py")
         cls.synth = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.synth)
 
@@ -316,7 +316,7 @@ class TheQ4Pack(unittest.TestCase):
 
     def test_the_pack_is_made_q4_and_checked_against_its_pins(self):
         sys.path.insert(0, str(ROOT / "tools"))
-        spec = importlib.util.spec_from_file_location("t_pack3", ROOT / "tools" / "test_dflash2_pack.py")
+        spec = importlib.util.spec_from_file_location("t_pack3", ROOT / "tests" / "tools" / "test_dflash2_pack.py")
         synth = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(synth)
         tmp = tempfile.TemporaryDirectory()

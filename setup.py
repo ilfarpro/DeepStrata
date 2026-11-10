@@ -1107,7 +1107,8 @@ MULTI_FILE_FAMILIES["deepseek41"]["models"] = {
                  "n-gram table in Q5_K (the sixth shard, not the shared table of the other sets) + 8 GB drafter (308 GB of disk). Its table is read by the engine's "
                  "Q5_K reader, so it needs engine 0.1.59 or newer. A 2-bit version: expect weaker answers than the 2.00 and 2.25 versions on long, detailed or careful "
                  "work (its quality is not measured against the original yet). Pick 2.00 or 2.25 if they fit",
-        "ram_gb": 48, "recipe": "udiq2", "subdir": "UD-IQ2_XXS", "legacy_subdir": None, "profile": "profile-2.00.bin", "hf": hf(DSV41_REPO) + "UD-IQ2_XXS/",
+        "ram_gb": 48, "recipe": "udiq2", "min_engine": (0, 1, 59), "subdir": "UD-IQ2_XXS", "legacy_subdir": None, "profile": "profile-2.00.bin",
+        "hf": hf(DSV41_REPO) + "UD-IQ2_XXS/",
         "shards": [DSV41_UDIQ2_SHARD.format(i=i) for i in range(1, 6)],
         "engram_shard": DSV41_UDIQ2_SHARD.format(i=6),
         "shared": [DSV41_DSPARK]},

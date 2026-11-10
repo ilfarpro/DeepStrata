@@ -229,8 +229,9 @@ The download, fit and "I already have it" sides are wired on the same branch. Ea
 `udtable` recipe: the last shard (its n-gram table, Q5_K / Q6_K / MXFP8) downloads and verifies beside the model and goes
 to the packer as `--engram`, never as a model shard; `shared` carries only the drafter and the picture file. Setup refuses
 an engine older than **0.1.60** before anything downloads, because that is where the mixed layers are. The fit entries
-count each set's own table (135.2 / 161.3 / 161.3 / 202.8 GB), the plan says the table is the set's own, and the app's
-file recognition knows every last shard. On a Mac and on a DGX Spark all four stay hidden until they run there, like
+count each set's own table (135.2 / 161.3 / 161.3 / 202.8 GB), the plan says the table is the set's own, the app's
+catalog says a 0.1.60 engine is needed and the file recognition knows every last shard. On a Mac and on a DGX Spark all
+four stay hidden until they run there, like
 UD-IQ2_XXS. `tests/tools/test_setup_udtable.py` (no GPU, no downloads) checks the pins, the pack call, the 0.1.60 gate,
 the fit numbers and the recognition.
 
@@ -241,8 +242,9 @@ The gate/up types in those layers are IQ2_XS, IQ2_XXS, IQ2_S, IQ3_XXS and Q3_K, 
 MXFP8 (shard 7 / 7 / 8 / 8). No other mix occurs, so the engine's one new shape covers all four sets; the synthetic test
 now covers every one of those gate/up types against MXFP4 down.
 
-Validation so far: the CUDA 13.5 build is green, and the CPU lane's mixed composition passes its synthetic Q8_K / MXFP4
-reference test (`ds4_gguf_test --mixed-cpu`). Device parity tests for the token, window, set, PCIe-lane and CPU-lane paths
+Validation so far: CUDA 13.5.37 builds green for both target architectures (sm_89 for the RTX 4080 SUPER and sm_120 for
+the RTX 5060 Ti; `cuobjdump --list-elf` shows both cubins), and the CPU lane's mixed composition passes its synthetic
+Q8_K / MXFP4 reference test (`ds4_gguf_test --mixed-cpu`). Device parity tests for the token, window, set, PCIe-lane and CPU-lane paths
 were added in `tests/dsv41/ds4_gguf_test.cu` but **not run** here (this machine has no CUDA driver), and no real set was
 loaded. HIP and Metal were not built, and Metal also keeps a narrower `iq::supported` set. The four sets are therefore
 not offered yet: the release needs the device runs and the real-set perplexity and tok/s measurements on the target

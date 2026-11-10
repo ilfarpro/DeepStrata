@@ -590,7 +590,7 @@ class Strata:
             gb = sum(big["sha256"][n][0] for n in [*md["shards"], *own, *md.get("shared", [])]) / 1e9
             return {"about": big["models"][model]["about"], "download_gb": round(gb, 1), "ram_gb": big["models"][model]["ram_gb"],
                     "arena_gb": round(float(big["models"][model]["ram_gb"]) - 17.0, 1), "mem_total": True, "vision": bool(big.get("vision", True)),
-                    "engine": None, "families": (family,), "multi_file": True}
+                    "engine": md.get("min_engine"), "families": (family,), "multi_file": True}
         d = (getattr(self.setup_module(), "OWN_PATH_FAMILIES", None) or {}).get(family)
         if not d or model not in d["models"]:
             return None

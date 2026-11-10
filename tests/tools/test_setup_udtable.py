@@ -108,6 +108,7 @@ class Catalog(unittest.TestCase):
             row = s.own_size("deepseek41", model)
             self.assertAlmostEqual(row["download_gb"], (dsv41_fit.ista_download_bytes(model) - 0) / 1e9, places=1, msg=model)
             self.assertGreater(row["download_gb"], table_bytes / 1e9, model)
+            self.assertEqual(row["engine"], (0, 1, 60), model)         # the app's model card says "needs a newer engine" below this
 
 
 class ExpectedFiles(unittest.TestCase):

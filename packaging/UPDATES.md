@@ -145,9 +145,9 @@ The feed key lives only on the release PC. Every build box builds WITHOUT a key 
 All signing happens on the release PC, on the finished files.
 
 The release version is the upstream line plus our own number (`0.2.12.1` is our first release on upstream 0.2.12; tag `ds-0.2.12.1`,
-[DIVERGENCE.md](../DIVERGENCE.md)). Release file names and the GitHub release carry that number; the versions inside the components do not
-change: the page reports its `apps/host/package.json` version and the Terminal its `PRODUCT_VERSION` (both 0.2.12 today), and
-Control and the engines carry the CMake project version (0.1.60).
+[DIVERGENCE.md](../DIVERGENCE.md)). The tag and the GitHub release carry that number; the files and the signed feed carry the
+component versions, because the updater compares those: the page reports its `apps/host/package.json` version and the Terminal its
+`PRODUCT_VERSION` (both 0.2.12 today), and Control and the engines carry the CMake project version (0.1.60).
 
 **What is built (per OS)**
 
@@ -158,13 +158,65 @@ Control and the engines carry the CMake project version (0.1.60).
   The same archive is the first download and what `install.sh` / `install.ps1` unpack; a person who prefers the terminal never
   opens a browser, and one who wants the page runs `deepstrata ui` after it.
 
-**Steps**
+**The release tool (Linux x86_64 today)**
+
+`packaging/release.py` is the release-side orchestrator. It builds what the release PC can build natively, signs it with the
+feed key, writes one signed feed, checks it the way a user's PC would, and only then creates the GitHub release:
+
+    python packaging/release.py plan --require-merged <branch>   # checks, tests, writes RELEASE/<version>/release.json
+    python packaging/release.py build                            # App Host, Terminal/Control, Qwen cuda13, dsv41 cuda13
+    python packaging/release.py assemble                         # sign, pack, write the signed feed and installers
+    python packaging/release.py verify                           # feed, hashes, selection and a real Terminal run
+    python packaging/release.py publish                          # tag, GitHub release, upload, install.sh from latest
+
+Run it with the checkout's Python (the `.venv` that `setup.py`/`setup.sh` made, or another interpreter with
+`requirements.txt`, `requirements-monitor.txt` and `pytest`): `plan` runs pytest in that same interpreter, and a bare
+system Python without `textual`, `regex` or `numpy` stops at collection. The commands read the release journal in
+`RELEASE/<version>/`; a rerun continues where the last command stopped.
+`plan` stops on a dirty tree, a branch that is not `main`, a branch that is not merged, a tag that already exists, a key
+that is not the one shipped in `strata_control/update_keys.json`, a feed sequence that would go down, failing tests
+(`pytest tests/terminal tests/serve tests/tools` and `npm test` in `apps/host`), or missing build tools. It reads the
+published feed and `origin/main` from GitHub unless `--offline --sequence N` is given (a local dry run). `--skip-tests`
+skips the test gate; every skipped or failed gate is recorded in the journal.
+
+`build` runs `npm ci`/`npm run build` when the App Host is not built, then `package_terminal.py`,
+`packaging/build_cuda_linux.sh` and `packaging/build_dsv41_cuda.sh`, and verifies every engine package with
+`package_engine.py --verify`. It reuses a build only for the commit in the journal; `--rebuild` throws the selected parts
+away. `assemble` copies the engine packages before signing them (the build output stays unsigned), signs
+`engine-component.json` with the feed key, packs the archives, writes `install-manifest.txt` and the signed
+`strata-feed.json` + `.sig`, and copies `install.sh` and `install.ps1` unchanged. `verify` parses the signed feed with the
+shipped key, re-hashes every archive against the feed, checks the installed Control manifest against
+`install-manifest.txt`, verifies both signed engine manifests, runs `packaging/smoke_terminal.py` on the Terminal archive,
+and asks `feed.select_engine` what a Linux NVIDIA PC gets.
+
+`publish` creates the annotated tag, pushes it over HTTPS with the token (asked from the environment, never printed),
+creates a normal latest release with `notes.md`, uploads every file in `RELEASE/<version>/feed/` flat, and then installs
+the published release with `install.sh` from `latest/download` and starts it once. `--resume` continues an interrupted
+upload; `--replace` replaces an asset whose content differs; neither deletes a release.
+
+The private key is read from `--key`, `STRATA_FEED_KEY` or `~/deepstrata-keys/feed-key.json`, and must be outside this git
+checkout with mode 0600. The GitHub token is read from `GH_TOKEN`/`GITHUB_TOKEN` or the `gh` config's
+`github.com oauth_token`. Nothing under `RELEASE/<version>/` is committed (it is in `.gitignore`).
+
+`status` prints the journal and the next step; `next` prints the next version, tag and component version without changing
+anything. A release must be built from a clean `main` commit; the journal names that commit and every later step refuses a
+different checkout, so a half-built release cannot be signed from another tree.
+
+**What the automated release carries today.** `linux-x86_64` only: the Terminal archive (and the same bundle packed as the
+Control package that `install.sh` and the updater use), the Qwen CUDA 13 engine and the DeepSeek `strata-dsv41` CUDA 13
+engine, all at the CMake version (0.1.60 today). Windows, macOS, HIP and `linux-aarch64` builds are made on their own
+machines and still need the steps below; a release that must serve those platforms is not complete until their Control and
+engine packages are on the same release page (one Control package per platform; the feed lists them all). The release
+version (`0.2.12.2`) is the tag and the GitHub release; the files and the feed carry the component versions, because the
+updater compares those.
+
+**Steps for the platforms the release tool does not build**
 
     python packaging/feed_tool.py sign-package <engine package folder> --key <feed-key.json>        # every engine package
     python packaging/feed_tool.py pack-engine  <engine package folder> --out RELEASE/engine --url-prefix=
-    python packaging/feed_tool.py pack-control <control folder> --version 0.1.50 --platform P --out RELEASE/control --url-prefix=   # --format zip for windows-x86_64
+    python packaging/feed_tool.py pack-control <control folder> --version 0.1.60 --platform P --out RELEASE/control --url-prefix=   # --format zip for windows-x86_64
     # --url-prefix= (not --url-prefix "") because PowerShell 5.1 drops an empty argument. The Control version is the VERSION file
-    # (0.1.50), not the page version: a Control package newer than the installed one is installed by `strata update`.
+    # (0.1.60), not the page version: a Control package newer than the installed one is installed by `strata update`.
     # Pack Linux and Mac packages on Linux / the Mac or on Windows with this tool: it sets the execute bit from the file header either way.
     python packaging/feed_tool.py build-feed --out RELEASE --sequence N --key <feed-key.json> --engine RELEASE/engine --control RELEASE/control [--dsv41 RELEASE/dsv41] [--drafters RELEASE/drafters]
     python packaging/feed_tool.py verify-feed RELEASE --pub <feed-key.pub.json>
@@ -190,8 +242,9 @@ The feed is hosted as the files of a GitHub release of `ilfarpro/DeepStrata`. Th
 `https://github.com/ilfarpro/DeepStrata/releases/latest/download` (`strata_cli/update_cmd.py` `DEFAULT_FEED` adds `/strata-feed.json`; `install.sh`
 and `install.ps1` use the folder). GitHub assets are flat, so build the packages with `--url-prefix ""` and upload every file of the release folder
 as an asset: `strata-feed.json`, `strata-feed.json.sig`, `install-manifest.txt`, `install.sh`, `install.ps1`, the engine and Control archives
-and the Terminal archives. `STRATA_FEED` (installers) and `--feed` / `STRATA_UPDATE_FEED` (`strata update`) override the
-address. Nothing in this tree uploads anything.
+(the Control package is the Terminal bundle under its Control name; there is no second Terminal upload). `STRATA_FEED` (installers) and `--feed` / `STRATA_UPDATE_FEED` (`strata update`) override the
+address. `feed_tool.py` only writes files; `packaging/release.py publish` is the one step that uploads, with the owner's
+GitHub token and only after `verify` passed.
 
 Publish as a normal release (latest): a pre-release is not found by `latest/download`, so the installers and `strata update` would get a 404.
 The `latest` release must carry every file listed above, so a later hotfix release repeats them all.

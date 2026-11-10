@@ -1160,6 +1160,23 @@ bool type_on_chunk(int type) {
 #endif
 }
 
+bool expert_shape_ok(int tg, int tu, int td, std::string& why) {
+    why.clear();
+    if (tg != tu) {
+        why = "gate and up must have one type (" + std::string(type_name(tg)) + " / " + type_name(tu) + ")";
+        return false;
+    }
+    if (tg == kTypeMXFP4) {   // all three MXFP4 (down is checked below); an MXFP4 gate/up needs an MXFP4 down
+        if (td != kTypeMXFP4) {
+            why = "MXFP4 gate / up with a " + std::string(type_name(td)) + " down (MXFP4 gate/up takes an MXFP4 down)";
+            return false;
+        }
+        return true;
+    }
+    // gate / up low-bit: down low-bit (of any type, as before) or MXFP4 (the mixed shape)
+    return true;
+}
+
 namespace {
 size_t row_stride(const x3::Mat& m) {   // values (BF16) or bytes (MXFP4, Q8_0, a low-bit type) a row
     if (m.ld > 0) return (size_t) m.ld;
@@ -1168,8 +1185,10 @@ size_t row_stride(const x3::Mat& m) {   // values (BF16) or bytes (MXFP4, Q8_0, 
            : m.fmt == kFmtGG   ? type_row_bytes(m.K, m.k)
                                : (size_t) m.k;
 }
-// a layer's low-bit experts as ds4_iq's arguments (false: its types not covered - printed)
-bool iq_args(const x3::ExpertLayout& lay, int n_embd, int n_ff, float limit, iq::Args& ia, const char* who) {
+// a layer's roles as ds4_iq's arguments, checked for the role(s) the caller takes: gate and up for moe_gate_up /
+// set_gate_up, down for moe_down / set_down (a mixed layer has a low-bit gate/up and an MXFP4 down, so each side is
+// valid only for its own role)
+void iq_base(const x3::ExpertLayout& lay, int n_embd, int n_ff, float limit, iq::Args& ia) {
     ia = iq::Args{};
     for (int r = 0; r < 3; ++r) ia.tr[r] = lay.trellis[r];
     ia.n_embd = n_embd;
@@ -1177,11 +1196,21 @@ bool iq_args(const x3::ExpertLayout& lay, int n_embd, int n_ff, float limit, iq:
     ia.limit = limit;
     ia.tg = expert_type(lay, 0);
     ia.td = expert_type(lay, 2);
-    if (ia.tg != expert_type(lay, 1) || !iq::supported(ia.tg) || !iq::supported(ia.td) || n_embd % iq::block_values(ia.tg) != 0 ||
-        n_ff % iq::block_values(ia.td) != 0) {
-        std::fprintf(stderr, "ds4 gguf %s: expert types %s / %s / %s (n_embd %d, n_ff %d) not covered\n", who,
-                     type_name(expert_type(lay, 0)), type_name(expert_type(lay, 1)), type_name(expert_type(lay, 2)),
-                     n_embd, n_ff);
+}
+bool iq_gu_args(const x3::ExpertLayout& lay, int n_embd, int n_ff, float limit, iq::Args& ia, const char* who) {
+    iq_base(lay, n_embd, n_ff, limit, ia);
+    if (ia.tg != expert_type(lay, 1) || !iq::supported(ia.tg) || n_embd % iq::block_values(ia.tg) != 0) {
+        std::fprintf(stderr, "ds4 gguf %s: expert gate / up types %s / %s (n_embd %d) not covered\n", who,
+                     type_name(expert_type(lay, 0)), type_name(expert_type(lay, 1)), n_embd);
+        g_errors.fetch_add(1, std::memory_order_relaxed);
+        return false;
+    }
+    return true;
+}
+bool iq_dn_args(const x3::ExpertLayout& lay, int n_embd, int n_ff, float limit, iq::Args& ia, const char* who) {
+    iq_base(lay, n_embd, n_ff, limit, ia);
+    if (!iq::supported(ia.td) || n_ff % iq::block_values(ia.td) != 0) {
+        std::fprintf(stderr, "ds4 gguf %s: expert down type %s (n_ff %d) not covered\n", who, type_name(ia.td), n_ff);
         g_errors.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
@@ -1465,9 +1494,9 @@ void moe_gate_up(const x3::MoeArgs& a, const float* x, float* h, cudaStream_t s)
     if (!mx_geometry("moe_gate_up", a.k, a.n_embd, a.n_ff) || h == nullptr) return;
     Scratch* sc = scratch(s);
     if (sc == nullptr) return;
-    if (!mx_experts(a.lay)) {   // low-bit experts: ds4_iq's kernels
+    if (!mx_gate_up(a.lay)) {   // low-bit gate / up (the down is not read here): ds4_iq's kernels
         iq::Args ia;
-        if (!iq_args(a.lay, a.n_embd, a.n_ff, a.limit, ia, "moe_gate_up")) return;
+        if (!iq_gu_args(a.lay, a.n_embd, a.n_ff, a.limit, ia, "moe_gate_up")) return;
         ia.plan_ptr = a.plan_ptr;
         ia.h = h;
         ia.xq = sc->xq;
@@ -1506,10 +1535,11 @@ void moe_down(const x3::MoeArgs& a, const float* h, const float* sh_out, float* 
     m.part = sc->part;
     m.hq = sc->hq;
     m.hd = sc->hd;
-    (mx_experts(a.lay) ? q8_quant : iq_act_quant)(h, (size_t) a.n_ff, a.k, a.n_ff, sc->hq, sc->hd, s);
-    if (!mx_experts(a.lay)) {   // low-bit experts: ds4_iq's down, then the same combine
+    const bool dn_mx = mx_down(a.lay);
+    (dn_mx ? q8_quant : iq_act_quant)(h, (size_t) a.n_ff, a.k, a.n_ff, sc->hq, sc->hd, s);
+    if (!dn_mx) {   // low-bit down: ds4_iq's, then the same combine (a low-bit gate/up may sit beside it)
         iq::Args ia;
-        if (!iq_args(a.lay, a.n_embd, a.n_ff, a.limit, ia, "moe_down")) return;
+        if (!iq_dn_args(a.lay, a.n_embd, a.n_ff, a.limit, ia, "moe_down")) return;
         ia.plan_ptr = a.plan_ptr;
         ia.part = sc->part;
         ia.hq = sc->hq;
@@ -1565,10 +1595,13 @@ bool win_experts(const x3::WinArgs& a, cudaStream_t s) {
     m.hq = sc->hq;
     m.hd = sc->hd;
     const int groups = a.T * a.k;   // at most (the blocks past the real count return at once)
-    const bool mx = mx_experts(a.lay);
+    const bool gu_mx = mx_gate_up(a.lay), dn_mx = mx_down(a.lay);
     iq::Args ia;
-    if (!mx) {   // low-bit experts: ds4_iq's kernels on the same groups and scratch
-        if (!iq_args(a.lay, a.n_embd, a.n_ff, a.limit, ia, "win_experts")) return false;
+    if (!gu_mx || !dn_mx) {   // a low-bit side: ds4_iq's kernels on the same groups and scratch
+        bool ok = true;
+        if (!gu_mx) ok = iq_gu_args(a.lay, a.n_embd, a.n_ff, a.limit, ia, "win_experts");
+        if (ok && !dn_mx) ok = iq_dn_args(a.lay, a.n_embd, a.n_ff, a.limit, ia, "win_experts");
+        if (!ok) return false;
         ia.grp_ptr = a.grp_ptr;
         ia.grp_start = a.grp_start;
         ia.grp_ent = a.grp_ent;
@@ -1580,8 +1613,8 @@ bool win_experts(const x3::WinArgs& a, cudaStream_t s) {
         ia.hq = sc->hq;
         ia.hd = sc->hd;
     }
-    (mx_experts(a.lay) ? q8_quant : iq_act_quant)(a.x, a.x_stride, a.T, a.n_embd, sc->xq, sc->xd, s);
-    if (mx) {
+    (gu_mx ? q8_quant : iq_act_quant)(a.x, a.x_stride, a.T, a.n_embd, sc->xq, sc->xd, s);
+    if (gu_mx) {
 #if defined(STRATA_METAL)
         // mx_gate_up_kernel on the Metal dispatch; the launch below is the fallback
         if (!::strata::dsv41::metal_host::mx_gu(a.plan_ptr, a.grp_ptr, a.grp_start, a.grp_ent, a.n_groups,
@@ -1591,8 +1624,8 @@ bool win_experts(const x3::WinArgs& a, cudaStream_t s) {
     } else {
         iq::gate_up(ia, groups, a.T, s);
     }
-    (mx_experts(a.lay) ? q8_quant : iq_act_quant)(a.h, (size_t) a.n_ff, a.T * 8, a.n_ff, sc->hq, sc->hd, s);   // (rows of picks not on the device: unused)
-    if (mx) {
+    (dn_mx ? q8_quant : iq_act_quant)(a.h, (size_t) a.n_ff, a.T * 8, a.n_ff, sc->hq, sc->hd, s);   // (rows of picks not on the device: unused)
+    if (dn_mx) {
 #if defined(STRATA_METAL)
         // mx_down_kernel on the Metal dispatch; the launch below is the fallback
         if (!::strata::dsv41::metal_host::mx_dn(a.plan_ptr, a.grp_ptr, a.grp_start, a.grp_ent, a.n_groups,
@@ -1655,9 +1688,9 @@ void set_gate_up(const x3::SetArgs& sa, const float* x, int ldx, const int* row_
                  cudaStream_t s) {
     if (sa.n_exp <= 0 || sa.max_rows <= 0) return;
     if (!mx_geometry("set_gate_up", 1, sa.n_embd, sa.n_ff)) return;
-    if (!mx_experts(sa.lay)) {   // low-bit experts: ds4_iq's sets
+    if (!mx_gate_up(sa.lay)) {   // low-bit gate / up: ds4_iq's sets (the down is not read here)
         iq::Args ia;
-        if (!iq_args(sa.lay, sa.n_embd, sa.n_ff, sa.limit, ia, "set_gate_up")) return;
+        if (!iq_gu_args(sa.lay, sa.n_embd, sa.n_ff, sa.limit, ia, "set_gate_up")) return;
         iq::SetArgs q = iq_set(sa);
         q.xf = x;
         q.idx = row_idx;
@@ -1716,9 +1749,9 @@ void set_gate_up(const x3::SetArgs& sa, const float* x, int ldx, const int* row_
 void set_down(const x3::SetArgs& sa, const uint16_t* h16, int ldh, float* y, int ldy, cudaStream_t s) {
     if (sa.n_exp <= 0 || sa.max_rows <= 0) return;
     if (!mx_geometry("set_down", 1, sa.n_embd, sa.n_ff)) return;
-    if (!mx_experts(sa.lay)) {   // low-bit experts: ds4_iq's sets
+    if (!mx_down(sa.lay)) {   // low-bit down: ds4_iq's sets (the gate / up are not read here)
         iq::Args ia;
-        if (!iq_args(sa.lay, sa.n_embd, sa.n_ff, sa.limit, ia, "set_down")) return;
+        if (!iq_dn_args(sa.lay, sa.n_embd, sa.n_ff, sa.limit, ia, "set_down")) return;
         iq::SetArgs q = iq_set(sa);
         q.xh = h16;
         q.ldx = ldh;

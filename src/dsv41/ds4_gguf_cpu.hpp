@@ -31,6 +31,17 @@ struct IqCpu {
 bool iq_cpu_fmt(int tg, int td, int n_embd, int n_ff, IqCpu& f, std::string& err);
 /// x (k values) as the activation type `act` (f.gu_act / f.d_act) into dst.
 void iq_cpu_quant(int act, const float* x, int k, void* dst);
+/// The mixed shape's CPU lane (gate / up one low-bit type, down MXFP4): `gu` is filled for the gate/up geometry
+/// alone (iq_cpu_fmt(tg, tg, ...)); false (err) when this build cannot take the gate / up type or the geometry.
+bool mixed_cpu_ready(int tg, int n_embd, int n_ff, IqCpu& gu, std::string& err);
+/// gate / up rows [r0, r1) of the contiguous matrices (gu.gu_row bytes a row), nt activations (gu.act_bytes apart,
+/// iq_cpu_quant's form) -> h[t][r] (F32, n_ff apart): the clamped SwiGLU, as iq_cpu_gate_up computes it.
+void mixed_cpu_gate_up(const IqCpu& gu, const uint8_t* gate, const uint8_t* up, const void* const* xq, int nt,
+                       float* const* h, int r0, int r1, float limit);
+/// h[t] (F32, n_ff values) -> hq[t] (mx_act_bytes(n_ff) each): what mx_rows takes for the mixed layer's down.
+void mixed_cpu_h_quant(const float* const* h, int nt, int n_ff, void* hq);
+/// y[t][r - r0] = down row r . hq[t] for rows [r0, r1), down's rows mx_row_bytes(n_ff) apart.
+void mixed_cpu_down(const uint8_t* down, int n_ff, int r0, int r1, const void* const* hq, int nt, float* const* y);
 /// ff[t][r] = clamped swiglu(gate_r . a[t], up_r . a[t]) for rows [r0, r1) (limit 0: no clamp), nt tokens.
 void iq_cpu_gate_up(const IqCpu& f, const uint8_t* gate, const uint8_t* up, const void* const* act, int nt,
                     float* const* ff, int r0, int r1, float limit);

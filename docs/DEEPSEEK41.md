@@ -207,36 +207,31 @@ An engine older than 0.1.59 stops the setup before anything downloads and tells 
 default, as with the other sets (`docs/MODELS.md`). The serving run itself on an RTX 4000/5000 card is the measurement still open: it is made
 with the release, and its words go to [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
 
-### Opening the four 2- and 3-bit sets - what it would take (scope open in [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1))
+### The four 2- and 3-bit sets: the engine now takes the mixed shape ([#1](https://github.com/ilfarpro/DeepStrata/issues/1), branch)
 
-Their n-gram tables are no longer the issue: Q6_K and MXFP8 (the 3-bit sets and UD-Q3_K_XL) the Engram reader already
-takes, and Q5_K (UD-Q2_K_XL) landed this branch. All four are stopped only by an MXFP4 `down` sitting beside low-bit gate
-and up in some of their layers - the experts rule above. This is a proposal, not a change: it is a change to the MoE
-forward every DeepSeek layer reads, across CUDA, HIP and Metal, the prompt path and the CPU lane alike, so per
-CONTRIBUTING the scope goes through an issue first (open as [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1)) and every backend is built and measured before review. What the code
-already gives and what it does not:
+Their n-gram tables were already readable: Q6_K and MXFP8 (the 3-bit sets and UD-Q3_K_XL) and Q5_K (UD-Q2_K_XL) landed
+with the sets' own tables. What stopped them was a layer whose `down` is MXFP4 while its gate and up are low-bit. The
+branch `engine-mixed-mxfp4-down` takes that shape:
 
-- Two gates refuse the mixed shape today: the front one at `ds4_model.cu:2419`, and the IQ layer setup at
-  `ds4_gguf.cu:1180`, which needs gate and up to match and **both** gate/up and down to be i-quant types (`type_on_device`
-  counts MXFP4 as on-device, but `iq::supported` does not, so an MXFP4 `down` is refused there too).
-- Part of the machinery is already per matrix: each role keeps its own ggml type (`lay.K[r]`, `expert_type`), the decode
-  matvec picks its kernel per matrix by `m.fmt` (`ds4_gguf.cu:1295`; MXFP4 to `mx_mv_kernel`, the rest to the i-quant or
-  BF16 one), the runner calls `moe_gate_up` and `moe_down` separately, and the placement sizes are read per role already
-  (`type_row_bytes(expert_type(...))`).
-- What is missing is a job-builder for "gate/up in one low-bit type (an i-quant, and in these sets Q3_K too) **and** down in
-  MXFP4" in the same layer - there are two builders today, one for an all-MXFP4 layer (`tg = td = MXFP4`,
-  `ds4_gguf.cu:1681`) and the i-quant one that needs both ends i-quant. It would route gate and up through the GEMV/GEMM for
-  that low-bit type and down through the MXFP4 one for one layer, relax both gates to that shape, and keep the fused prompt
-  path (`moe_fused_iq.hpp`) and the CPU lane (`lane_fmt_ok` / `iq_cpu_fmt`, `ds4_model.cu:2471`) - which today assume one
-  family a layer - in step.
-- The four differ in how many layers mix an MXFP4 `down` with a low-bit `gate` and `up` - the layers the rule refuses, with
-  all-MXFP4 layers aside (those are fine and not counted): **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4**, each
-  read off the shards' headers on this branch. Gate and up match in every layer of all four, so the `down` is the only thing
-  in the way. Their low-bit gate/up is not only i-quants - Q3_K turns up too - and on the CUDA/HIP path every such type is
-  already device-supported (`ds4_iq.cu`'s `supported` lists the i-quants and the K-quants, Q3_K included, and not MXFP4 -
-  which is exactly what the two gates key on); so there the only genuinely missing piece is the job-builder above. Metal
-  keeps its own narrower `supported` set (it sends some i-quants to the CPU lane) and has to be checked alongside.
-  A current pack's bytes and every offered set stay identical either way.
+- The front guard (`expert_layout_mx`, `ds4_model.cu`) accepts exactly one mixed form: gate and up of one low-bit type,
+  down MXFP4. An MXFP4 gate/up still needs an MXFP4 down, gate and up must still match, and every other mix is still
+  refused. The IQ layer's argument builder no longer checks the down type when only gate/up are read, and a separate
+  down builder checks MXFP4 or low-bit on its own (`ds4_gguf.cu`).
+- One layer therefore routes gate and up through `ds4_iq`'s kernels for their low-bit type and down through the MXFP4
+  kernels, in the token, window and prompt-set paths alike. Because MXFP4 down cannot take the fused FP16 prompt path,
+  the general set path is used for those layers; the PCIe lane and the placement sizes were already per matrix.
+- The CPU lane composes the two halves in one layer (`mixed_cpu_ready` / `mixed_cpu_gate_up` / `mixed_cpu_h_quant` /
+  `mixed_cpu_down`): low-bit gate/up rows over Q8_K activations, then MXFP4 down rows over the MXFP4 activation, with the
+  same expert and slot cap as the low-bit lane.
+
+Validation so far: the CUDA 13.5 build is green, and the CPU lane's mixed composition passes its synthetic Q8_K / MXFP4
+reference test (`ds4_gguf_test --mixed-cpu`). Device parity tests for the token, window, set, PCIe-lane and CPU-lane paths
+were added in `tests/dsv41/ds4_gguf_test.cu` but **not run** here (this machine has no CUDA driver), and no real set was
+loaded. HIP and Metal were not built, and Metal also keeps a narrower `iq::supported` set. The four sets are therefore
+not offered yet: the release needs the device runs and the real-set perplexity and tok/s measurements on the target
+cards. Their counts are unchanged: **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4** mixed layers (gate and up
+match in every layer of all four, and each set's other layers are all-MXFP4 or all-low-bit as before). Existing packs
+and their bytes are untouched; a mixed layer is read in the role each matrix already has.
 
 ## Install
 

@@ -415,4 +415,29 @@ void mx_rows(const uint8_t* w, size_t rb, int k, int r0, int r1, const void* con
     mx_rows_tier(mx_tier(), w, rb, k, r0, r1, act, n, y, pf);
 }
 
+// ---- the mixed shape on the CPU lane: gate / up through the low-bit rows (ggml-cpu's dots, as iq_cpu_*), down through
+// the MXFP4 rows above.  The two halves' activation formats differ (Q8_K against the MX int8 blocks), so this is the
+// same composition the layer's device roles take, one side each.
+bool mixed_cpu_ready(int tg, int n_embd, int n_ff, IqCpu& gu, std::string& err) {
+    if (n_ff % 32 != 0) {
+        err = "mixed experts: the down's n_ff is not a whole MXFP4 block";
+        return false;
+    }
+    return iq_cpu_fmt(tg, tg, n_embd, n_ff, gu, err);
+}
+
+void mixed_cpu_gate_up(const IqCpu& gu, const uint8_t* gate, const uint8_t* up, const void* const* xq, int nt,
+                       float* const* h, int r0, int r1, float limit) {
+    iq_cpu_gate_up(gu, gate, up, xq, nt, h, r0, r1, limit);
+}
+
+void mixed_cpu_h_quant(const float* const* h, int nt, int n_ff, void* hq) {
+    const size_t ha = mx_act_bytes(n_ff);
+    for (int t = 0; t < nt; ++t) mx_quant(h[t], n_ff, (uint8_t*) hq + (size_t) t * ha);
+}
+
+void mixed_cpu_down(const uint8_t* down, int n_ff, int r0, int r1, const void* const* hq, int nt, float* const* y) {
+    mx_rows(down, (size_t) (n_ff / 32) * 17, n_ff, r0, r1, hq, nt, y);
+}
+
 }  // namespace strata::ds4::gguf

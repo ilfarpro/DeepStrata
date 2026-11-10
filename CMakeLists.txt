@@ -1,6 +1,6 @@
 # Strata Engine - top-level build (P1.S1).
 #
-# Targets (phase-1 Ă‚Â§P1.S1): `strata_artifact` (no CUDA dependency), `tests`.  `strata_plan` and the C++
+# Targets (phase-1 §P1.S1): `strata_artifact` (no CUDA dependency), `tests`.  `strata_plan` and the C++
 # `strata-pack` are added when their sources exist - a target with no sources would make the build graph
 # claim something the tree does not have, which is worse than an absent target.
 #

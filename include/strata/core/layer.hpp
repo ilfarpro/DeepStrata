@@ -527,7 +527,7 @@ bool lm_head(const WeightTable& tables, const ModelGeometry& g, const BlockBuffe
 bool lm_head_mix(const WeightTable& tables, const ModelGeometry& g, const BlockBuffers& bb,
                  void* stream, std::string& err);
 
-/// THE PER-LAYER OP ORDER of `phases/phase-2-correct-engine.md` P2.S5, architecture Ă„â€šĂ˘â‚¬ĹľÄ‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ‹ÂÄ‚ËĂ˘â‚¬ĹˇĂ‚Â¬Ă„Ä…Ă‹â€ˇÄ‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąË‡Ă„â€šĂ˘â‚¬ĹˇÄ‚â€šĂ‚Â§6.1, for ONE layer:
+/// THE PER-LAYER OP ORDER of `phases/phase-2-correct-engine.md` P2.S5, architecture §6.1, for ONE layer:
 ///
 ///     gr_read (attn)  ->  mixer  ->  gr_write (attn)
 ///     gr_read (ffn)   ->  MoE    ->  gr_write (ffn)

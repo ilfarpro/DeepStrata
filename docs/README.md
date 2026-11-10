@@ -1,6 +1,6 @@
 # Strata guides
 
-**New here? Start with [Install Strata](INSTALL.md).** Install the Terminal with one line, or download its archive for your system (Windows, Linux or Mac); it carries the browser page, which `deepstrata ui` opens. It uses released engine packages. This documentation is for version 0.2.12.1.
+**New here? Start with [Install Strata](INSTALL.md).** Install the Terminal with one line, or download its archive for your system (Windows, Linux or Mac); it carries the browser page, which `deepstrata ui` opens. It uses released engine packages. This documentation is for version 0.2.12.2.
 
 ## Use Strata
 

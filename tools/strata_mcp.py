@@ -1674,11 +1674,13 @@ def expected_files(S, family: str, model: str, models_dir: Path, vision: bool) -
     out = []
     try:
         big = (getattr(S, "MULTI_FILE_FAMILIES", None) or {}).get(family)
-        if big:                                         # DeepSeek-V4.1-Flash: its nine shards in the model's folder
+        if big:                                         # DeepSeek-V4.1-Flash: its shards in the model's folder
             folder = Path(models_dir) / (big["tag"] + model)
             shared = Path(models_dir) / (big["tag"] + "shared")        # the Engram, the drafter and the metadata shard of the official sets
-            return ([{"path": str(folder / n), "bytes": big["sha256"][n][0], "role": "model"} for n in big["models"][model]["shards"]]
-                    + [{"path": str(shared / n), "bytes": big["sha256"][n][0], "role": "model"} for n in big["models"][model].get("shared", [])])
+            md = big["models"][model]
+            own = [md["engram_shard"]] if md.get("recipe") in ("udiq2", "udtable") else []   # the set's own n-gram table in its last shard
+            return ([{"path": str(folder / n), "bytes": big["sha256"][n][0], "role": "model"} for n in [*md["shards"], *own]]
+                    + [{"path": str(shared / n), "bytes": big["sha256"][n][0], "role": "model"} for n in md.get("shared", [])])
         own = (getattr(S, "OWN_PATH_FAMILIES", None) or {}).get(family)
         if own:                                         # Qwen3.6: the GGUF and the picture reader in the model's folder
             folder = Path(models_dir) / (own["tag"] + model)

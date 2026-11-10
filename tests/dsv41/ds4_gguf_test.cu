@@ -1107,8 +1107,9 @@ const std::pair<int, int> kQPairs[] = {
 
 // the mixed shape (Unsloth's 2- and 3-bit sets): gate/up low-bit, down MXFP4
 const std::pair<int, int> kMixedPairs[] = {
-    {gg::iq::kIQ1_S, gg::kTypeMXFP4},    {gg::iq::kIQ2_XXS, gg::kTypeMXFP4}, {gg::iq::kIQ2_S, gg::kTypeMXFP4},
-    {gg::iq::kIQ3_S, gg::kTypeMXFP4},    {gg::iq::kQ3_K, gg::kTypeMXFP4}};
+    {gg::iq::kIQ1_S, gg::kTypeMXFP4},    {gg::iq::kIQ2_XXS, gg::kTypeMXFP4}, {gg::iq::kIQ2_XS, gg::kTypeMXFP4},
+    {gg::iq::kIQ2_S, gg::kTypeMXFP4},    {gg::iq::kIQ3_XXS, gg::kTypeMXFP4},  {gg::iq::kIQ3_S, gg::kTypeMXFP4},
+    {gg::iq::kQ3_K, gg::kTypeMXFP4}};
 
 // a token's 6 low-bit experts at full size: GB/s of the weights read
 void bench_q(cudaStream_t s) {

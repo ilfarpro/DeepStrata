@@ -130,10 +130,10 @@ of the five:
 | set | download | routed experts | n-gram table | what stops it |
 |---|---:|---|---|---|
 | UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | done on this branch: the engine (run on RTX) and the setup wiring, the fit entry and an engine-version gate; left: a release that carries fmt 4, a serving run on the card, and a quality measurement |
-| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | the experts rule |
-| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule |
-| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule |
-| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers mix an MXFP4 down with low-bit gate/up | MXFP8, 202.8 GB | the experts rule |
+| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | the experts rule; taken on this branch, wired into setup; left: a release carrying it, the device and real-set runs |
+| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule; taken on this branch, wired into setup; left: a release carrying it, the device and real-set runs |
+| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the experts rule; taken on this branch, wired into setup; left: a release carrying it, the device and real-set runs |
+| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers mix an MXFP4 down with low-bit gate/up | MXFP8, 202.8 GB | the experts rule; taken on this branch, wired into setup; left: a release carrying it, the device and real-set runs |
 
 The experts columns are read from the shards' tensor headers; the sums cross-check with the pinned file sizes to under 0.1 GB.
 All five were re-read value by value on this branch, layer by layer: gate and up match in every layer of every set, so the
@@ -151,8 +151,9 @@ decoder, and the CUDA device kernel is now **run on real NVIDIA cards** (an RTX 
 open. It is not on the version list yet, and it is not wired into the download either: a set is not offered until an engine
 release carries the code to run it, so the file list and `--model ud-iq2_xxs` land with that release, not before. What that
 landing needs is written down just below. The second feature - letting a layer
-keep an MXFP4 `down` while gate and up stay low-bit - would open the other four (UD-Q2_K_XL needs both); it is bigger and is
-open for scope as [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1). The offered sets and every default path stay exactly as they are.
+keep an MXFP4 `down` while gate and up stay low-bit - opens the other four (UD-Q2_K_XL needs both); it is landed on this
+branch for [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1) and wired into setup, fit and the file
+recognition, but no release carries it yet. The offered sets and every default path stay exactly as they are.
 
 ### Landing UD-IQ2_XXS - wired on this branch
 
@@ -223,6 +224,22 @@ branch `engine-mixed-mxfp4-down` takes that shape:
 - The CPU lane composes the two halves in one layer (`mixed_cpu_ready` / `mixed_cpu_gate_up` / `mixed_cpu_h_quant` /
   `mixed_cpu_down`): low-bit gate/up rows over Q8_K activations, then MXFP4 down rows over the MXFP4 activation, with the
   same expert and slot cap as the low-bit lane.
+
+The download, fit and "I already have it" sides are wired on the same branch. Each of the four sets has its own
+`udtable` recipe: the last shard (its n-gram table, Q5_K / Q6_K / MXFP8) downloads and verifies beside the model and goes
+to the packer as `--engram`, never as a model shard; `shared` carries only the drafter and the picture file. Setup refuses
+an engine older than **0.1.60** before anything downloads, because that is where the mixed layers are. The fit entries
+count each set's own table (135.2 / 161.3 / 161.3 / 202.8 GB), the plan says the table is the set's own, and the app's
+file recognition knows every last shard. On a Mac and on a DGX Spark all four stay hidden until they run there, like
+UD-IQ2_XXS. `tests/tools/test_setup_udtable.py` (no GPU, no downloads) checks the pins, the pack call, the 0.1.60 gate,
+the fit numbers and the recognition.
+
+The pinned shards' own headers were read back from the Hub for this branch (the first 1.5 MB of every model shard; no
+weights were downloaded) and checked against the rule: each set has 40 layers, gate equals up in every one, and the mixed
+layers are **7 / 30 / 18 / 4** as in the table, at layers 0, 1, 15-19; 0-9 and 15-34; 0-9, 20-24 and 35-37; and 0, 2, 3, 4.
+The gate/up types in those layers are IQ2_XS, IQ2_XXS, IQ2_S, IQ3_XXS and Q3_K, and the tables are Q5_K, Q6_K, Q6_K and
+MXFP8 (shard 7 / 7 / 8 / 8). No other mix occurs, so the engine's one new shape covers all four sets; the synthetic test
+now covers every one of those gate/up types against MXFP4 down.
 
 Validation so far: the CUDA 13.5 build is green, and the CPU lane's mixed composition passes its synthetic Q8_K / MXFP4
 reference test (`ds4_gguf_test --mixed-cpu`). Device parity tests for the token, window, set, PCIe-lane and CPU-lane paths

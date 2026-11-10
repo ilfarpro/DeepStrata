@@ -1,6 +1,6 @@
 # Set up Strata for a user
 
-Use this guide when a user asks an AI agent to install Strata (version 0.2.5). There is one release route: the Terminal.
+Use this guide when a user asks an AI agent to install Strata (version 0.2.12.2). There is one release route: the Terminal.
 Do not start from a source checkout.
 
 - **The Terminal and `deepstrata launch`** (below). This is the route for an agent that has a shell, and the way every

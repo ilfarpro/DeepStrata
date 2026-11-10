@@ -1,6 +1,6 @@
 # Install Strata
 
-This page is for anyone installing or updating Strata (version 0.2.5). Use the **chat page in your browser** for a
+This page is for anyone installing or updating Strata (version 0.2.12.2). Use the **chat page in your browser** for a
 graphical interface, or the **Terminal** for `deepstrata launch` and coding tools. Both come from one download: the
 Terminal archive carries the page too. A normal install does not need a source checkout or a startup `.bat` file.
 

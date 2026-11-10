@@ -48,8 +48,8 @@ class VersionBump(unittest.TestCase):
         # version, names no installer file our release folder does not carry, and no longer offers the removed
         # desktop app (the page rides in the Terminal archive).
         text = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertRegex(text, r"DeepStrata 0\.2\.12\.1")      # our release on the upstream 0.2.12 line (tag ds-0.2.12.1)
-        self.assertRegex(text, r"\b0\.1\.59\b")                # the Control and the engine our feed publishes
+        self.assertRegex(text, r"DeepStrata 0\.2\.12\.2")      # our release on the upstream 0.2.12 line (tag ds-0.2.12.2)
+        self.assertRegex(text, r"\b0\.1\.60\b")                # the Control and the engine our feed publishes
         self.assertNotRegex(text, r"Strata-0[.]\d")            # no upstream app installers: we publish none yet
         self.assertNotIn("desktop app", text)                   # the shell is gone: the page rides in the Terminal
         self.assertNotIn("macos-arm64.dmg", text)               # ... and so are its per-system installers

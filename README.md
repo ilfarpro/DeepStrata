@@ -34,14 +34,14 @@ downloaded twice. Every difference and the rules for keeping them through a sync
 
 ## What our release carries today
 
-Our newest release is **DeepStrata 0.2.12.1** — the Terminal and the engine **0.1.59**, our first release on the
+Our newest release is **DeepStrata 0.2.12.2** — the Terminal and the engine **0.1.60**, the second release on the
 upstream 0.2.12 line. The version is the upstream line we are based on plus our own number, so
 `0.2.12.1`, `0.2.12.2`, then `0.2.13.1` after the next sync ([how we number releases](DIVERGENCE.md#release-numbering-and-tags)).
 
 | Published by us now | For |
 | --- | --- |
-| The Terminal — `deepstrata`, Control 0.1.59 | Linux x86-64 |
-| The DeepSeek V4.1-Flash engine 0.1.59 (CUDA 13, sm_86 / sm_89 / sm_120) | Linux x86-64 with NVIDIA RTX 30, 40 or 50, driver 580.65 or newer |
+| The Terminal — `deepstrata`, Control 0.1.60 | Linux x86-64 |
+| The DeepSeek V4.1-Flash engine 0.1.60 (CUDA 13, sm_86 / sm_89 / sm_120) | Linux x86-64 with NVIDIA RTX 30, 40 or 50, driver 580.65 or newer |
 
 **Not in our release folder yet:** `install.ps1` and a Windows Terminal, the macOS and ARM64 Linux Terminal packages,
 the Qwen engine packages (NVIDIA, AMD, Intel, Mac). Our installer

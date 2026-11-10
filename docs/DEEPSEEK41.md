@@ -312,8 +312,8 @@ time (a picture is encoded in 0.19 s the first time, 0.08 s the next, 0 s when i
 program took the reserve's room), the experts' last slots on the first GPU are lent to the tower for that picture turn, as they are to a long prompt, and read
 back from the model files afterwards (35 experts, 117 ms on an RTX A6000 with 59 MiB free; the picture is read right and the next one is not slower). It stays
 on the card on a GPU that shares the PC's memory (Mac, GB10, Strix Halo), and with `--vision-resident`. The server decodes each picture, brings it to a size the tower takes (both sides a multiple of 42, at most 1024 image
-tokens) and hands it to the engine; it needs Pillow for that (`python -m pip install pillow`; setup installs it). `--vision no` in `deepstrata launch`
-(or `--vision off` for the engine) turns them off; a request with a picture then gets a 400 that says so.
+tokens) and hands it to the engine; it needs Pillow for that (`python -m pip install pillow`; setup installs it). `--vision off` in `deepstrata launch`
+(or `--vision no` in `setup.py`) turns them off; a request with a picture then gets a 400 that says so.
 
 ## Several conversations at once (`--parallel`)
 

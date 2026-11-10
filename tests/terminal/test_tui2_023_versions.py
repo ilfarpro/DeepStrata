@@ -21,7 +21,7 @@ def first(path, pattern):
 
 class VersionBump(unittest.TestCase):
     def test_the_terminal_is_0_2_4_2_and_control_is_0_1_49_2_while_the_app_stays_0_2_3(self):
-        # 0.1.59 engine (this branch, DeepSeek fmt 4): the Engram reader takes Q5_K, opening Unsloth UD-IQ2_XXS; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.59 (the CMake project version); the Terminal and page stay 0.2.12. CUDA device reader verified on RTX sm_89 + sm_120; HIP/Metal build from the same source, their card runs are still open.
+        # 0.1.60 engine (this branch): the DeepSeek engine takes a layer with an MXFP4 down under a low-bit gate/up, opening Unsloth UD-Q2_K_XL, UD-IQ3_XXS, UD-IQ3_S and UD-Q3_K_XL (issue #1); Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.60 (the CMake project version); the Terminal and page stay 0.2.12. The device runs of the mixed layers are still open.
         # 0.2.12 (owner 2026-11-06, release of rounds 0215/0216/0217): Terminal and app are 0.2.12; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.58 (the CMake project version).
         # 0.2.11 (coordinator 2026-11-04; the owner can still rename it 0.2.10.1): Terminal and app are 0.2.11; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.57 (the CMake project version).
         # 0.2.10 (the 0.2.9 update, owner 2026-11-02): Terminal and app are 0.2.10; Control and every engine package (Qwen, DeepSeek, Metal, SYCL, aarch64) are 0.1.56 (the CMake project version).
@@ -32,9 +32,9 @@ class VersionBump(unittest.TestCase):
         # 0.2.7.1 (DGX Spark): Control and the linux-aarch64 engine packages are 0.1.53 (the CMake project version); the app and the Terminal stay 0.2.7, the Metal engine 0.1.52.
         # 0.2.7: Terminal and app are 0.2.7; Control and every engine package (Qwen, DeepSeek, Metal) are 0.1.52 (the CMake project version; the Qwen and DeepSeek C++ both changed since 0.2.6)
         self.assertEqual(strata_cli.PRODUCT_VERSION, "0.2.12")
-        self.assertEqual(strata_cli.version(), "0.1.59")                # the CMake project version
-        self.assertEqual(first("CMakeLists.txt", r"^project\(strata VERSION ([0-9.]+) "), "0.1.59")
-        self.assertIn('STRATA_VERSION="0.1.59-metal"', (ROOT / "metal" / "CMakeLists.txt").read_text(encoding="utf-8"))
+        self.assertEqual(strata_cli.version(), "0.1.60")                # the CMake project version
+        self.assertEqual(first("CMakeLists.txt", r"^project\(strata VERSION ([0-9.]+) "), "0.1.60")
+        self.assertIn('STRATA_VERSION="0.1.60-metal"', (ROOT / "metal" / "CMakeLists.txt").read_text(encoding="utf-8"))
 
     def test_every_place_the_page_version_lives_says_0_2_3(self):
         host = json.loads((ROOT / "apps/host/package.json").read_text(encoding="utf-8"))
@@ -43,7 +43,7 @@ class VersionBump(unittest.TestCase):
         self.assertEqual((locked["version"], locked["packages"][""]["version"]), ("0.2.12", "0.2.12"))
 
     def test_the_documents_that_state_the_current_version_agree(self):
-        self.assertIn("Version 0.2.12, engine 0.1.59.", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))
+        self.assertIn("Version 0.2.12, engine 0.1.60.", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))
         # The fork's front page is English-only (DIVERGENCE.md, zone 12): it states our own release and engine
         # version, names no installer file our release folder does not carry, and no longer offers the removed
         # desktop app (the page rides in the Terminal archive).
@@ -57,7 +57,7 @@ class VersionBump(unittest.TestCase):
     def test_version_prints_the_product_and_the_build(self):
         done = subprocess.run([sys.executable, str(ROOT / "strata.py"), "--version"], capture_output=True, text=True, cwd=str(ROOT),
                               env={**os.environ, "STRATA_NO_HANDOVER": "1"})
-        self.assertTrue(done.stdout.startswith("strata 0.2.12 (build 0.1.59;"), done.stdout)
+        self.assertTrue(done.stdout.startswith("strata 0.2.12 (build 0.1.60;"), done.stdout)
 
 
 class UpdateFromTheLastRelease(test_updater.UpdaterCase):

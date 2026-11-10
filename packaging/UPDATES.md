@@ -147,7 +147,7 @@ All signing happens on the release PC, on the finished files.
 The release version is the upstream line plus our own number (`0.2.12.1` is our first release on upstream 0.2.12; tag `ds-0.2.12.1`,
 [DIVERGENCE.md](../DIVERGENCE.md)). Release file names and the GitHub release carry that number; the versions inside the components do not
 change: the page reports its `apps/host/package.json` version and the Terminal its `PRODUCT_VERSION` (both 0.2.12 today), and
-Control and the engines carry the CMake project version (0.1.59).
+Control and the engines carry the CMake project version (0.1.60).
 
 **What is built (per OS)**
 

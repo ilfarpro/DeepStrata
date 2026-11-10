@@ -58,7 +58,7 @@ The components keep their own numbers, where they live today (pinned by
   update forever. A rebuilt page inside one line is rare (the page is upstream code); when it happens the page takes the next
   third number and the release notes say which line it is from. Up to 0.2.12 the same number also lived in
   `apps/desktop/src-tauri/Cargo.toml`, where the desktop app's updater compared it against the feed's `app.version`.
-- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.59 …)`
+- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.60 …)`
   today), and a four-number hotfix of those is what `version_key` reads natively.
 
 Tags: a release is tagged `ds-<version>` (`ds-0.2.12.1`); syncs stay `sync-<version>`. The

@@ -1,0 +1,95 @@
+name: Windows parts
+
+# The unsigned Windows half of a release. packaging/build_windows.ps1 builds the Terminal archive (zip), the Qwen CUDA 13
+# engine and the strata-dsv41 engine, runs the Terminal smoke test, and writes windows-parts.json with every hash. It never
+# sees the feed key: signing happens on the release PC, in `packaging/release.py assemble`.
+#
+# Started by hand only, and only on a self-hosted Windows x64 runner that has the CUDA 13 toolkit, Visual Studio 2022 with
+# the C++ workload, CMake, Ninja, Node 24.12+ and Python 3.10+ (labels: self-hosted, windows, x64, cuda13). No graphics card
+# is needed: nothing here loads a model, and the Terminal smoke test runs the mock engine.
+#
+# Then, on the release PC (Linux):
+#   python packaging/release.py build --windows-parts <the build-windows-parts folder, or its .zip>
+# Copy the folder off the runner (or set upload_parts, which stores it as a workflow artifact; it is large).
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Parts to build: terminal, qwen, dsv41 (comma separated; empty builds all three)'
+        required: false
+        default: ''
+      commit:
+        description: 'Commit to build (empty: the commit this workflow runs on)'
+        required: false
+        default: ''
+      skip_smoke:
+        description: 'Skip the Terminal smoke test (the release tool then refuses these parts; build check only)'
+        type: boolean
+        default: false
+      upload_parts:
+        description: 'Upload the parts folder as an artifact (hundreds of MB; needs storage room for the runner)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-parts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  parts:
+    name: Build the Windows parts
+    runs-on: [self-hosted, windows, x64, cuda13]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # -Only and -Commit are passed through the environment: an empty string must not turn into a positional argument.
+      - name: Build the parts (Terminal, Qwen CUDA 13, strata-dsv41)
+        shell: powershell
+        env:
+          INPUT_ONLY: ${{ inputs.only }}
+          INPUT_COMMIT: ${{ inputs.commit }}
+          INPUT_SKIP_SMOKE: ${{ inputs.skip_smoke && '1' || '' }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $arguments = @{}
+          if ($env:INPUT_ONLY) { $arguments["Only"] = $env:INPUT_ONLY }
+          if ($env:INPUT_COMMIT) { $arguments["Commit"] = $env:INPUT_COMMIT }
+          if ($env:INPUT_SKIP_SMOKE) { $arguments["SkipSmoke"] = $true }
+          & .\packaging\build_windows.ps1 @arguments
+          if ($LASTEXITCODE -ne 0) { throw "build_windows.ps1 exited $LASTEXITCODE" }
+      # A short summary in the run page: the release PC reads the file itself, this is for the person who started the run.
+      - name: Summarize the parts
+        if: ${{ !cancelled() }}
+        shell: powershell
+        run: |
+          $manifest = "build-windows-parts\windows-parts.json"
+          if (-not (Test-Path $manifest)) { "no windows-parts.json was written" | Out-File -Append $env:GITHUB_STEP_SUMMARY; exit 0 }
+          $parts = Get-Content $manifest -Raw | ConvertFrom-Json
+          @(
+            "| field | value |",
+            "| --- | --- |",
+            "| commit | ``$($parts.commit)`` |",
+            "| dirty | $($parts.dirty) |",
+            "| CUDA | $($parts.toolchain.cuda) |",
+            "| component | $($parts.component_version) |",
+            "| product / page | $($parts.product_version) / $($parts.host_version) |",
+            "| components | $(($parts.components | Get-Member -MemberType NoteProperty).Name -join ', ') |",
+            "| Terminal smoke | $(if ($parts.smoke.terminal) { 'ran' } else { 'MISSING' }) |",
+            "",
+            "Parts folder on the runner: ``build-windows-parts``"
+          ) | Out-File -Append $env:GITHUB_STEP_SUMMARY
+      - name: Upload the parts folder
+        if: ${{ !cancelled() && inputs.upload_parts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-parts
+          path: build-windows-parts/**
+          if-no-files-found: warn
+          retention-days: 3

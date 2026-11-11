@@ -78,6 +78,9 @@ build-vision-cuda12.bat
 # local Windows HIP packaging output
 dist-hip/
 
+# the unsigned Windows parts packaging/build_windows.ps1 writes on a Windows PC (imported with build --windows-parts)
+/build-windows-parts/
+
 # local venvs, build output and archives never enter git
 .terminal-venv/
 .terminal-test-venv/

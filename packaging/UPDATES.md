@@ -158,16 +158,36 @@ component versions, because the updater compares those: the page reports its `ap
   The same archive is the first download and what `install.sh` / `install.ps1` unpack; a person who prefers the terminal never
   opens a browser, and one who wants the page runs `deepstrata ui` after it.
 
-**The release tool (Linux x86_64 today)**
+**The release tool**
 
-`packaging/release.py` is the release-side orchestrator. It builds what the release PC can build natively, signs it with the
-feed key, writes one signed feed, checks it the way a user's PC would, and only then creates the GitHub release:
+`packaging/release.py` is the release-side orchestrator. It builds what the release PC can build natively (the Linux parts),
+imports what a Windows PC built, signs everything with the feed key, writes one signed feed, checks it the way a user's PC
+would, and only then creates the GitHub release:
 
     python packaging/release.py plan --require-merged <branch>   # checks, tests, writes RELEASE/<version>/release.json
-    python packaging/release.py build                            # App Host, Terminal/Control, Qwen cuda13, dsv41 cuda13
+    python packaging/release.py build --windows-parts <folder>   # App Host, Terminal/Control, Qwen cuda13, dsv41 cuda13
     python packaging/release.py assemble                         # sign, pack, write the signed feed and installers
     python packaging/release.py verify                           # feed, hashes, selection and a real Terminal run
     python packaging/release.py publish                          # tag, GitHub release, upload, install.sh from latest
+
+With no `--target`, `plan` releases both platforms (`linux-x86_64` and `windows-x86_64`); `--target linux-x86_64` (or
+`--target windows-x86_64`) narrows it to one. The journal records the platforms and every later step follows them, so a
+Linux-only release never asks for Windows parts. A journal written before Windows was a target has no list and stays
+Linux-only.
+
+**The Windows parts.** `packaging/build_windows.ps1` runs on a Windows x64 PC with the CUDA 13 toolkit, Visual Studio 2022
+with the C++ workload, CMake, Ninja, Node 24.12+ and Python 3.10+. It writes an unsigned parts folder: the Terminal archive
+(zip), the Qwen CUDA 13 engine, the `strata-dsv41` engine and `windows-parts.json` (commit, versions, toolchain, every
+hash), and it runs the Terminal smoke test on that PC. `build --windows-parts <folder or .zip>` imports the folder here and
+refuses parts built from another commit or a dirty tree, another component version, a CUDA 12 build, a missing or failed
+smoke report, or a file whose hash changed after the manifest was written. Signing still happens only on the release PC,
+with the feed key: a Windows build machine never sees it, and no GPU is needed to build or to run the smoke test (the mock
+engine is used).
+
+`.github/workflows/windows-parts.yml` runs that script on a self-hosted Windows runner that carries the `cuda13` label. It
+is started by hand (`workflow_dispatch`), so no pull request depends on that machine. The parts folder is left on the runner
+(`build-windows-parts`); copy it to the release PC, or set `upload_parts` to keep it as a workflow artifact (hundreds of MB),
+then pass the folder to `build --windows-parts`.
 
 Run it with the checkout's Python (the `.venv` that `setup.py`/`setup.sh` made, or another interpreter with
 `requirements.txt`, `requirements-monitor.txt` and `pytest`): `plan` runs pytest in that same interpreter, and a bare
@@ -183,16 +203,19 @@ skips the test gate; every skipped or failed gate is recorded in the journal.
 `packaging/build_cuda_linux.sh` and `packaging/build_dsv41_cuda.sh`, and verifies every engine package with
 `package_engine.py --verify`. It reuses a build only for the commit in the journal; `--rebuild` throws the selected parts
 away. `assemble` copies the engine packages before signing them (the build output stays unsigned), signs
-`engine-component.json` with the feed key, packs the archives, writes `install-manifest.txt` and the signed
-`strata-feed.json` + `.sig`, and copies `install.sh` and `install.ps1` unchanged. `verify` parses the signed feed with the
-shipped key, re-hashes every archive against the feed, checks the installed Control manifest against
-`install-manifest.txt`, verifies both signed engine manifests, runs `packaging/smoke_terminal.py` on the Terminal archive,
-and asks `feed.select_engine` what a Linux NVIDIA PC gets.
+`engine-component.json` with the feed key, packs the archives (tar.gz on Linux, zip on Windows), writes
+`install-manifest.txt` and the signed `strata-feed.json` + `.sig`, and copies `install.sh` and `install.ps1` unchanged.
+`verify` parses the signed feed with the shipped key, re-hashes every archive against the feed, checks the installed Control
+manifest against `install-manifest.txt`, verifies every signed engine manifest, runs `packaging/smoke_terminal.py` on the
+Linux Terminal archive, and asks `feed.select_engine` what a PC of each released platform gets. The Windows Terminal is not
+run again here: its smoke report came with the parts, and its archive is re-hashed. A Windows-only release needs no CUDA
+toolkit on the release PC at all: the engine comes in with the parts.
 
 `publish` creates the annotated tag, pushes it over HTTPS with the token (asked from the environment, never printed),
 creates a normal latest release with `notes.md`, uploads every file in `RELEASE/<version>/feed/` flat, and then installs
-the published release with `install.sh` from `latest/download` and starts it once. `--resume` continues an interrupted
-upload; `--replace` replaces an asset whose content differs; neither deletes a release.
+the published release with `install.sh` from `latest/download` and starts it once (that last check is skipped when the
+release has no Linux Terminal). `--resume` continues an interrupted upload; `--replace` replaces an asset whose content
+differs; neither deletes a release.
 
 The private key is read from `--key`, `STRATA_FEED_KEY` or `~/deepstrata-keys/feed-key.json`, and must be outside this git
 checkout with mode 0600. The GitHub token is read from `GH_TOKEN`/`GITHUB_TOKEN` or the `gh` config's
@@ -202,15 +225,16 @@ checkout with mode 0600. The GitHub token is read from `GH_TOKEN`/`GITHUB_TOKEN`
 anything. A release must be built from a clean `main` commit; the journal names that commit and every later step refuses a
 different checkout, so a half-built release cannot be signed from another tree.
 
-**What the automated release carries today.** `linux-x86_64` only: the Terminal archive (and the same bundle packed as the
-Control package that `install.sh` and the updater use), the Qwen CUDA 13 engine and the DeepSeek `strata-dsv41` CUDA 13
-engine, all at the CMake version (0.1.60 today). Windows, macOS, HIP and `linux-aarch64` builds are made on their own
-machines and still need the steps below; a release that must serve those platforms is not complete until their Control and
-engine packages are on the same release page (one Control package per platform; the feed lists them all). The release
-version (`0.2.12.2`) is the tag and the GitHub release; the files and the feed carry the component versions, because the
-updater compares those.
+**What the automated release carries today.** `linux-x86_64` and `windows-x86_64`: for each, the Terminal archive (and the
+same bundle packed as the Control package that `install.sh` / `install.ps1` and the updater use), the Qwen CUDA 13 engine and
+the DeepSeek `strata-dsv41` CUDA 13 engine, all at the CMake version (0.1.60 today). The Windows binaries are not
+Authenticode-signed: SmartScreen may ask once before the Terminal runs, and the generated release notes say so. macOS, HIP and
+`linux-aarch64` builds are made on their own machines and still need the steps below; a release that must serve those
+platforms is not complete until their Control and engine packages are on the same release page (one Control package per
+platform; the feed lists them all). The release version (`0.2.12.2`) is the tag and the GitHub release; the files and the
+feed carry the component versions, because the updater compares those.
 
-**Steps for the platforms the release tool does not build**
+**Steps for the platforms the release tool does not build (macOS, HIP, linux-aarch64)**
 
     python packaging/feed_tool.py sign-package <engine package folder> --key <feed-key.json>        # every engine package
     python packaging/feed_tool.py pack-engine  <engine package folder> --out RELEASE/engine --url-prefix=

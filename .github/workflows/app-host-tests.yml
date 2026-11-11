@@ -1,0 +1,45 @@
+name: App Host tests
+
+# apps/host owns the browser page and the Node host around it; its suite (`npm test`, node:test) is 240 files
+# and ran in no workflow, so AGENTS.md described a check that CI never made. The type check is here too: the
+# page is TypeScript, and a type error is a build error that `vite build` only reports at the end.
+#
+# The parts that need a built Harness (STRATA_HARNESS_DIR) skip themselves and say so; without it the suite
+# still proves the page, the host, the gateway and the durable session.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-host-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node-test:
+    name: Node 24 / npm test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/host
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/host/package-lock.json
+      - name: Install the page's packages
+        run: npm ci --no-audit --no-fund
+      - name: Type check
+        run: npm run typecheck
+      - name: Run the suite
+        run: npm test

@@ -78,6 +78,8 @@ Source setup does not make an unsupported model or backend compatible. Strata's 
   tests run with `npm test` in `apps/host`. Server and setup tests are in `tests/serve` and `tests/tools` and run
   without a GPU or downloads: `python -m pytest tests/serve tests/tools` (one setup test:
   `python -m pytest tests/tools/test_setup_amd.py`). [tests/README.md](tests/README.md) lists the folders.
+  Every one of those suites runs on a pull request (`.github/workflows/python-tests.yml` and
+  `app-host-tests.yml`), and so does the lint: `python -m ruff check .`, with the rule set in `pyproject.toml`.
 - Keep the docs' style: plain words, short sentences, written for non-technical users first. Give measured numbers
   with what they were measured on. Make no claim without a measurement.
 

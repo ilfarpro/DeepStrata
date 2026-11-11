@@ -1,0 +1,25 @@
+# Editor defaults for this tree. Line endings are checked in by .gitattributes (a launcher keeps CRLF, a
+# frozen prompt keeps its bytes); this file only says what an editor does while typing.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,jsonl,yml,yaml,toml,ts,tsx,js,jsx,mjs,cjs,css,html,svg}]
+indent_size = 2
+
+# A trailing double space is a line break in Markdown.
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows launchers are shipped with CRLF wherever the repository is cloned.
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab

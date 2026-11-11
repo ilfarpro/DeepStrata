@@ -1,3 +1,26 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+
+# Lint: the rules that find a program that cannot run, not a house style. The tree passes these today
+# (a lint that starts red is turned off within a week); widen the list in the same change that fixes
+# what a wider one reports. `python -m pip install ruff==0.17.4 && ruff check .`
+[tool.ruff]
+target-version = "py310"
+line-length = 130
+extend-exclude = [".venv", "build*", "RELEASE", "third_party", "node_modules", "apps/host/dist"]
+
+[tool.ruff.lint]
+select = [
+    "E9",    # syntax and runtime-level errors (E902, E999)
+    "F63",   # invalid print/await/yield usage
+    "F7",    # syntax errors pyflakes can see (F701-F707)
+    "F81",   # redefinition of an unused name (F811, a shadowed duplicate)
+    "F82",   # undefined name (F821-F823)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# A one-off measurement script that `exec`s a sibling file from a machine that no longer exists
+# (C:\dflash2-work) and is kept as the record of a run, not as a program. Nothing can check the names it
+# defines; `tools/` cleanup should decide whether it is kept at all.
+"tools/dflash2/final_tables.py" = ["F821"]

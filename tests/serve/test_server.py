@@ -289,7 +289,7 @@ class FitMaxTokens(unittest.TestCase):
         self.assertIn("no room to answer", b["error"]["message"])
 
 
-class VisionTempFiles(unittest.TestCase):
+class VisionTempFilesRefused(unittest.TestCase):
     """A request's combined image file (req-*.sve, ~10 MB a picture) goes with the request: one refused after prepare()
     wrote it (the engine starting, no room) or whose answer never started left it in the vision directory for good."""
 
@@ -298,15 +298,22 @@ class VisionTempFiles(unittest.TestCase):
 
     @staticmethod
     def leftovers(d):
-        return sorted(p.name for p in Path(d).glob("req-*.sve"))
+        """#874: with room on /dev/shm (Linux) the combined file is written there, not in the encoder's directory."""
+        found = list(Path(d).glob("req-*.sve"))
+        shm = Path("/dev/shm")
+        if shm.is_dir():
+            found += list(shm.glob(f"strata-vision-{os.getpid()}-req-*.sve"))
+        return sorted(p.name for p in found)
 
     def test_a_refused_request_writes_none(self):
         from serve.server import EngineStarting
         tok = ByteTokenizer()
         with tempfile.TemporaryDirectory() as d:
             engine = MockEngine(tok, "ok", max_context=0)
+            # fit_max_tokens=False: this test is about a REFUSED request, and the default (True) clamps the
+            # output cap to the room left instead of answering 400 "exceeds the context".
             svc = Service(engine, tok, ChatTemplate(ROOT / "serve/chat_template.jinja"),
-                          vision=ImageMarkers.FakeVision(d))
+                          vision=ImageMarkers.FakeVision(d), fit_max_tokens=False)
             with self.assertRaises(EngineStarting):
                 svc.prepare(self.MSGS, None, {}, 16)
             engine.max_context = 64                                  # the prompt alone fills it
@@ -2156,7 +2163,8 @@ class IncrementalPrompts(unittest.TestCase):
 
     def test_same_ids_as_a_full_encode_on_varied_conversations(self):
         import random
-        sys.path.insert(0, str(ROOT / "tools"))
+        # the helper is a test module in tests/tools, not a tool: `tools/` is the product's own folder
+        sys.path.insert(0, str(ROOT / "tests" / "tools"))
         from test_strata_tokenizer import conversation_prompts, load_tokenizer
         toks = [("byte", ByteTokenizer())]
         qwen = load_tokenizer()

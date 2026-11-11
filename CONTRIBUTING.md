@@ -98,6 +98,13 @@ Validation:
 Limits: <known limitations or remaining work>
 ```
 
+## Checks that run on your pull request
+
+Every suite listed in [tests/README.md](tests/README.md) runs on a pull request, as does
+`python -m ruff check .` with the rule set in `pyproject.toml`, and `npm test` in `apps/host`. Run the ones
+your change touches before you push: a red check says which folder broke, and it is cheaper than a review
+round-trip. A test that has to be skipped needs a reason in the pull request, not a silent edit.
+
 ## Rules for AI-assisted work
 
 Use agents to help investigate, implement, and explain work that you can review. Before submitting, verify

@@ -17,10 +17,21 @@ already exists, a key that is not the one shipped, or failing tests. Every later
 that journal and the commit it names, so a release cannot be built from different sources
 half-way through.
 
+Windows parts are built natively on a Windows PC by `packaging/build_windows.ps1`
+(the `windows-parts` workflow runs it on a self-hosted Windows runner). That script
+writes an unsigned parts folder with the Terminal archive, the Qwen CUDA 13 engine and
+the `strata-dsv41` engine, plus a `windows-parts.json` that names the commit and every
+hash. `build --windows-parts` imports and checks it here, on this machine; signing still
+happens only here, with the feed key. `plan --target` narrows a release to one platform;
+with no `--target` it carries linux-x86_64 and windows-x86_64. macOS, HIP and ARM builds
+are not part of this tool yet: they are built on their own machines and added by hand.
+
 What this tool does NOT do, on purpose:
-* it never touches Windows, macOS, HIP or ARM builds: those are built on their own machines
-  and added to the folder by hand. A release that needs them
-  is not complete until they are in it;
+* it never builds Windows natively, never sees a Windows toolchain and never puts the
+  feed key on a build machine; it only imports the unsigned Windows parts and signs
+  them here;
+* it does not Authenticode-sign Windows binaries: the Windows parts go out unsigned
+  (SmartScreen may warn, as the Mac builds do until they hold a certificate);
 * it never prints, copies or stores the private key;
 * it never deletes a published release, a tag or an uploaded asset. A wrong release is fixed
   by publishing the next one.
@@ -60,6 +71,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -76,7 +88,11 @@ REPO = fork_identity.REPO
 LATEST_DOWNLOAD = fork_identity.LATEST_DOWNLOAD
 DEFAULT_KEY = Path.home() / "deepstrata-keys" / "feed-key.json"
 RELEASE_DIR_NAME = "RELEASE"
-TARGETS = ("linux-x86_64",)
+LINUX = "linux-x86_64"
+WINDOWS = "windows-x86_64"
+TARGETS = (LINUX, WINDOWS)
+WINDOWS_PARTS_NAME = "windows-parts.json"
+WINDOWS_PARTS_SCHEMA = 1
 AREAS = ("Engine", "GUI", "TUI", "Benchmark", "Docs", "Other")
 TAG_PREFIX = "ds-"
 VERSION_RE = re.compile(r"^\d{1,3}(?:\.\d{1,3}){3}$")
@@ -84,6 +100,24 @@ AREA_RE = re.compile(r"^\[(Engine|GUI|TUI|Benchmark|Docs|Other)\]\s*", re.IGNORE
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 DEFAULT_SEQUENCE_FILE = "strata-feed.json"
 FEED_ASSETS = ("strata-feed.json", "strata-feed.json.sig", "install-manifest.txt", "install.sh", "install.ps1")
+#: What a release page may carry: the Terminal/Control archives (tar.gz on Linux, zip on Windows), the package manifests,
+#: the signed feed with its signature, install-manifest.txt and the two one-line installers.
+RELEASE_ASSET_SUFFIXES = (".tar.gz", ".zip", ".json", ".sig", ".txt", ".sh", ".ps1")
+
+
+def is_release_asset(name: str) -> bool:
+    """True when a feed file may be uploaded to the release page. A new archive format has to be added here first."""
+    return name.endswith(RELEASE_ASSET_SUFFIXES)
+
+
+#: The code every engine package must carry, and the driver it needs: the same for both platforms.
+ENGINE_ARCHS = ("sm_86", "sm_89", "sm_120", "compute_120")
+MIN_NVIDIA_DRIVER = "580.65"
+
+
+def control_format(platform: str) -> str:
+    """The archive format a platform's Terminal/Control package is packed in: `install.ps1` unpacks zip, `install.sh` tar.gz."""
+    return "zip" if platform == WINDOWS else "tar.gz"
 
 
 class ReleaseError(RuntimeError):
@@ -542,7 +576,8 @@ def group_notes(records: list[dict]) -> dict[str, list[dict]]:
 
 
 def generate_notes(*, version: str, component: str, commit: str, previous: str | None, records: list[dict],
-                   repo: str = REPO, line: str | None = None) -> str:
+                   repo: str = REPO, line: str | None = None,
+                   targets: tuple[str, ...] = TARGETS) -> str:
     grouped = group_notes(records)
     lines = [f"{PRODUCT} {version}", ""]
     lines.append(f"Built from `{commit[:12]}` on the {line or product_version()} line. Components inside carry "
@@ -565,12 +600,25 @@ def generate_notes(*, version: str, component: str, commit: str, previous: str |
     lines.append("")
     lines.append("## Install")
     lines.append("")
-    lines.append("Linux x86_64, no administrator rights:")
-    lines.append("")
-    lines.append("```sh")
-    lines.append(f"curl -fsSL https://github.com/{repo}/releases/latest/download/install.sh -o install.sh && sh install.sh")
-    lines.append(f"deepstrata launch")
-    lines.append("```")
+    if LINUX in targets:
+        lines.append("Linux x86_64, no administrator rights:")
+        lines.append("")
+        lines.append("```sh")
+        lines.append(f"curl -fsSL https://github.com/{repo}/releases/latest/download/install.sh -o install.sh && sh install.sh")
+        lines.append(f"deepstrata launch")
+        lines.append("```")
+    if WINDOWS in targets:
+        if LINUX in targets:
+            lines.append("")
+        lines.append("Windows x86_64 (PowerShell), no administrator rights:")
+        lines.append("")
+        lines.append("```powershell")
+        lines.append(f"irm https://github.com/{repo}/releases/latest/download/install.ps1 | iex")
+        lines.append(f"deepstrata launch")
+        lines.append("```")
+        lines.append("")
+        lines.append("The Windows build is not Authenticode-signed yet: Windows SmartScreen may ask once before it runs. "
+                     "The signed feed still checks the sha256 of every file before anything is installed.")
     lines.append("")
     lines.append("The one-line installer unpacks the Terminal (the page rides inside it) and the signed feed is checked "
                  "before anything is installed. `deepstrata launch` downloads the engine for this PC's card and the "
@@ -578,9 +626,12 @@ def generate_notes(*, version: str, component: str, commit: str, previous: str |
     lines.append("")
     lines.append("## Artifacts")
     lines.append("")
-    lines.append(f"- Terminal/Control `{component}` for `linux-x86_64`")
-    lines.append(f"- Qwen CUDA 13 engine `{component}` for `linux-x86_64`")
-    lines.append(f"- DeepSeek V4.1-Flash (`strata-dsv41`) CUDA 13 engine `{component}` for `linux-x86_64`")
+    for platform in targets:
+        lines.append(f"- Terminal/Control `{component}` for `{platform}`")
+    for platform in targets:
+        lines.append(f"- Qwen CUDA 13 engine `{component}` for `{platform}`")
+    for platform in targets:
+        lines.append(f"- DeepSeek V4.1-Flash (`strata-dsv41`) CUDA 13 engine `{component}` for `{platform}`")
     lines.append("")
     lines.append("`strata-feed.json` in this release is signed; its signature is `strata-feed.json.sig`.")
     return "\n".join(lines).rstrip() + "\n"
@@ -671,7 +722,9 @@ def _tool_version(cmd: list[str], pattern: str) -> str | None:
     return match.group(1) if match else None
 
 
-def check_tools(cuda_root: Path, cuda_release: str) -> dict:
+def check_tools(cuda_root: Path | None = None, cuda_release: str | None = None) -> dict:
+    """The tools this machine builds with. CUDA is only asked for when the release has a Linux target: a Windows
+    release is built on Windows, by packaging/build_windows.ps1, and never needs nvcc here."""
     problems: list[str] = []
     cmake = which("cmake")
     ninja = which("ninja")
@@ -701,7 +754,8 @@ def check_tools(cuda_root: Path, cuda_release: str) -> dict:
         raise ReleaseError("the build tools are not ready:\n  - " + "\n  - ".join(problems))
     return {"python": sys.version.split()[0], "pytest": pytest_version, "cmake": _tool_version([cmake, "--version"], r"cmake version (\d+\.\d+\.\d+)"),
             "ninja": _tool_version([ninja, "--version"], r"(\d+\.\d+\.\d+)"), "node": node_version, "npm": npm,
-            "cuda_root": str(cuda_root), "cuda": cuda_release, "llama_cpp": str(llama), "free_gib": round(free_gib, 1),
+            "cuda_root": str(cuda_root) if cuda_root else None, "cuda": cuda_release if cuda_root else None,
+            "llama_cpp": str(llama), "free_gib": round(free_gib, 1),
             "app_host_dist": (ROOT / "apps" / "host" / "dist" / "index.html").is_file(),
             "app_host_modules": (ROOT / "apps" / "host" / "node_modules").is_dir()}
 
@@ -765,17 +819,46 @@ def _github_for_plan(token: str | None) -> GitHub | None:
     return GitHub(token or "", REPO, timeout=30)
 
 
-def artifact_plan(component: str) -> list[dict]:
-    return [
-        {"name": "terminal", "artifact": f"strata-terminal-{component}-linux-x86_64.tar.gz",
-         "what": "Terminal archive (page and Node inside; the Control package is the same bundle)"},
-        {"name": "control", "artifact": f"strata-control-{component}-linux-x86_64.tar.gz",
-         "what": "Control package for the update feed and install.sh"},
-        {"name": "qwen", "artifact": f"strata-engine-{component}-linux-x86_64-cuda-cuda13.tar.gz",
-         "what": "Qwen CUDA 13 engine package"},
-        {"name": "dsv41", "artifact": f"strata-dsv41-{component}-linux-x86_64-cuda-cuda13.tar.gz",
-         "what": "DeepSeek V4.1-Flash engine package (feed member dsv41)"},
-    ]
+def artifact_plan(component: str, targets: tuple[str, ...] = TARGETS) -> list[dict]:
+    plan: list[dict] = []
+    if LINUX in targets:
+        plan += [
+            {"name": "terminal", "platform": LINUX,
+             "artifact": f"strata-terminal-{component}-linux-x86_64.tar.gz",
+             "what": "Terminal archive (page and Node inside; the Control package is the same bundle)"},
+            {"name": "control", "platform": LINUX,
+             "artifact": f"strata-control-{component}-linux-x86_64.tar.gz",
+             "what": "Control package for the update feed and install.sh"},
+            {"name": "qwen", "platform": LINUX,
+             "artifact": f"strata-engine-{component}-linux-x86_64-cuda-cuda13.tar.gz",
+             "what": "Qwen CUDA 13 engine package"},
+            {"name": "dsv41", "platform": LINUX,
+             "artifact": f"strata-dsv41-{component}-linux-x86_64-cuda-cuda13.tar.gz",
+             "what": "DeepSeek V4.1-Flash engine package (feed member dsv41)"},
+        ]
+    if WINDOWS in targets:
+        plan += [
+            {"name": "windows-parts", "platform": WINDOWS,
+             "artifact": f"strata-terminal-{component}-windows-x86_64.zip + the Windows engine packages",
+             "what": "built on Windows by packaging/build_windows.ps1, imported here with build --windows-parts"},
+            {"name": "control", "platform": WINDOWS,
+             "artifact": f"strata-control-{component}-windows-x86_64.zip",
+             "what": "Control package for the update feed and install.ps1"},
+            {"name": "qwen", "platform": WINDOWS,
+             "artifact": f"strata-engine-{component}-windows-x86_64-cuda-cuda13.tar.gz",
+             "what": "Qwen CUDA 13 engine package (sm_75 .. sm_120)"},
+            {"name": "dsv41", "platform": WINDOWS,
+             "artifact": f"strata-dsv41-{component}-windows-x86_64-cuda-cuda13.tar.gz",
+             "what": "DeepSeek V4.1-Flash engine package (feed member dsv41)"},
+        ]
+    return plan
+
+
+def journal_targets(journal: dict) -> tuple[str, ...]:
+    """The platforms a journal releases. A journal written before Windows was a target has no list: that release is Linux only,
+    and must not start asking for Windows parts after an upgrade of this tool."""
+    named = journal.get("targets")
+    return tuple(named) if named else (LINUX,)
 
 
 # ------------------------------------------------------------------------------------------------ plan
@@ -814,15 +897,19 @@ def cmd_plan(args) -> int:
     key_id = public["key_id"]
     token, token_source = find_token()
 
-    targets = tuple(dict.fromkeys(args.target or ["linux-x86_64"]))
+    targets = tuple(dict.fromkeys(args.target or TARGETS))
     for target in targets:
         if target not in TARGETS:
             raise ReleaseError(f"{target!r} cannot be built by this tool; this release builds {', '.join(TARGETS)}. "
-                               "Windows/macOS/HIP artifacts are built on their own machines and added before assemble")
+                               "Windows is built on Windows by packaging/build_windows.ps1 and imported with "
+                               "build --windows-parts; macOS/HIP/ARM parts are still added by hand")
 
-    tools = None
-    cuda_root, cuda_release = find_cuda_root(args.cuda_root)
-    tools = check_tools(cuda_root, cuda_release)
+    if LINUX in targets:
+        cuda_root, cuda_release = find_cuda_root(args.cuda_root)
+        tools = check_tools(cuda_root, cuda_release)
+    else:
+        tools = check_tools()
+        say("CUDA is not checked: this release has no linux-x86_64 target, and the Windows engine is built on Windows")
 
     latest_tag = None
     published = 0
@@ -929,7 +1016,7 @@ def cmd_plan(args) -> int:
         elif not (notes_path.is_file() and args.keep_notes):
             previous = previous_release_tag(root)
             notes = generate_notes(version=version, component=component, commit=head, previous=previous,
-                                   records=commits_since(root, previous), line=product)
+                                   records=commits_since(root, previous), line=product, targets=targets)
             write_notes(notes_path, notes)
         set_step(journal, "plan", {"ok": True, "started_at": journal["steps"]["plan"]["started_at"], "tests": tests})
         save_journal(directory, journal)
@@ -938,7 +1025,7 @@ def cmd_plan(args) -> int:
         save_journal(directory, journal)
         raise
     say("")
-    for item in artifact_plan(component):
+    for item in artifact_plan(component, targets):
         say(f"  will build {item['artifact']}")
     say("")
     say(f"journal: {directory / 'release.json'}")
@@ -1104,6 +1191,178 @@ def _build_dsv41(directory: Path, journal: dict, cuda_root: Path, cuda_release: 
     return {"folder": _rel(folder, directory)}
 
 
+def _platform_map(value: dict | None) -> dict[str, dict]:
+    """A build component as {platform: info}. A journal from before Windows stored the Linux entry flat."""
+    if not value:
+        return {}
+    if any(platform in value for platform in TARGETS):
+        return {name: info for name, info in value.items() if name in TARGETS}
+    return {LINUX: value}
+
+
+def _put_platform(components: dict, name: str, platform: str, info: dict) -> None:
+    entry = dict(_platform_map(components.get(name)))
+    entry[platform] = info
+    components[name] = entry
+
+
+def _parts_source(source: Path, directory: Path) -> Path:
+    """The folder that holds windows-parts.json; accepts the folder, an artifact zip, or one wrapper folder."""
+    source = Path(source).expanduser().resolve()
+    if source.is_file() and source.suffix.lower() == ".zip":
+        target = directory / "parts" / "windows-artifact"
+        shutil.rmtree(target, ignore_errors=True)
+        target.mkdir(parents=True)
+        with zipfile.ZipFile(source) as archive:
+            archive.extractall(target)
+        return _parts_source(target, directory)
+    if source.is_dir():
+        if (source / WINDOWS_PARTS_NAME).is_file():
+            return source
+        nested = sorted(path for path in source.iterdir() if path.is_dir())
+        for path in nested:
+            if (path / WINDOWS_PARTS_NAME).is_file():
+                return path
+        raise ReleaseError(f"{source} has no {WINDOWS_PARTS_NAME}; it is not the folder build_windows.ps1 wrote")
+    raise ReleaseError(f"{source} is neither a Windows parts folder nor the artifact zip")
+
+
+def _read_windows_parts(source: Path) -> dict:
+    try:
+        parts = read_json(source / WINDOWS_PARTS_NAME)
+    except ReleaseError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - a broken hand-off must name the file
+        raise ReleaseError(f"{source / WINDOWS_PARTS_NAME} cannot be read ({exc})") from None
+    if parts.get("schema_version") != WINDOWS_PARTS_SCHEMA:
+        raise ReleaseError(f"{source / WINDOWS_PARTS_NAME}: unknown schema {parts.get('schema_version')!r}; "
+                           "rebuild with this checkout's packaging/build_windows.ps1")
+    if parts.get("platform") != WINDOWS:
+        raise ReleaseError(f"{source / WINDOWS_PARTS_NAME}: platform is {parts.get('platform')!r}, not {WINDOWS}")
+    for key in ("commit", "component_version", "product_version", "host_version", "components"):
+        if not parts.get(key):
+            raise ReleaseError(f"{source / WINDOWS_PARTS_NAME} has no {key!r}")
+    return parts
+
+
+def _check_windows_parts(parts: dict, journal: dict, source: Path) -> None:
+    if parts.get("dirty"):
+        raise ReleaseError(f"{source} was built from an uncommitted tree (dirty); build the committed tree "
+                           "(packaging/build_windows.ps1 without -AllowDirty)")
+    if parts["commit"] != journal["commit"]:
+        raise ReleaseError(f"{source} was built from {parts['commit'][:12]}, but this release is "
+                           f"{journal['commit'][:12]}; rebuild the Windows parts from the release commit")
+    if parts["component_version"] != journal["component_version"]:
+        raise ReleaseError(f"{source} carries component {parts['component_version']}, but this release is "
+                           f"{journal['component_version']}; rebuild from the same commit")
+    if parts.get("product_version") != journal["product_version"] or parts.get("host_version") != journal["host_version"]:
+        raise ReleaseError(f"{source} carries product {parts.get('product_version')}/page {parts.get('host_version')}, "
+                           f"but this release is {journal['product_version']}/{journal['host_version']}")
+    cuda = str((parts.get("toolchain") or {}).get("cuda") or "")
+    if not cuda.startswith("13."):
+        raise ReleaseError(f"{source} was built with CUDA {cuda or 'unknown'}; the release's Windows package is cuda13 "
+                           "(CUDA 13.x)")
+
+
+def _check_file(path: Path, *, sha256: str | None = None, size: int | None = None) -> None:
+    if not path.is_file():
+        raise ReleaseError(f"{path} is missing")
+    if size is not None and path.stat().st_size != size:
+        raise ReleaseError(f"{path}: {path.stat().st_size} bytes, expected {size}")
+    if sha256 and sha256_file(path) != sha256:
+        raise ReleaseError(f"{path}: sha256 does not match the Windows parts manifest")
+
+
+def _extract_windows_terminal(archive: Path, destination: Path) -> Path:
+    if destination.exists():
+        shutil.rmtree(destination)
+    destination.mkdir(parents=True)
+    with zipfile.ZipFile(archive) as source:
+        source.extractall(destination)
+    children = [path for path in destination.iterdir() if path.is_dir()]
+    root = children[0] if len(children) == 1 else destination
+    if not (root / "bin" / "deepstrata.cmd").is_file():
+        raise ReleaseError(f"{archive} has no bin/deepstrata.cmd; it is not a Windows Terminal archive")
+    if not (root / "host" / "dist" / "index.html").is_file():
+        raise ReleaseError(f"{archive} has no host/dist/index.html; the page is not inside it")
+    if not (root / "node" / "node.exe").is_file():
+        raise ReleaseError(f"{archive} has no node/node.exe; the pinned Node is not inside it")
+    return root
+
+
+def _windows_smoke(source: Path, parts: dict, archive_name: str) -> dict:
+    info = (parts.get("smoke") or {}).get("terminal")
+    if not info:
+        raise ReleaseError("the Windows parts have no Terminal smoke report; build again with build_windows.ps1 "
+                           "without -SkipSmoke (the release tool refuses an untested Terminal)")
+    report_path = source / info["report"]
+    _check_file(report_path, sha256=info.get("sha256"))
+    report = read_json(report_path)
+    if not report.get("ok"):
+        raise ReleaseError(f"the Windows Terminal smoke test failed ({report_path})")
+    if report.get("archive") != archive_name:
+        raise ReleaseError(f"{report_path} says it tested {report.get('archive')!r}, not {archive_name!r}")
+    checks = report.get("checks") or {}
+    for name in ("version", "doctor", "profile list", "serve: chat answer"):
+        if not (checks.get(name) or {}).get("ok"):
+            raise ReleaseError(f"the Windows Terminal smoke test did not pass {name!r} ({report_path})")
+    return report
+
+
+def _import_windows_parts(directory: Path, journal: dict, source_arg: Path,
+                          wanted: list[str], *, rebuild: bool) -> tuple[dict, dict]:
+    """Copy and check the unsigned Windows parts into the release folder. Returns ({component: info}, record)."""
+    source = _parts_source(source_arg, directory)
+    parts = _read_windows_parts(source)
+    _check_windows_parts(parts, journal, source)
+    target = directory / "parts" / "windows"
+    if rebuild and target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True, exist_ok=True)
+    imported: dict[str, dict] = {}
+    for name in wanted:
+        info = (parts.get("components") or {}).get(name)
+        if not info:
+            raise ReleaseError(f"{source} has no {name} component; build it (packaging/build_windows.ps1 -Only {name})")
+        if name == "terminal":
+            archive = source / info["archive"]
+            _check_file(archive, sha256=info.get("sha256"), size=info.get("bytes"))
+            folder = target / "terminal"
+            folder.mkdir(parents=True, exist_ok=True)
+            copied = folder / archive.name
+            shutil.copy2(archive, copied)
+            unpack = _extract_windows_terminal(copied, target / "unpack" / archive.name[:-4])
+            smoke = _windows_smoke(source, parts, archive.name)
+            smoke_path = target / "smoke" / "smoke-terminal.json"
+            smoke_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source / (parts["smoke"]["terminal"]["report"]), smoke_path)
+            imported[name] = {
+                "archive": _rel(copied, directory),
+                "unpack": _rel(unpack, directory),
+                "sha256": sha256_file(copied),
+                "bytes": copied.stat().st_size,
+                "smoke": _rel(smoke_path, directory),
+                "smoke_ok": bool(smoke.get("ok")),
+            }
+            continue
+        folder = source / info["folder"]
+        if not folder.is_dir():
+            raise ReleaseError(f"{folder} is missing from the Windows parts")
+        manifest_sha = sha256_file(folder / ec.MANIFEST) if (folder / ec.MANIFEST).is_file() else None
+        if info.get("manifest_sha256") and manifest_sha != info["manifest_sha256"]:
+            raise ReleaseError(f"{folder}: engine-component.json changed after the parts manifest was written")
+        destination = target / ("engines" if name == "qwen" else "dsv41") / folder.name
+        if destination.exists():
+            shutil.rmtree(destination)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(folder, destination)
+        _verify_engine(destination, directory / "logs" / f"verify-windows-{name}.log")
+        imported[name] = {"folder": _rel(destination, directory), "manifest_sha256": manifest_sha}
+    record = {"source": str(source), "manifest_sha256": sha256_file(source / WINDOWS_PARTS_NAME),
+              "imported_at": now(), "components": sorted(imported)}
+    return imported, record
+
+
 def cmd_build(args) -> int:
     version, directory = release_directory(args, Path(args.root))
     journal = load_journal(directory)
@@ -1111,39 +1370,69 @@ def cmd_build(args) -> int:
     ensure_commit(Path(args.root), journal)
     (directory / "parts").mkdir(parents=True, exist_ok=True)
     (directory / "logs").mkdir(exist_ok=True)
+    targets = journal_targets(journal)
     wanted = args.only or ["terminal", "qwen", "dsv41"]
+    wanted = [name for name in ("terminal", "qwen", "dsv41") if name in wanted]
     previous_build = (journal.get("steps") or {}).get("build") or {}
     same_commit = previous_build.get("commit") == journal["commit"]
     if not same_commit:
         # build outputs are reused only for the commit they were built from: a replanned journal must rebuild
         args.rebuild = True
-    previous_components = (previous_build.get("components") or {}) if same_commit else {}
+    previous_components: dict = {}
+    for name, value in ((previous_build.get("components") or {}) if same_commit else {}).items():
+        previous_components[name] = value if name == "host" else _platform_map(value)
     previous_wanted = (previous_build.get("wanted") or []) if same_commit else []
+    components = dict(previous_components)
+    windows_parts_record = previous_build.get("windows_parts")
+
     if args.rebuild:
-        if "terminal" in wanted:
+        if LINUX in targets and "terminal" in wanted:
             for path in (directory / "parts").glob("strata-terminal-*.tar.gz"):
                 path.unlink()
             shutil.rmtree(directory / "parts" / "unpack", ignore_errors=True)
-        if "qwen" in wanted:
+        if LINUX in targets and "qwen" in wanted:
             shutil.rmtree(directory / "parts" / "engine", ignore_errors=True)
-        if "dsv41" in wanted:
+        if LINUX in targets and "dsv41" in wanted:
             shutil.rmtree(directory / "parts" / "dsv41", ignore_errors=True)
             shutil.rmtree(directory / "parts" / "dsv41-stage", ignore_errors=True)
-    cuda_root, cuda_release = find_cuda_root(args.cuda_root or (journal.get("tools") or {}).get("cuda_root"))
-    build: dict = {"host": None, "terminal": None, "qwen": None, "dsv41": None}
+        if WINDOWS in targets:
+            shutil.rmtree(directory / "parts" / "windows", ignore_errors=True)
+            for name in wanted:
+                entry = dict(_platform_map(components.get(name)))
+                entry.pop(WINDOWS, None)
+                components[name] = entry
+
     started = now()
-    if "terminal" in wanted:
-        build["host"] = _build_host(directory, rebuild=args.rebuild_host or args.rebuild)
-        build["terminal"] = _build_terminal(directory, journal, rebuild=args.rebuild)
-    if "qwen" in wanted:
-        build["qwen"] = _build_qwen(directory, journal, cuda_root, rebuild=args.rebuild)
-    if "dsv41" in wanted:
-        build["dsv41"] = _build_dsv41(directory, journal, cuda_root, cuda_release, rebuild=args.rebuild)
-    components = dict(previous_components)
-    components.update({name: value for name, value in build.items() if value is not None})
+    if LINUX in targets and wanted:
+        cuda_root, cuda_release = find_cuda_root(args.cuda_root or (journal.get("tools") or {}).get("cuda_root"))
+        if "terminal" in wanted:
+            components["host"] = _build_host(directory, rebuild=args.rebuild_host or args.rebuild)
+            _put_platform(components, "terminal", LINUX, _build_terminal(directory, journal, rebuild=args.rebuild))
+        if "qwen" in wanted:
+            _put_platform(components, "qwen", LINUX, _build_qwen(directory, journal, cuda_root, rebuild=args.rebuild))
+        if "dsv41" in wanted:
+            _put_platform(components, "dsv41", LINUX,
+                          _build_dsv41(directory, journal, cuda_root, cuda_release, rebuild=args.rebuild))
+    if WINDOWS in targets and wanted:
+        if args.windows_parts:
+            imported, windows_parts_record = _import_windows_parts(
+                directory, journal, Path(args.windows_parts), wanted, rebuild=args.rebuild)
+            for name, info in imported.items():
+                _put_platform(components, name, WINDOWS, info)
+        else:
+            have = {name for name in wanted if WINDOWS in _platform_map(components.get(name))}
+            missing = [name for name in wanted if name not in have]
+            if missing:
+                raise ReleaseError(
+                    "the Windows parts are missing (" + ", ".join(missing) + "). Build them on Windows with "
+                    "`powershell -ExecutionPolicy Bypass -File packaging\\build_windows.ps1` (or run the "
+                    "`windows-parts` workflow on a self-hosted Windows runner), then run build again with "
+                    "--windows-parts <folder or artifact.zip>. Nothing Windows is built on this machine.")
     set_step(journal, "build", {"ok": True, "started_at": started, "commit": journal["commit"],
+                                "targets": list(targets),
                                 "wanted": sorted(set(previous_wanted) | set(wanted)),
-                                "components": components})
+                                "components": components,
+                                "windows_parts": windows_parts_record})
     save_journal(directory, journal)
     say("")
     say(f"built: {directory / 'parts'}")
@@ -1157,7 +1446,8 @@ def cmd_build(args) -> int:
 def content_type(name: str) -> str:
     suffix = Path(name).suffix.lower()
     return {".json": "application/json", ".sig": "application/json", ".txt": "text/plain",
-            ".sh": "text/x-shellscript", ".ps1": "text/plain"}.get(suffix, "application/octet-stream")
+            ".sh": "text/x-shellscript", ".ps1": "text/plain", ".zip": "application/zip"}.get(
+                suffix, "application/octet-stream")
 
 
 def _flat(path: Path) -> list[Path]:
@@ -1180,14 +1470,24 @@ def inspect_feed(feed_dir: Path) -> dict:
     return assets
 
 
-def _engine_folders(journal: dict, directory: Path) -> tuple[Path, Path]:
-    build = journal["steps"]["build"]["components"]
-    qwen = directory / build["qwen"]["folder"]
-    dsv41 = directory / build["dsv41"]["folder"]
-    for path in (qwen, dsv41):
-        if not path.is_dir():
-            raise ReleaseError(f"{path} is missing; run `build` first")
-    return qwen, dsv41
+def _release_targets(journal: dict) -> tuple[str, ...]:
+    targets = journal_targets(journal)
+    for target in targets:
+        if target not in TARGETS:
+            raise ReleaseError(f"the journal names {target!r}, which this release tool cannot assemble")
+    return targets
+
+
+def _platform_component(journal: dict, name: str) -> dict[str, dict]:
+    value = (journal["steps"]["build"]["components"]).get(name)
+    return {platform: info for platform, info in _platform_map(value).items() if platform in TARGETS}
+
+
+def _require_built(component: dict[str, dict], name: str, platform: str) -> dict:
+    info = component.get(platform)
+    if not info:
+        raise ReleaseError(f"the {name} part for {platform} was not built or imported; run `build` first")
+    return info
 
 
 def _signed_copy(source: Path, destination: Path) -> Path:
@@ -1222,12 +1522,10 @@ def cmd_assemble(args) -> int:
     if public["key_id"] != journal.get("key_id"):
         raise ReleaseError(f"{key_path} signs as {public['key_id']}, but the plan named {journal.get('key_id')}")
     component = journal["component_version"]
-    qwen_folder, dsv41_folder = _engine_folders(journal, directory)
-    build = journal["steps"]["build"]["components"]
-    terminal = directory / build["terminal"]["archive"]
-    unpack = directory / build["terminal"]["unpack"]
-    if not terminal.is_file() or not (unpack / "bin" / "deepstrata").is_file():
-        raise ReleaseError("the Terminal archive or its unpacked Control folder is missing; run `build`")
+    targets = _release_targets(journal)
+    terminals = _platform_component(journal, "terminal")
+    qwens = _platform_component(journal, "qwen")
+    dsv41s = _platform_component(journal, "dsv41")
     feed = directory / "feed"
     entries = directory / "parts" / "entries"
     signed = directory / "parts" / "signed"
@@ -1236,24 +1534,32 @@ def cmd_assemble(args) -> int:
     feed.mkdir(parents=True)
 
     say("signing the engine packages")
-    signed_qwen = _signed_copy(qwen_folder, signed / "engine" / qwen_folder.name)
-    signed_dsv41 = _signed_copy(dsv41_folder, signed / "dsv41" / dsv41_folder.name)
-    for folder in (signed_qwen, signed_dsv41):
-        feed_tool.sign_package(folder, key)
-        _verify_engine(folder, directory / "logs" / f"verify-signed-{folder.name}.log")
-
-    say("packing the engine archives")
     entries_engine = entries / "engine"
     entries_dsv41 = entries / "dsv41"
     entries_control = entries / "control"
-    feed_tool.pack_engine(signed_qwen, entries_engine, url_prefix="")
-    feed_tool.pack_engine(signed_dsv41, entries_dsv41, url_prefix="", prefix="strata-dsv41")
+    for name, packages, prefix, out in (("qwen", qwens, "strata-engine", entries_engine),
+                                        ("dsv41", dsv41s, "strata-dsv41", entries_dsv41)):
+        for platform in targets:
+            info = _require_built(packages, name, platform)
+            folder = directory / info["folder"]
+            if not folder.is_dir():
+                raise ReleaseError(f"{folder} is missing; run `build` first")
+            signed_folder = _signed_copy(folder, signed / name / platform / folder.name)
+            feed_tool.sign_package(signed_folder, key)
+            _verify_engine(signed_folder, directory / "logs" / f"verify-signed-{platform}-{name}.log")
+            feed_tool.pack_engine(signed_folder, out, url_prefix="", prefix=prefix)
     _copy_flat(entries_engine, feed)
     _copy_flat(entries_dsv41, feed)
 
-    say("packing the Control archive")
-    feed_tool.pack_control(unpack, entries_control, version=component, platform="linux-x86_64",
-                           fmt="tar.gz", url_prefix="")
+    say("packing the Control archives")
+    for platform in targets:
+        info = _require_built(terminals, "terminal", platform)
+        unpack = directory / info["unpack"]
+        launcher = "bin/deepstrata.cmd" if platform == WINDOWS else "bin/deepstrata"
+        if not (unpack / launcher).is_file():
+            raise ReleaseError(f"{unpack} has no {launcher}; the Terminal archive is not usable")
+        feed_tool.pack_control(unpack, entries_control, version=component, platform=platform,
+                               fmt="zip" if platform == WINDOWS else "tar.gz", url_prefix="")
     _copy_flat(entries_control, feed)
     for name in ("install.sh", "install.ps1"):
         source = ROOT / "packaging" / name
@@ -1266,7 +1572,7 @@ def cmd_assemble(args) -> int:
         previous = previous_release_tag(Path(args.root))
         write_notes(notes, generate_notes(version=version, component=component, commit=journal["commit"],
                                           previous=previous, records=commits_since(Path(args.root), previous),
-                                          line=journal["product_version"]))
+                                          line=journal["product_version"], targets=targets))
     body = notes.read_text(encoding="utf-8")
     if not body.strip():
         raise ReleaseError(f"{notes} is empty; a release needs release notes")
@@ -1279,7 +1585,7 @@ def cmd_assemble(args) -> int:
                          expires_days=args.expires_days)
     assets = inspect_feed(feed)
     for name in assets:
-        if not name.endswith((".tar.gz", ".json", ".sig", ".txt", ".sh", ".ps1")):
+        if not is_release_asset(name):
             raise ReleaseError(f"unexpected release asset {name}")
     journal["assets"] = assets
     journal["feed_name"] = DEFAULT_SEQUENCE_FILE
@@ -1333,43 +1639,65 @@ def _check_install_manifest(feed_dir: Path, parsed) -> None:
                            f"  manifest: {lines}\n  feed:     {expected}")
 
 
-def _verify_engine_entry(parsed, name: str, feed_dir: Path) -> None:
-    component = None
-    for package in parsed.control:
-        component = package.version
-    entries = getattr(parsed, "dsv41") if name == "dsv41" else parsed.engine
+def _verify_engine_entry(parsed, member: str, feed_dir: Path, platform: str, component: str) -> None:
+    """One engine member (Qwen's `engine` or `dsv41`) for one platform, as the feed serves it."""
+    entries = [package for package in (getattr(parsed, "dsv41") if member == "dsv41" else parsed.engine)
+               if package.platform == platform]
     if len(entries) != 1:
-        raise ReleaseError(f"the feed has {len(entries)} {name} packages; this release carries one")
+        raise ReleaseError(f"the feed has {len(entries)} {member} packages for {platform}; this release carries one")
     package = entries[0]
-    if package.platform != "linux-x86_64" or package.backend != "cuda" or package.variant != "cuda13":
-        raise ReleaseError(f"{name}: unexpected package {package.platform}/{package.backend}/{package.variant}")
+    if package.backend != "cuda" or package.variant != "cuda13":
+        raise ReleaseError(f"{member} for {platform}: unexpected package {package.backend}/{package.variant}")
     if package.version != component:
-        raise ReleaseError(f"{name}: {package.version} does not match the Control version {component}")
-    if not all(arch in package.archs for arch in ("sm_86", "sm_89", "sm_120", "compute_120")):
-        raise ReleaseError(f"{name}: archs {package.archs} do not cover the release cards")
-    if package.min_driver.get("nvidia") != "580.65":
-        raise ReleaseError(f"{name}: min_driver is {package.min_driver}, expected nvidia 580.65")
+        raise ReleaseError(f"{member} for {platform}: {package.version} does not match the Control version {component}")
+    missing = [arch for arch in ENGINE_ARCHS if arch not in package.archs]
+    if missing:
+        raise ReleaseError(f"{member} for {platform}: archs {package.archs} do not cover {', '.join(missing)}")
+    if package.min_driver.get("nvidia") != MIN_NVIDIA_DRIVER:
+        raise ReleaseError(f"{member} for {platform}: min_driver is {package.min_driver}, expected nvidia {MIN_NVIDIA_DRIVER}")
     _check_entry_archive(feed_dir, package)
 
 
-def _selection_checks(parsed) -> list[str]:
+def _verify_control_entries(parsed, component: str, targets: tuple[str, ...]) -> None:
+    """Exactly one Control package per released platform, at the release's component version, in the format its installer unpacks."""
+    controls: dict[str, object] = {}
+    for package in parsed.control:
+        if package.platform in controls:
+            raise ReleaseError(f"the feed carries two Control packages for {package.platform}")
+        controls[package.platform] = package
+    if sorted(controls) != sorted(targets):
+        raise ReleaseError(f"the feed carries Control packages for {sorted(controls)}, but this release targets "
+                           f"{sorted(targets)}")
+    for platform, package in controls.items():
+        if package.version != component:
+            raise ReleaseError(f"the {platform} Control package is {package.version}, not {component}")
+        wanted = control_format(platform)
+        if package.format != wanted:
+            raise ReleaseError(f"the {platform} Control package is {package.format}; {platform} must be {wanted}")
+
+
+def _selection_checks(parsed, targets: tuple[str, ...]) -> list[str]:
     problems = []
-    for driver, archs in (("580.65", ["sm_86"]), ("590.10", ["sm_120"]), ("615.71", ["sm_89"])):
-        hardware = {"platform": "linux-x86_64", "backend": "cuda", "runtime": None, "nvidia_driver": driver,
-                    "cuda_archs": archs, "gfx": []}
-        best, reasons = feedmod.select_engine(parsed.engine, hardware)
-        if best is None:
-            problems.append(f"{archs} on driver {driver}: no engine ({'; '.join(reasons)})")
-        elif best.variant != "cuda13":
-            problems.append(f"{archs} on driver {driver}: chose {best.variant}, not cuda13")
-    old, _ = feedmod.select_engine(parsed.engine, {"platform": "linux-x86_64", "backend": "cuda",
-                                                   "runtime": None, "nvidia_driver": "570.10",
-                                                   "cuda_archs": ["sm_86"], "gfx": []})
-    if old is not None:
-        problems.append(f"driver 570.10 would receive {old.version}, but the package needs 580.65")
+    for platform in targets:
+        for driver, archs in ((MIN_NVIDIA_DRIVER, ["sm_86"]), ("590.10", ["sm_120"]), ("615.71", ["sm_89"])):
+            hardware = {"platform": platform, "backend": "cuda", "runtime": None, "nvidia_driver": driver,
+                        "cuda_archs": archs, "gfx": []}
+            best, reasons = feedmod.select_engine(parsed.engine, hardware)
+            if best is None:
+                problems.append(f"{platform}: {archs} on driver {driver}: no engine ({'; '.join(reasons)})")
+            elif best.platform != platform:
+                problems.append(f"{platform}: {archs} on driver {driver}: chose the {best.platform} package")
+            elif best.variant != "cuda13":
+                problems.append(f"{platform}: {archs} on driver {driver}: chose {best.variant}, not cuda13")
+        old, _ = feedmod.select_engine(parsed.engine, {"platform": platform, "backend": "cuda",
+                                                       "runtime": None, "nvidia_driver": "570.10",
+                                                       "cuda_archs": ["sm_86"], "gfx": []})
+        if old is not None:
+            problems.append(f"{platform}: driver 570.10 would receive {old.version}, but the package needs {MIN_NVIDIA_DRIVER}")
     if problems:
         raise ReleaseError("the signed feed does not serve the release as intended:\n  - " + "\n  - ".join(problems))
-    return [f"select_engine picks cuda13 for sm_86/sm_89/sm_120 on drivers 580.65 and newer"]
+    return [f"select_engine picks cuda13 for sm_86/sm_89/sm_120 on drivers {MIN_NVIDIA_DRIVER} and newer, on "
+            + ", ".join(targets)]
 
 
 def cmd_verify(args) -> int:
@@ -1385,56 +1713,74 @@ def cmd_verify(args) -> int:
         raise ReleaseError(f"the feed folder changed after assemble ({changed}); run assemble again")
     trusted = signing.load_trusted_keys(environ={})
     checks: list[str] = []
+    targets = _release_targets(journal)
+    component = journal["component_version"]
     parsed = feedmod.fetch(str(feed), trusted)
     if parsed.sequence != journal["sequence"]:
         raise ReleaseError(f"the feed's sequence is {parsed.sequence}, not {journal['sequence']}")
     checks.append(f"feed signature and sequence {parsed.sequence}")
-    if len(parsed.engine) != 1 or len(parsed.dsv41) != 1 or len(parsed.control) != 1:
-        raise ReleaseError(f"the feed carries {len(parsed.engine)} engine, {len(parsed.dsv41)} dsv41 and "
-                           f"{len(parsed.control)} Control packages; this release carries one of each")
-    control = parsed.control[0]
-    if control.platform != "linux-x86_64" or control.version != journal["component_version"]:
-        raise ReleaseError(f"unexpected Control package {control.platform} {control.version}")
-    _check_entry_archive(feed, control)
-    checks.append(f"Control {control.version} archive matches the feed")
+    for member, entries in (("engine", parsed.engine), ("dsv41", parsed.dsv41)):
+        if len(entries) != len(targets):
+            raise ReleaseError(f"the feed carries {len(entries)} {member} packages, but the release has "
+                               f"{len(targets)} platform(s): {', '.join(targets)}")
+    _verify_control_entries(parsed, component, targets)
+    controls = {package.platform: package for package in parsed.control}
+    for platform in targets:
+        _check_entry_archive(feed, controls[platform])
+    checks.append(f"Control {component} archives match the feed ({', '.join(f'{p} {control_format(p)}' for p in targets)})")
     _check_install_manifest(feed, parsed)
-    checks.append("install-manifest.txt matches the Control package")
-    _verify_engine_entry(parsed, "engine", feed)
-    _verify_engine_entry(parsed, "dsv41", feed)
-    checks.append("Qwen and dsv41 engine entries, archs and archives match")
+    checks.append("install-manifest.txt matches the Control packages")
+    for member in ("engine", "dsv41"):
+        for platform in targets:
+            _verify_engine_entry(parsed, member, feed, platform, component)
+    checks.append("Qwen and dsv41 engine entries, archs and archives match on " + ", ".join(targets))
 
-    build = journal["steps"]["build"]["components"]
-    for family, key_name in (("engine", "qwen"), ("dsv41", "dsv41")):
-        folder = directory / "parts" / "signed" / family / Path(build[key_name]["folder"]).name
-        if not folder.is_dir():
-            raise ReleaseError(f"{folder} is missing; run assemble again")
-        _verify_manifest_signature(folder, trusted)
-        _verify_engine(folder, directory / "logs" / f"verify-{family}.log")
-    checks.append("both engine manifests are signed by the shipped feed key and hash-check")
+    for name in ("qwen", "dsv41"):
+        packages = _platform_component(journal, name)
+        for platform in targets:
+            info = _require_built(packages, name, platform)
+            folder = directory / "parts" / "signed" / name / platform / Path(info["folder"]).name
+            if not folder.is_dir():
+                raise ReleaseError(f"{folder} is missing; run assemble again")
+            _verify_manifest_signature(folder, trusted)
+            _verify_engine(folder, directory / "logs" / f"verify-{platform}-{name}.log")
+    checks.append("every engine manifest is signed by the shipped feed key and hash-checks")
 
     smoke_path = directory / "verify" / "smoke.json"
     smoke_path.parent.mkdir(exist_ok=True)
-    if not args.skip_smoke:
-        archive = directory / build["terminal"]["archive"]
-        run_command([sys.executable, "packaging/smoke_terminal.py", str(archive), "--json", str(smoke_path)],
-                    log=directory / "logs" / "smoke-terminal.log")
-        smoke = read_json(smoke_path)
-        if not smoke.get("ok", True):
-            raise ReleaseError(f"the Terminal smoke test failed; see {smoke_path}")
-        checks.append("Terminal archive: smoke test (bundled Python, Node, page, mock serve) passed")
-    else:
-        checks.append("Terminal smoke test skipped")
-    checks.extend(_selection_checks(parsed))
+    terminals = _platform_component(journal, "terminal")
+    if LINUX in targets:
+        archive = directory / _require_built(terminals, "terminal", LINUX)["archive"]
+        if args.skip_smoke:
+            checks.append("Linux Terminal smoke test skipped")
+        else:
+            run_command([sys.executable, "packaging/smoke_terminal.py", str(archive), "--json", str(smoke_path)],
+                        log=directory / "logs" / "smoke-terminal.log")
+            smoke = read_json(smoke_path)
+            if not smoke.get("ok", True):
+                raise ReleaseError(f"the Terminal smoke test failed; see {smoke_path}")
+            checks.append("Linux Terminal archive: smoke test (bundled Python, Node, page, mock serve) passed")
+    if WINDOWS in targets:
+        info = _require_built(terminals, "terminal", WINDOWS)
+        if not info.get("smoke_ok"):
+            raise ReleaseError("the imported Windows Terminal has no passing smoke report; build the parts on Windows again "
+                               "without -SkipSmoke and import them")
+        archive = directory / info["archive"]
+        if sha256_file(archive) != info.get("sha256"):
+            raise ReleaseError(f"{archive} changed after it was imported; import the Windows parts again")
+        checks.append("Windows Terminal archive: the one the Windows build smoke-tested (a Windows run is not repeated here)")
+    checks.extend(_selection_checks(parsed, targets))
 
     for name in ("install.sh", "install.ps1"):
         if (feed / name).read_bytes() != (ROOT / "packaging" / name).read_bytes():
             raise ReleaseError(f"{name} in the release differs from packaging/{name}; upload it unchanged")
     checks.append("install.sh and install.ps1 are the unchanged packaging copies")
 
-    report = {"ok": True, "at": now(), "sequence": journal["sequence"], "checks": checks,
-              "assets": {name: assets[name] for name in sorted(assets)}, "smoke": not args.skip_smoke}
+    ran_smoke = LINUX in targets and not args.skip_smoke       # the Windows Terminal is smoke-tested on Windows, not here
+    report = {"ok": True, "at": now(), "sequence": journal["sequence"], "targets": list(targets), "checks": checks,
+              "assets": {name: assets[name] for name in sorted(assets)}, "smoke": ran_smoke}
     write_json(directory / "verify.json", report)
-    set_step(journal, "verify", {"ok": True, "checks": checks, "smoke": not args.skip_smoke,
+    set_step(journal, "verify", {"ok": True, "checks": checks, "smoke": ran_smoke,
                                 "report": "verify.json"})
     save_journal(directory, journal)
     say("")
@@ -1606,7 +1952,9 @@ def cmd_publish(args) -> int:
     if sequence != journal["sequence"]:
         raise ReleaseError(f"the published feed has sequence {sequence}, expected {journal['sequence']}")
     install = {"ok": False, "skipped": True}
-    if not args.skip_install_test:
+    if LINUX not in _release_targets(journal):
+        say("install test skipped: this release has no linux-x86_64 Terminal, and the test installs with install.sh here")
+    elif not args.skip_install_test:
         say("installing the published release from latest/download (a real client run) ...")
         install = _install_latest(directory, journal["component_version"])
     else:
@@ -1681,7 +2029,8 @@ def build_parser() -> argparse.ArgumentParser:
     plan = sub.add_parser("plan", parents=[common], help="check the release and write its journal")
     plan.add_argument("--key", help="the feed private key (default: STRATA_FEED_KEY or ~/deepstrata-keys/feed-key.json)")
     plan.add_argument("--sequence", type=int, help="the new feed's sequence (default: the published sequence + 1)")
-    plan.add_argument("--target", action="append", choices=TARGETS, help="platform to build (default: linux-x86_64)")
+    plan.add_argument("--target", action="append", choices=TARGETS,
+                      help="platform to release (default: linux-x86_64 and windows-x86_64)")
     plan.add_argument("--require-merged", metavar="BRANCH", help="fail unless BRANCH is merged into HEAD")
     plan.add_argument("--offline", action="store_true", help="do not read GitHub (needs --sequence)")
     plan.add_argument("--allow-branch", action="store_true", help=argparse.SUPPRESS)
@@ -1703,6 +2052,9 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--rebuild", action="store_true", help="throw away and rebuild the selected parts")
     build.add_argument("--rebuild-host", action="store_true", help="rebuild the App Host even when dist/ exists")
     build.add_argument("--cuda-root", help="the CUDA 13 toolkit root")
+    build.add_argument("--windows-parts", type=Path, metavar="FOLDER_OR_ZIP",
+                       help="the unsigned Windows parts folder (or artifact zip) that packaging/build_windows.ps1 "
+                            "wrote on a Windows PC; required when windows-x86_64 is a target and no earlier import is in the journal")
     build.set_defaults(func=cmd_build)
 
     assemble = sub.add_parser("assemble", parents=[common], help="sign, pack and write the signed feed")

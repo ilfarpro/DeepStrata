@@ -118,6 +118,21 @@ function Write-Step([string]$Message) {
     Write-Host "== $Message" -ForegroundColor Cyan
 }
 
+# Windows PowerShell 5.1 reports a native program's stderr as an error record, and this script runs with
+# $ErrorActionPreference = "Stop": one warning that npm, cmake or ninja wrote to stderr would end the build with a
+# "NativeCommandError" that says nothing about what went wrong. Everything below runs with "Continue" and decides by the
+# exit code the program returned, which is what tells a warning from a failure.
+function Invoke-Quietly([scriptblock]$Command) {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        return & $Command
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
 function Invoke-Native {
     param(
         [Parameter(Mandatory)][string]$FilePath,
@@ -127,7 +142,7 @@ function Invoke-Native {
     Write-Host ">> $FilePath $($Arguments -join ' ')"
     Push-Location $WorkDir
     try {
-        & $FilePath @Arguments 2>&1 | ForEach-Object { Write-Host $_ }
+        Invoke-Quietly { & $FilePath @Arguments 2>&1 | ForEach-Object { Write-Host $_ } } | Out-Null
         $code = $LASTEXITCODE
     }
     finally {
@@ -138,10 +153,20 @@ function Invoke-Native {
     }
 }
 
+function Invoke-CommandLine {
+    # a batch file prints its progress on stderr, the same warning-versus-failure rule as above
+    param([Parameter(Mandatory)][string]$Line)
+    Write-Host ">> cmd /c $Line"
+    Invoke-Quietly { & cmd.exe /c $Line 2>&1 | ForEach-Object { Write-Host $_ } } | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "cmd /c $Line exited with code $LASTEXITCODE"
+    }
+}
+
 function Get-ToolOutput {
     param([string]$FilePath, [string[]]$Arguments = @())
     try {
-        $lines = & $FilePath @Arguments 2>&1
+        $lines = Invoke-Quietly { & $FilePath @Arguments 2>&1 }
         return (($lines | Out-String).Trim())
     }
     catch {
@@ -191,7 +216,7 @@ function Find-VcVars {
 
 function Import-VcVars([string]$VcVars) {
     Write-Host ">> using $VcVars"
-    $lines = & cmd.exe /c "call `"$VcVars`" >nul 2>&1 && set"
+    $lines = Invoke-Quietly { & cmd.exe /c "call `"$VcVars`" >nul 2>&1 && set" }
     if ($LASTEXITCODE -ne 0) { throw "could not set up the Visual Studio environment from $VcVars" }
     foreach ($line in $lines) {
         $index = $line.IndexOf("=")
@@ -443,8 +468,7 @@ if ($Wanted -contains "qwen") {
 
     Write-Step "building the CUDA picture reader for the same architectures"
     $vision = Join-Path $Repo "packaging\build_vision_windows.bat"
-    & cmd.exe /c "`"$vision`" cuda13 `"$stage`"" 2>&1 | ForEach-Object { Write-Host $_ }
-    if ($LASTEXITCODE -ne 0) { throw "build_vision_windows.bat failed with code $LASTEXITCODE" }
+    Invoke-CommandLine "`"$vision`" cuda13 `"$stage`""
     if (-not (Test-Path (Join-Path $stage "strata-vision.exe"))) { throw "the picture reader did not land in $stage" }
 
     Write-Step "packaging the Qwen engine"
@@ -479,8 +503,7 @@ if ($Wanted -contains "dsv41") {
     if (-not $env:BUILD_JOBS) { $env:BUILD_JOBS = "$([Math]::Max(2, [Environment]::ProcessorCount))" }
     if (-not $env:DSV41_ARCH) { $env:DSV41_ARCH = "86-real;89-real;120" }
     $dsv41Bat = Join-Path $Repo "packaging\build_dsv41_windows.bat"
-    & cmd.exe /c "`"$dsv41Bat`" `"$build`" `"$Repo`"" 2>&1 | ForEach-Object { Write-Host $_ }
-    if ($LASTEXITCODE -ne 0) { throw "build_dsv41_windows.bat failed with code $LASTEXITCODE" }
+    Invoke-CommandLine "`"$dsv41Bat`" `"$build`" `"$Repo`""
     $exe = Join-Path $build "strata-dsv41.exe"
     if (-not (Test-Path $exe)) { throw "build_dsv41_windows.bat finished but $exe is missing" }
 

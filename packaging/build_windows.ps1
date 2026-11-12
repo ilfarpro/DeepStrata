@@ -411,6 +411,17 @@ if ($Wanted -contains "terminal") {
 
 # ---------------------------------------------------------------------------------------------- the engine packages
 
+# The picture reader and strata-dsv41 build through batch files that fall back to 4 compile jobs, because a CUDA compile
+# of the attention kernels can take a gigabyte or two and a small laptop must not swap. Here the machine is known: one job
+# per core, and about 1.5 GB of free memory for each (4 jobs on a 28-core box left it 83% idle).
+if (-not $env:BUILD_JOBS) {
+    $os = Get-CimInstance Win32_OperatingSystem
+    $freeGb = [Math]::Round($os.FreePhysicalMemory / 1MB, 0)
+    $jobs = [Math]::Min([Environment]::ProcessorCount, [Math]::Max(2, [int]($freeGb / 1.5)))
+    $env:BUILD_JOBS = "$jobs"
+    Write-Host "  compile jobs $jobs ($freeGb GB free, $([Environment]::ProcessorCount) cores)"
+}
+
 $vcvars = $null
 if (($Wanted -contains "qwen") -or ($Wanted -contains "dsv41")) {
     if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) {
@@ -444,8 +455,7 @@ if ($Wanted -contains "qwen") {
         "-DSTRATA_GGML_DIR=$GgmlDir"
     )
     Invoke-Native -FilePath "cmake" -Arguments $cmakeArgs
-    $jobs = [Math]::Max(2, [Environment]::ProcessorCount)
-    Invoke-Native -FilePath "cmake" -Arguments @("--build", $build, "--target", "strata", "strata_kq", "-j", "$jobs")
+    Invoke-Native -FilePath "cmake" -Arguments @("--build", $build, "--target", "strata", "strata_kq", "-j", "$env:BUILD_JOBS")
 
     $stage = Join-Path $stageRoot "qwen"
     New-Item -ItemType Directory -Force -Path $stage | Out-Null
@@ -500,7 +510,6 @@ if ($Wanted -contains "dsv41") {
     New-Item -ItemType Directory -Force -Path $build | Out-Null
     $env:STRATA_GGML_DIR = $GgmlDir
     $env:CUDA_ROOT = $cudaRoot
-    if (-not $env:BUILD_JOBS) { $env:BUILD_JOBS = "$([Math]::Max(2, [Environment]::ProcessorCount))" }
     if (-not $env:DSV41_ARCH) { $env:DSV41_ARCH = "86-real;89-real;120" }
     $dsv41Bat = Join-Path $Repo "packaging\build_dsv41_windows.bat"
     Invoke-CommandLine "`"$dsv41Bat`" `"$build`" `"$Repo`""

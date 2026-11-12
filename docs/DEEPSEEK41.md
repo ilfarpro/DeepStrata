@@ -100,23 +100,25 @@ for the Coder; 0.104, 0.108, 0.202, 0.303, 0.138 for 2.00. One run per cell unle
 engines): on an Apple M5 Max 19 to 22 tokens a second with all 7,680 experts in memory (a 6,054-token needle read at 300 tokens a second), and on a Ryzen AI Max (Strix Halo, Windows, 64 GB of RAM)
 19 to 22 tokens a second with 7,734 of 8,064 experts in graphics memory.
 
-## Unsloth's five other sets (why none is offered yet)
+## Unsloth's five other sets
 
-Unsloth's repository has five quantizations of this model beyond the four Strata offers: UD-IQ2_XXS (300.5 GB), UD-Q2_K_XL (334.8 GB),
-UD-IQ3_XXS (394.7 GB), UD-IQ3_S (423.6 GB) and UD-Q3_K_XL (485.1 GB) - checked on the live Hub on 2026-11-07 at the pinned commit.
-None is on the version list, and files you already have hit the same wall: read against the engine's code, the current engine cannot load
-any of the five. That is static analysis - no pack of these five has been made or run here - so "cannot load" means "the engine's own
-rules refuse the shapes these files have", not "a run failed".
+Unsloth's repository has five quantizations of this model beyond the ISTA-DAS sets Strata listed first: UD-IQ2_XXS (300.5 GB),
+UD-Q2_K_XL (334.8 GB), UD-IQ3_XXS (394.7 GB), UD-IQ3_S (423.6 GB) and UD-Q3_K_XL (485.1 GB) - checked on the live Hub on 2026-11-07
+at the pinned commit. When they were pinned, read against the engine's code, the engine refused all five; no pack of them had been
+made or run here, so that was static analysis - the engine's own rules refused the shapes these files have, not "a run failed". Both
+rules below are lifted now (the table in engine 0.1.59, the experts rule in 0.1.60), and all five are on the version list, each with a
+plain "quality is not measured" note; none has been served from a real set here. On a Mac and on a DGX Spark they stay hidden, as
+before.
 
-Two rules stood in the way. On this branch the table rule is lifted (a Q5_K table is read); the experts rule still stops four
-of the five:
+Two rules stood in the way, and both are lifted now:
 
-- **One layer's experts** (`src/dsv41/ds4_model.cu:2418`, in every engine since the first): gate and up must share a type, and
-  MXFP4 may not mix with the others - a layer keeps either all three in DeepSeek's MXFP4 or all three in low-bit types (where
+- **One layer's experts** (`src/dsv41/ds4_model.cu:2418`, in every engine before 0.1.60): gate and up had to share a type, and
+  MXFP4 could not mix with the others - a layer kept either all three in DeepSeek's MXFP4 or all three in low-bit types (where
   `down` may be a different low-bit type from gate and up). Unsloth's 3-bit sets keep MXFP4 where the layer is sensitive and
   drop the rest to 2 and 3 bits; in several layers that leaves an MXFP4 `down` beside 2- or 3-bit gate and up, and the engine
-  stops at the start with that message. UD-IQ2_XXS's one layer with a `Q2_K` down is fine: gate and up match, none of the
-  three is MXFP4.
+  stopped at the start with that message. Since 0.1.60 it takes exactly that one mixed form - gate and up of one low-bit type
+  with an MXFP4 `down` - and still refuses every other mix. UD-IQ2_XXS's one layer with a `Q2_K` down was never held: gate and
+  up match, none of the three is MXFP4.
 - **The n-gram table** (`src/dsv41/ds4_model.cu:3454`): the Engram reader takes MXFP8, Q6_K and IQ4_NL - what the offered
   sets carry - and now also **Q5_K**, the type the two 2-bit sets use, as its fourth format. It decodes a Q5_K table row
   (`src/dsv41/ds4_q5k.cuh`) exactly as this engine already decodes a Q5_K dense weight; checked value for value against a
@@ -127,38 +129,36 @@ of the five:
   source but have not yet been run on an AMD card or a Mac; those runs are still requested in
   [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
 
-| set | download | routed experts | n-gram table | what stops it |
+| set | download | routed experts | n-gram table | status |
 |---|---:|---|---|---|
-| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | done on this branch: the engine (run on RTX) and the setup wiring, the fit entry and an engine-version gate; left: a release that carries fmt 4, a serving run on the card, and a quality measurement |
-| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | the mixed shape; wired into setup and device-tested on both target cards; left: a real-set load, quality and a release |
-| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the mixed shape; wired into setup and device-tested on both target cards; left: a real-set load, quality and a release |
-| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | the mixed shape; wired into setup and device-tested on both target cards; left: a real-set load, quality and a release |
-| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers mix an MXFP4 down with low-bit gate/up | MXFP8, 202.8 GB | the mixed shape; wired into setup and device-tested on both target cards; left: a real-set load, quality and a release |
+| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | released in 0.2.12.1 (engine 0.1.59); device-tested on RTX; left: a real serving run and a quality measurement |
+| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | released in 0.2.12.2 (engine 0.1.60); device-tested on both target cards; left: a real-set load and a quality measurement |
+| UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | released in 0.2.12.2 (engine 0.1.60); device-tested on both target cards; left: a real-set load and a quality measurement |
+| UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | released in 0.2.12.2 (engine 0.1.60); device-tested on both target cards; left: a real-set load and a quality measurement |
+| UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers mix an MXFP4 down with low-bit gate/up | MXFP8, 202.8 GB | released in 0.2.12.2 (engine 0.1.60); device-tested on both target cards; left: a real-set load and a quality measurement |
 
 The experts columns are read from the shards' tensor headers; the sums cross-check with the pinned file sizes to under 0.1 GB.
-All five were re-read value by value on this branch, layer by layer: gate and up match in every layer of every set, so the
-`down` is the only thing that can trip the rule. UD-IQ2_XXS has no mixed layer at all (40 layers, one with a Q2_K down, none
-MXFP4) and clears the rule; the other four are held by the mixed-layer counts in their rows above (UD-Q2_K_XL 7, UD-IQ3_XXS
-30, UD-IQ3_S 18, UD-Q3_K_XL 4), and with the table now read the engine has nothing else to refuse them on but that one rule.
+All five were re-read value by value from the pinned shards, layer by layer: gate and up match in every layer of every set, so the
+`down` was the only thing that could trip the rule. UD-IQ2_XXS has no mixed layer at all (40 layers, one with a Q2_K down, none
+MXFP4) and cleared it; the other four have the mixed-layer counts in their rows above (UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18,
+UD-Q3_K_XL 4), and with the table read and the mixed form accepted, no engine rule refuses them any more.
 The smaller sets would be worth having on a smaller computer: UD-IQ2_XXS wants about 165 GB of weights against the offered
 sets' 298 to 306, and its experts - the part that wants RAM - are 157 GB against 289. Quality is not measured and not claimed
 for any of the five.
 
-The first of those two features - the Engram reader taking Q5_K - has landed on this branch, so UD-IQ2_XXS is no longer held
-by its table type: the CUDA/HIP source and the Metal kernels carry the format, each decoder verified against the reference
-decoder, and the CUDA device kernel is now **run on real NVIDIA cards** (an RTX 4080 SUPER sm_89 and an RTX 5060 Ti sm_120,
-`fails=0` on synthetic and on the model's own shard-6 bytes) with the full engine building green; the AMD and Mac runs stay
-open. It is not on the version list yet, and it is not wired into the download either: a set is not offered until an engine
-release carries the code to run it, so the file list and `--model ud-iq2_xxs` land with that release, not before. What that
-landing needs is written down just below. The second feature - letting a layer
-keep an MXFP4 `down` while gate and up stay low-bit - opens the other four (UD-Q2_K_XL needs both); it is landed on this
-branch for [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1) and wired into setup, fit and the file
-recognition, but no release carries it yet. The offered sets and every default path stay exactly as they are.
+The first of those two features - the Engram reader taking Q5_K - shipped first, in engine 0.1.59 and release 0.2.12.1: the
+CUDA/HIP source and the Metal kernels carry the format, each decoder was verified against the reference decoder, and the CUDA
+device kernel is **run on real NVIDIA cards** (an RTX 4080 SUPER sm_89 and an RTX 5060 Ti sm_120, `fails=0` on synthetic and on
+the model's own shard-6 bytes) with the full engine building green. UD-IQ2_XXS is therefore on the version list and wired into
+the download; the AMD and Mac runs stay open, and the set stays hidden there. The second feature - letting a layer keep an
+MXFP4 `down` while gate and up stay low-bit - opens the other four (UD-Q2_K_XL needs both); it shipped in engine 0.1.60 and
+release 0.2.12.2 for [ilfarpro/DeepStrata#1](https://github.com/ilfarpro/DeepStrata/issues/1), wired into setup, fit and the
+file recognition. The offered sets and every default path stay exactly as they were.
 
-### Landing UD-IQ2_XXS - wired on this branch
+### UD-IQ2_XXS - how it is wired
 
-The setup wiring, the fit entry, the pins and the file recognition are in this branch; what still has to come is a release that carries fmt 4 and
-a serving run of the set on an RTX card. The facts, read off the pinned set (repo `unsloth/DeepSeek-V4.1-Flash-1017-GGUF`, revision
+The setup wiring, the fit entry, the pins and the file recognition shipped in release 0.2.12.1 with engine 0.1.59; what is still
+missing is a serving run of the set on an RTX card. The facts, read off the pinned set (repo `unsloth/DeepSeek-V4.1-Flash-1017-GGUF`, revision
 `8a6ec9cf118e785a362ea94ee123c61c70553be6`, path `UD-IQ2_XXS/`):
 
 - Six files `DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-0000N-of-00006.gguf`. Shard 1 (5,780,923 B) is metadata, no tensors;
@@ -194,7 +194,7 @@ headers to under 0.1 GB; each SHA-256 is the file's LFS object id fetched at tha
   Metal engine build on a Mac). CUDA on RTX is done - `fails=0` on sm_89 and sm_120 (recorded in [docs/TEST_REQUESTS.md](TEST_REQUESTS.md)); the
   AMD and Mac runs are still open, and the set stays hidden on those platforms (`not_here`) until they pass.
 
-### Running UD-IQ2_XXS once the release carries fmt 4
+### Running UD-IQ2_XXS
 
 On the Linux machine with an RTX card (about 309 GB of free NVMe, 48 GB of RAM or more):
 
@@ -205,14 +205,14 @@ deepstrata launch --family deepseek41 --model ud-iq2_xxs --yes --no-tui
 ```
 
 An engine older than 0.1.59 stops the setup before anything downloads and tells you to update the engine. On a 16 GB card the Faster speed is the
-default, as with the other sets (`docs/MODELS.md`). The serving run itself on an RTX 4000/5000 card is the measurement still open: it is made
-with the release, and its words go to [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
+default, as with the other sets (`docs/MODELS.md`). The serving run itself on an RTX 4000/5000 card is the measurement still open, and its words
+go to [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
 
-### The four 2- and 3-bit sets: the engine now takes the mixed shape ([#1](https://github.com/ilfarpro/DeepStrata/issues/1), branch)
+### The four 2- and 3-bit sets: the engine now takes the mixed shape ([#1](https://github.com/ilfarpro/DeepStrata/issues/1))
 
 Their n-gram tables were already readable: Q6_K and MXFP8 (the 3-bit sets and UD-Q3_K_XL) and Q5_K (UD-Q2_K_XL) landed
 with the sets' own tables. What stopped them was a layer whose `down` is MXFP4 while its gate and up are low-bit. The
-branch `engine-mixed-mxfp4-down` takes that shape:
+engine takes that shape:
 
 - The front guard (`expert_layout_mx`, `ds4_model.cu`) accepts exactly one mixed form: gate and up of one low-bit type,
   down MXFP4. An MXFP4 gate/up still needs an MXFP4 down, gate and up must still match, and every other mix is still
@@ -225,7 +225,7 @@ branch `engine-mixed-mxfp4-down` takes that shape:
   `mixed_cpu_down`): low-bit gate/up rows over Q8_K activations, then MXFP4 down rows over the MXFP4 activation, with the
   same expert and slot cap as the low-bit lane.
 
-The download, fit and "I already have it" sides are wired on the same branch. Each of the four sets has its own
+The download, fit and "I already have it" sides are wired too. Each of the four sets has its own
 `udtable` recipe: the last shard (its n-gram table, Q5_K / Q6_K / MXFP8) downloads and verifies beside the model and goes
 to the packer as `--engram`, never as a model shard; `shared` carries only the drafter and the picture file. Setup refuses
 an engine older than **0.1.60** before anything downloads, because that is where the mixed layers are. The fit entries
@@ -235,7 +235,7 @@ four stay hidden until they run there, like
 UD-IQ2_XXS. `tests/tools/test_setup_udtable.py` (no GPU, no downloads) checks the pins, the pack call, the 0.1.60 gate,
 the fit numbers and the recognition.
 
-The pinned shards' own headers were read back from the Hub for this branch (the first 1.5 MB of every model shard; no
+The pinned shards' own headers were read back from the Hub when they were pinned (the first 1.5 MB of every model shard; no
 weights were downloaded) and checked against the rule: each set has 40 layers, gate equals up in every one, and the mixed
 layers are **7 / 30 / 18 / 4** as in the table, at layers 0, 1, 15-19; 0-9 and 15-34; 0-9, 20-24 and 35-37; and 0, 2, 3, 4.
 The gate/up types in those layers are IQ2_XS, IQ2_XXS, IQ2_S, IQ3_XXS and Q3_K, and the tables are Q5_K, Q6_K, Q6_K and
@@ -257,8 +257,11 @@ test's limits.
 
 No real set was loaded (the target sets need 343-493 GB of files; this machine has 848 GB free, but the current model
 uses the same two cards and 151 GB of RAM, so a second model must not run beside it). HIP and Metal were not built, and
-Metal also keeps a narrower `iq::supported` set. The four sets are therefore not offered yet: the release needs a
-real-set load and the real-set perplexity and tok/s measurements on the target cards. Their counts are unchanged: **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4** mixed layers (gate and up
+Metal also keeps a narrower `iq::supported` set; all four stay hidden on macOS and on linux-aarch64. Everywhere else
+(on a Linux/amd64 or Windows NVIDIA host with engine 0.1.60 or newer) all four are offered, each one's description
+saying its quality is not measured against the original. What is still missing is a real-set load and the real-set
+perplexity and tok/s measurements on the target cards, requested in
+[docs/TEST_REQUESTS.md](TEST_REQUESTS.md). Their counts are unchanged: **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4** mixed layers (gate and up
 match in every layer of all four, and each set's other layers are all-MXFP4 or all-low-bit as before). Existing packs
 and their bytes are untouched; a mixed layer is read in the role each matrix already has.
 

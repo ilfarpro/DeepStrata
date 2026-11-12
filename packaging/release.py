@@ -1258,10 +1258,13 @@ def _check_windows_parts(parts: dict, journal: dict, source: Path) -> None:
     if parts.get("product_version") != journal["product_version"] or parts.get("host_version") != journal["host_version"]:
         raise ReleaseError(f"{source} carries product {parts.get('product_version')}/page {parts.get('host_version')}, "
                            f"but this release is {journal['product_version']}/{journal['host_version']}")
-    cuda = str((parts.get("toolchain") or {}).get("cuda") or "")
-    if not cuda.startswith("13."):
-        raise ReleaseError(f"{source} was built with CUDA {cuda or 'unknown'}; the release's Windows package is cuda13 "
-                           "(CUDA 13.x)")
+    # a parts folder with no engine was never near CUDA (build_windows.ps1 -Only terminal), so only an engine makes
+    # the toolkit something to check
+    if "qwen" in (parts.get("components") or {}) or "dsv41" in (parts.get("components") or {}):
+        cuda = str((parts.get("toolchain") or {}).get("cuda") or "")
+        if not cuda.startswith("13."):
+            raise ReleaseError(f"{source} was built with CUDA {cuda or 'unknown'}; the release's Windows package is "
+                               "cuda13 (CUDA 13.x)")
 
 
 def _check_file(path: Path, *, sha256: str | None = None, size: int | None = None) -> None:

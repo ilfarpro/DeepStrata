@@ -463,8 +463,17 @@ class WindowsParts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
             with self.assertRaises(release.ReleaseError) as caught:
-                self.import_parts(windows_parts(base, cuda="12.9"), self.release_directory(base))
+                self.import_parts(windows_parts(base, cuda="12.9", engines=True), self.release_directory(base))
             self.assertIn("CUDA 12.9", str(caught.exception))
+
+    def test_a_terminal_only_folder_needs_no_cuda(self):
+        # build_windows.ps1 -Only terminal writes "cuda": null: there was no engine, so there was no toolkit to check
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            directory = self.release_directory(base)
+            imported, _ = self.import_parts(windows_parts(base, cuda=None), directory)
+            self.assertEqual(sorted(imported), ["terminal"])
+            self.assertTrue(imported["terminal"]["smoke_ok"])
 
     def test_parts_without_a_terminal_smoke_report_are_refused(self):
         with tempfile.TemporaryDirectory() as temporary:

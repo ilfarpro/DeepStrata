@@ -20,13 +20,13 @@ user-facing status of each one, with its sizes read off the shards, is in
 
 | # | Item | State |
 |---|---|---|
-| 1 | Serve **UD-Q4_K_XL** (501 GB) on our own hardware | Never run here. Its planner figures are derived from the pinned sizes and say they are not timed. Wanted: one prompt, a tool call, 4k and 8k prompts, tok/s on an RTX 5070 or an R9700 |
-| 2 | Serve **UD-IQ2_XXS** (300.5 GB) from a real set | The Q5_K reader is bit-exact against a reference decoder on real shard-6 bytes and on RTX cards. No real set has been served here yet. Wanted: load, one prompt, tok/s |
-| 3 | Load **UD-Q2_K_XL / UD-IQ3_XXS / UD-IQ3_S / UD-Q3_K_XL** from a real set | The mixed expert shape passes on both target RTX cards (351 checks each) and no set has been loaded: they need 334.8 to 485.1 GB to download (343 to 493 GB on disk), and the current model occupies the same cards and RAM. Wanted: one prompt each, tok/s |
-| 4 | Measure **quality** for all five | Not measured: no KL and no perplexity against the base set. Until a measurement exists, no quality word may appear in a doc or in the menu - for any of them |
+| 1 | Serve **UD-Q4_K_XL** (501 GB) on our own hardware | Not run: deferred on 2026-11-13. A download started here and stopped at 2 GB of 501, and this box has 188 GB of RAM against the set's 501, so its experts could only stream from the disk. Wanted: one prompt, a tool call, 4k and 8k prompts, tok/s on an RTX 5070 or an R9700 |
+| 2 | Serve **UD-IQ2_XXS** (300.5 GB) from a real set | Done for speed on 2026-11-13: served on an RTX 4080 SUPER (19.2 tok/s, 905 tok/s at a 16K prompt), an RTX 5060 Ti (17.2 / 449) and both cards (21.1 / 441); see [bench/results](../../../bench/results/README.md). Left: a tool-call check and the quality measurement (item 4) |
+| 3 | Load **UD-Q2_K_XL / UD-IQ3_XXS / UD-IQ3_S / UD-Q3_K_XL** from a real set | UD-Q2_K_XL was loaded and served on 2026-11-13 on the same two cards (18.0 tok/s, 393 tok/s at a 16K prompt); UD-IQ3_XXS, UD-IQ3_S and UD-Q3_K_XL are still unloaded (334.8 to 485.1 GB to download, 343 to 493 GB on disk, and the current model occupies the same cards and RAM). Left: one prompt each, tok/s |
+| 4 | Measure **quality** for all five | Not measured: no KL and no perplexity against the base set. Deferred on 2026-11-13, because no reference set is on this box (UD-Q8_K_XL is 508 GB, ISTA-DAS-2.00bpw 257 GB). Until a measurement exists, no quality word may appear in a doc or in the menu - for any of them |
 | 5 | **Mac and DGX Spark** | The five stay hidden on macOS and on linux-aarch64 (`strata_control/dsv41_fit.py`, `MAC_NOT_YET` and `AARCH64_NOT_YET`) until a build and a run pass there. Drop a name from those tuples only after a run passes |
 | 6 | **HIP and Metal** builds of both changes | The Q5_K decoder and the mixed expert layer share the CUDA/HIP source and the Metal kernels; both were built and run on NVIDIA cards only. The open requests, with the exact commands, are in [TEST_REQUESTS.md](../../TEST_REQUESTS.md) |
-| 7 | **Speed constants** per set | The planner's per-set figures for the new sets come from `--plan` and headers, not from a real run. Correct them from measured tok/s on the cards that ran |
+| 7 | **Speed constants** per set | The planner's per-set figures for the new sets come from `--plan` and headers, not from a real run. UD-IQ2_XXS and UD-Q2_K_XL now have measured tok/s (items 2 and 3); the other three are still untimed |
 
 The exit criterion for the whole page is unchanged: each set either measured on real hardware, or
 deliberately not offered, with the reason written down.

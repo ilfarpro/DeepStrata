@@ -107,8 +107,9 @@ UD-Q2_K_XL (334.8 GB), UD-IQ3_XXS (394.7 GB), UD-IQ3_S (423.6 GB) and UD-Q3_K_XL
 at the pinned commit. When they were pinned, read against the engine's code, the engine refused all five; no pack of them had been
 made or run here, so that was static analysis - the engine's own rules refused the shapes these files have, not "a run failed". Both
 rules below are lifted now (the table in engine 0.1.59, the experts rule in 0.1.60), and all five are on the version list, each with a
-plain "quality is not measured" note; none has been served from a real set here. On a Mac and on a DGX Spark they stay hidden, as
-before.
+plain "quality is not measured" note. Two of them have since been served from real packs on RTX cards - UD-IQ2_XXS and
+UD-Q2_K_XL, 2026-11-13, speed only ([bench/results](../bench/results/README.md)) - and the other three have not been
+served. On a Mac and on a DGX Spark they stay hidden, as before.
 
 Two rules stood in the way, and both are lifted now:
 
@@ -131,8 +132,8 @@ Two rules stood in the way, and both are lifted now:
 
 | set | download | routed experts | n-gram table | status |
 |---|---:|---|---|---|
-| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | released in 0.2.12.1 (engine 0.1.59); device-tested on RTX; left: a real serving run and a quality measurement |
-| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | released in 0.2.12.2 (engine 0.1.60); device-tested on both target cards; left: a real-set load and a quality measurement |
+| UD-IQ2_XXS | 300.5 GB | 156.9 GB (read off the headers): gate/up IQ1_S / IQ2_S / IQ2_XXS, down IQ2_XXS / IQ2_XS / IQ2_S / IQ3_XXS and one layer's down Q2_K - no MXFP4 down, all types the engine takes | Q5_K, 135.2 GB (read now) | released in 0.2.12.1 (engine 0.1.59); served on 2026-11-13 on an RTX 4080 SUPER (19.2 tok/s, 905 tok/s at a 16K prompt), an RTX 5060 Ti (17.2 / 449) and both cards (21.1 / 441); left: a tool-call check and a quality measurement |
+| UD-Q2_K_XL | 334.8 GB | 191.1 GB, 7 layers mix an MXFP4 down with low-bit gate/up | Q5_K, 135.2 GB (read now) | released in 0.2.12.2 (engine 0.1.60); loaded and served on 2026-11-13 on both target cards together (18.0 tok/s, 393 tok/s at a 16K prompt); left: a quality measurement |
 | UD-IQ3_XXS | 394.7 GB | 224.3 GB, 30 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | released in 0.2.12.2 (engine 0.1.60); device-tested on both target cards; left: a real-set load and a quality measurement |
 | UD-IQ3_S | 423.6 GB | 253.4 GB, 18 layers mix an MXFP4 down with low-bit gate/up | Q6_K, 161.3 GB | released in 0.2.12.2 (engine 0.1.60); device-tested on both target cards; left: a real-set load and a quality measurement |
 | UD-Q3_K_XL | 485.1 GB | 271.6 GB, 4 layers mix an MXFP4 down with low-bit gate/up | MXFP8, 202.8 GB | released in 0.2.12.2 (engine 0.1.60); device-tested on both target cards; left: a real-set load and a quality measurement |
@@ -157,8 +158,10 @@ file recognition. The offered sets and every default path stay exactly as they w
 
 ### UD-IQ2_XXS - how it is wired
 
-The setup wiring, the fit entry, the pins and the file recognition shipped in release 0.2.12.1 with engine 0.1.59; what is still
-missing is a serving run of the set on an RTX card. The facts, read off the pinned set (repo `unsloth/DeepSeek-V4.1-Flash-1017-GGUF`, revision
+The setup wiring, the fit entry, the pins and the file recognition shipped in release 0.2.12.1 with engine 0.1.59; the
+set has since been served from a real pack on RTX cards (2026-11-13, speed only,
+[bench/results](../bench/results/README.md)). The facts, read off the pinned set (repo
+`unsloth/DeepSeek-V4.1-Flash-1017-GGUF`, revision
 `8a6ec9cf118e785a362ea94ee123c61c70553be6`, path `UD-IQ2_XXS/`):
 
 - Six files `DeepSeek-V4.1-Flash-1017-UD-IQ2_XXS-0000N-of-00006.gguf`. Shard 1 (5,780,923 B) is metadata, no tensors;
@@ -205,8 +208,14 @@ deepstrata launch --family deepseek41 --model ud-iq2_xxs --yes --no-tui
 ```
 
 An engine older than 0.1.59 stops the setup before anything downloads and tells you to update the engine. On a 16 GB card the Faster speed is the
-default, as with the other sets (`docs/MODELS.md`). The serving run itself on an RTX 4000/5000 card is the measurement still open, and its words
-go to [docs/TEST_REQUESTS.md](TEST_REQUESTS.md).
+default, as with the other sets (`docs/MODELS.md`).
+
+Served from real packs on 2026-11-13 (engine 0.1.60, `tools/strata_bench.py`, three runs per test): on an RTX 4080 SUPER
+alone the set answered at 19.2 tokens a second and read a 16K prompt at 905 tokens a second (first token in 18.3 s); on
+an RTX 5060 Ti on a PCIe x4 link, 17.2 and 449; with both cards, 21.1 and 441 - so the second card sped the answer up by
+a tenth and halved the prompt reading. Most experts came from RAM, not from the cards: 521 to 1 673 slots of 15 360 sat
+in VRAM, and the other 13 687 to 14 839 were read from RAM. The reports are in
+[bench/results](../bench/results/README.md). Still open: a tool-call check and the quality measurement.
 
 ### The four 2- and 3-bit sets: the engine now takes the mixed shape ([#1](https://github.com/ilfarpro/DeepStrata/issues/1))
 
@@ -255,12 +264,14 @@ pairs' token errors were 1.35e-7 (IQ2_XS), 2.18e-7 (IQ2_S), 2.21e-7 (IQ3_XXS), 1
 against the CPU reference, and the set paths stayed within 3.1e-4 to 6.6e-4 (F16 activation rounding), well inside the
 test's limits.
 
-No real set was loaded (the target sets need 343-493 GB of files; this machine has 848 GB free, but the current model
-uses the same two cards and 151 GB of RAM, so a second model must not run beside it). HIP and Metal were not built, and
+No real set was loaded when this was written (the target sets need 343-493 GB of files; this machine has 848 GB free,
+but the current model uses the same two cards and 151 GB of RAM, so a second model must not run beside it). Since then
+UD-Q2_K_XL has been loaded and served on those two cards (2026-11-13, speed only: 18.0 tok/s, 393 tok/s at a 16K prompt,
+[bench/results](../bench/results/README.md)); the other three are still unloaded. HIP and Metal were not built, and
 Metal also keeps a narrower `iq::supported` set; all four stay hidden on macOS and on linux-aarch64. Everywhere else
 (on a Linux/amd64 or Windows NVIDIA host with engine 0.1.60 or newer) all four are offered, each one's description
-saying its quality is not measured against the original. What is still missing is a real-set load and the real-set
-perplexity and tok/s measurements on the target cards, requested in
+saying its quality is not measured against the original. What is still missing is a real-set load for those three, and a
+perplexity measurement for all four; the tok/s measurement now exists for UD-Q2_K_XL, and the request stays open in
 [docs/TEST_REQUESTS.md](TEST_REQUESTS.md). Their counts are unchanged: **UD-Q2_K_XL 7, UD-IQ3_XXS 30, UD-IQ3_S 18, UD-Q3_K_XL 4** mixed layers (gate and up
 match in every layer of all four, and each set's other layers are all-MXFP4 or all-low-bit as before). Existing packs
 and their bytes are untouched; a mixed layer is read in the role each matrix already has.

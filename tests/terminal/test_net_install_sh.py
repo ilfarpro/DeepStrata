@@ -109,9 +109,9 @@ class DocumentedLines(unittest.TestCase):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn(f"curl -fsSL --connect-timeout 15 --max-time 120 {REPO_URL}/releases/latest/download/install.sh "
                       "-o install.sh && sh install.sh", text)
-        # The fork publishes no Windows Terminal yet, so its front page prints no Windows command; the Linux/Mac
-        # line above is the one it carries (docs/INSTALL.md carries both, with the same limits).
-        self.assertNotIn("install.ps1 | iex", text)
+        # The fork's release page carries a Windows Terminal since 0.2.12.3, so the front page prints both lines, with
+        # the same limits the other documents use (docs/INSTALL.md carries both).
+        self.assertIn(f"irm -TimeoutSec 120 {REPO_URL}/releases/latest/download/install.ps1 | iex", text)
 
 
 class InstallPs1Text(unittest.TestCase):

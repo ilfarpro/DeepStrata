@@ -41,12 +41,12 @@ are based on plus our own number, so `0.2.13.1`; the next release, built from th
 
 | Published by us now | For |
 | --- | --- |
-| The Terminal — `deepstrata`, Control 0.1.61 | Linux x86-64 |
-| The DeepSeek V4.1-Flash engine 0.1.61 (CUDA 13, sm_86 / sm_89 / sm_120) | Linux x86-64 with NVIDIA RTX 30, 40 or 50, driver 580.65 or newer |
+| The Terminal — `deepstrata`, Control 0.1.61 | Linux x86-64, Windows x86-64 |
+| The DeepSeek V4.1-Flash engine 0.1.61 (CUDA 13, sm_86 / sm_89 / sm_120) | Linux and Windows x86-64 with NVIDIA RTX 30, 40 or 50, driver 580.65 or newer |
 
-**The release page carries what we built:** the Terminal and the CUDA 13 engines for Linux x86-64, plus the Windows
-Terminal and its two engines last published in `0.2.12.3` (components `0.1.60`), built on a Windows PC. Not built yet:
-the Windows parts of the `0.1.61` line, the macOS and ARM64 Linux Terminals, and the AMD, Intel and Mac engines. Our installer
+**The release page carries what we built:** the Terminal and the CUDA 13 engines for Linux x86-64 and for Windows
+x86-64 (the Windows parts are built on a Windows PC from the same commit and signed here). Not built yet: the macOS and
+ARM64 Linux Terminals, and the AMD, Intel and Mac engines. Our installer
 runs everywhere it knows and stops with a plain line naming the package this release does not carry — nothing half
 installed. Until our own packages land on those systems, use a
 [source build](docs/SOURCE_INSTALL.md) or [Docker](docs/DOCKER.md).
@@ -146,10 +146,21 @@ Follow the prompts to download and start a model. [Terminal guide](docs/TERMINAL
   <br><sub>Watch your model and hardware while it runs.</sub>
 </p>
 
-### Windows, macOS, and the chat page
+### Windows x86-64
 
-Our release folder does not carry `install.ps1` or a macOS package yet, so we do not print those
-commands here. [Build from source](docs/SOURCE_INSTALL.md) · [Docker](docs/DOCKER.md) ·
+PowerShell, no administrator rights. Open a new terminal afterwards, so that `deepstrata` is on the PATH:
+
+```powershell
+irm -TimeoutSec 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
+```
+
+Then `deepstrata launch` as above. Windows SmartScreen may ask once before the unsigned Terminal runs; the signed feed
+still checks the sha256 of every file before anything is installed.
+
+### macOS and the chat page
+
+Our release folder carries no macOS package yet, so we do not print that command here.
+[Build from source](docs/SOURCE_INSTALL.md) · [Docker](docs/DOCKER.md) ·
 [Full install guide](docs/INSTALL.md).
 
 <details>
@@ -175,7 +186,7 @@ built from; it builds on your machine instead of ours.
 
 | Supported hardware | Needs |
 | --- | --- |
-| **Linux x86-64 with NVIDIA GeForce RTX 30 / 40 / 50, 12 GB or more** | Driver 580.65 or newer (CUDA 13). [NVIDIA setup](docs/INSTALL.md#what-you-need) |
+| **Linux or Windows x86-64 with NVIDIA GeForce RTX 30 / 40 / 50, 12 GB or more** | Driver 580.65 or newer (CUDA 13). [NVIDIA setup](docs/INSTALL.md#what-you-need) |
 
 **Built and measured, our packages for them are still to come** — a [source build](docs/SOURCE_INSTALL.md) runs them now.
 

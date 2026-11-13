@@ -51,7 +51,7 @@ pushing a workflow file needs a credential with the `workflow` scope.
 
 Our release version is the upstream line we are based on plus our own number: the first
 DeepStrata release on upstream 0.2.12 was `0.2.12.1`, the last one on that line `0.2.12.3`; after the sync to
-upstream 0.2.13 the next release is `0.2.13.1`. The release
+upstream 0.2.13 the first release on that line is `0.2.13.1` (13 November 2026). The release
 version is the tag, the GitHub release name and title, and the file names of the files we
 rebuild for that release.
 

@@ -40,8 +40,8 @@ class VersionBump(unittest.TestCase):
         # The fork's front page is English-only: it states our own release and engine version, names no
         # installer file our release folder does not carry, and does not offer the removed desktop app.
         text = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertRegex(text, r"DeepStrata 0\.2\.12\.3")   # the release the front page describes (tag ds-0.2.12.3)
-        self.assertRegex(text, r"\b0\.1\.60\b")            # the Control and the engine that release publishes
+        self.assertRegex(text, r"DeepStrata 0\.2\.13\.1")   # the release the front page describes (tag ds-0.2.13.1)
+        self.assertRegex(text, r"\b0\.1\.61\b")            # the Control and the engine that release publishes
         self.assertNotRegex(text, r"Strata-0[.]\d")            # no upstream app installers: we publish none
         self.assertNotIn("desktop app", text)                   # the shell is gone: the page rides in the Terminal
         self.assertNotIn("macos-arm64.dmg", text)               # ... and so are its per-system installers

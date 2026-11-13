@@ -390,6 +390,21 @@ class WindowsParts(unittest.TestCase):
                 self.assertEqual(imported[name]["manifest_sha256"],
                                  _sha256(folder / "engine-component.json"))
 
+    def test_an_engine_that_lost_its_execute_bit_on_the_way_gets_it_back(self):
+        """A zip or an SFTP copy of the parts folder drops the bit Windows never had, and verify would refuse the
+        engine; the import puts it back."""
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = windows_parts(base, engines=True)
+            manifest = json.loads((parts / "windows-parts.json").read_text(encoding="utf-8"))
+            source = parts / manifest["components"]["qwen"]["folder"] / "strata.exe"
+            source.chmod(0o644)
+            self.assertFalse(os.access(source, os.X_OK))
+            directory = self.release_directory(base)
+            imported, _ = self.import_parts(parts, directory, ["qwen"])
+            copied = directory / imported["qwen"]["folder"] / "strata.exe"
+            self.assertTrue(os.access(copied, os.X_OK))
+
     def test_an_engine_component_that_changed_after_the_manifest_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)

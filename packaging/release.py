@@ -62,6 +62,7 @@ import os
 import re
 import shlex
 import shutil
+import stat
 import ssl
 import subprocess
 import sys
@@ -1312,6 +1313,15 @@ def _windows_smoke(source: Path, parts: dict, archive_name: str) -> dict:
     return report
 
 
+def _windows_exec_bits(directory: Path) -> None:
+    """Windows has no execute permission: every file is one there. A parts folder that travelled as an artifact zip or
+    over SFTP comes back with the bit cleared, and `package_engine.py --verify` refuses an engine whose entrypoint is
+    not executable (os.access on POSIX), so the bit is set again here. The package itself carries no permission."""
+    for path in directory.rglob("*"):
+        if path.is_file() and not os.access(path, os.X_OK):
+            path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
 def _import_windows_parts(directory: Path, journal: dict, source_arg: Path,
                           wanted: list[str], *, rebuild: bool) -> tuple[dict, dict]:
     """Copy and check the unsigned Windows parts into the release folder. Returns ({component: info}, record)."""
@@ -1359,6 +1369,7 @@ def _import_windows_parts(directory: Path, journal: dict, source_arg: Path,
             shutil.rmtree(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(folder, destination)
+        _windows_exec_bits(destination)
         _verify_engine(destination, directory / "logs" / f"verify-windows-{name}.log")
         imported[name] = {"folder": _rel(destination, directory), "manifest_sha256": manifest_sha}
     record = {"source": str(source), "manifest_sha256": sha256_file(source / WINDOWS_PARTS_NAME),

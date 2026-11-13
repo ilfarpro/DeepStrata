@@ -130,7 +130,8 @@ in `strata --help` is unchanged. Tests: `tests/terminal/test_flow2_022.py`.
   `--model ud-q4_k_xl` stays the Qwen file's it always was.
 - `strata_control/dsv41_fit.py`: `UD_SETS` now plans both XL sets; the Q4
   figures are derived from the pinned sizes and say they are not timed.
-- `docs/DEEPSEEK41.md` says why the other five held-out sets wait.
+- `docs/DEEPSEEK41.md` carries the five other held-out sets too: they shipped later, in
+  engine 0.1.59 and 0.1.60 — zone 13 has the full list.
 - Tests: `tests/tools/test_setup_udq4.py`, `tests/tools/test_setup_dsv41.py`,
   `tests/terminal/test_launch_dsv41.py`.
 
@@ -278,10 +279,11 @@ The `README.md` rewrite of 2026-11-09:
   re-typeset one), a line on what the fork is, and links to this file and
   `docs/roadmap/`.
 - **Install claims follow our release folder, not the product's reach.** The
-  page prints the `install.sh` one-liner (Linux x86-64 — the Terminal and the
-  DeepSeek CUDA-13 engine are what our feed publishes today) and names what we
-  do not publish yet: `install.ps1`, the macOS and ARM64 Terminal packages,
-  the Qwen engine packs. Those point at a source build; there is no link to a
+  page prints the `install.sh` and `install.ps1` one-liners (Linux and Windows
+  x86-64 — the Terminal and the CUDA-13 Qwen and DeepSeek engines are what our
+  feed publishes today) and names what we do not publish yet: the macOS and
+  ARM64 Terminal packages and the AMD, Intel and Mac engines. Those point at a
+  source build; there is no link to a
   file our release folder does not carry, and no `Strata-0.2.x-…exe` style
   file names. (Up to 0.2.12 that list also named the desktop app's installers
   and its updater manifest; both went with the desktop app, and the page now
@@ -300,6 +302,35 @@ The `README.md` rewrite of 2026-11-09:
 DeepStrata heading and fork line, our addresses, the "what our release carries
 today" block rewritten from the live release folder, no installer file names we
 do not publish, no sponsor wall, no new translations.
+
+### 13. DeepSeek-V4.1-Flash: the quantization list our fork ships
+
+Upstream's `deepseek41` family at the sync point offers seven sets: the three
+official ISTA-DAS sizes (1.75 / 2.00 / 2.25 bpw), the ISTA-DAS Coder, and
+Unsloth's UD-IQ1_S, UD-IQ1_M and UD-Q8_K_XL. `setup.py`'s
+`MULTI_FILE_FAMILIES["deepseek41"]["models"]` ships thirteen today; the six
+this fork added are:
+
+| Set | What made it ours to add | Runs since |
+|---|---|---|
+| Unsloth UD-Q4_K_XL | the pins, the pack call and the fit line (zone 5) | the 0.2.12 line |
+| Unsloth UD-IQ2_XXS | its own Q5_K n-gram table — the fmt-4 reader (zone 6) | engine 0.1.59, release 0.2.12.1 |
+| Unsloth UD-Q2_K_XL, UD-IQ3_XXS, UD-IQ3_S, UD-Q3_K_XL | mixed MXFP4-`down` expert layers and the sets' own Q5_K / Q6_K / MXFP8 tables (zone 6) | engine 0.1.60, release 0.2.12.2 |
+
+Sizes, RAM classes and the fit planning live in `strata_control/dsv41_fit.py`
+(`ISTA_SETS`); `setup.py` carries the engine gates (`min_engine`) and the file
+pins. The five sets that need the new readers stay hidden on macOS and on
+linux-aarch64 until a run passes there (`MAC_NOT_YET` and `AARCH64_NOT_YET` in
+`strata_control/dsv41_fit.py`). The user-facing list is the DeepSeek block of
+`README.md` and `docs/DEEPSEEK41.md`; the measurements still open for the six
+sets are in `docs/roadmap/unsloth-sets/README.md` (until a measurement exists,
+no quality word may appear in a doc or in the menu for the five held-out ones).
+
+**Sync rule:** when upstream edits the `deepseek41` model list, keep our six
+added entries, their pins, their `min_engine` gates and the hidden-set tuples;
+the engine code behind them stays in its own branches (zone 6). Tests:
+`tests/tools/test_setup_udq4.py`, `tests/tools/test_setup_udtable.py`,
+`tests/tools/test_setup_dsv41.py`, `tests/terminal/test_launch_dsv41.py`.
 
 ## Tests a sync merge should run
 

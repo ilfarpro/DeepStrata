@@ -35,53 +35,64 @@ downloaded twice. Every difference and the rules for keeping them through a sync
 
 ## What our release carries today
 
-Our newest release is **DeepStrata 0.2.13.1** — the Terminal and the engine **0.1.61**, the first release on the
+Our newest release is **DeepStrata 0.2.13.1** — the Terminal and the engines **0.1.61**, the first release on the
 upstream 0.2.13 line (this tree synced with upstream 0.2.13 on 13 November 2026). The version is the upstream line we
 are based on plus our own number, so `0.2.13.1`; the next release, built from this tree, is `0.2.13.2` on upstream 0.2.13
 ([how we number releases](DIVERGENCE.md#release-numbering-and-tags)).
 
-| Published by us now | For |
-| --- | --- |
-| The Terminal — `deepstrata`, Control 0.1.61 | Linux x86-64, Windows x86-64 |
-| The DeepSeek V4.1-Flash engine 0.1.61 (CUDA 13, sm_86 / sm_89 / sm_120) | Linux and Windows x86-64 with NVIDIA RTX 30, 40 or 50, driver 580.65 or newer |
-
-**The release page carries what we built:** the Terminal and the CUDA 13 engines for Linux x86-64 and for Windows
-x86-64 (the Windows parts are built on a Windows PC from the same commit and signed here). Not built yet: the macOS and
-ARM64 Linux Terminals, and the AMD, Intel and Mac engines. Our installer
-runs everywhere it knows and stops with a plain line naming the package this release does not carry — nothing half
-installed. Until our own packages land on those systems, use a
-[source build](docs/SOURCE_INSTALL.md) or [Docker](docs/DOCKER.md).
-
-Every command on this page can be run with `--plan` first, as the examples show. A plan downloads and changes nothing:
-it prints the download, the disk and the memory your computer needs, and names what your computer is missing.
+- **The Terminal — `deepstrata`, Control 0.1.61** — for Linux x86-64 and Windows x86-64. The chat page rides inside it;
+  `deepstrata ui` opens it in your browser.
+- **The Qwen engine 0.1.61** (CUDA 13) — for Linux and Windows x86-64 with NVIDIA RTX 20, 30, 40 or 50 and driver
+  580.65 or newer.
+- **The DeepSeek V4.1-Flash engine 0.1.61** (CUDA 13) — the same two systems, on NVIDIA RTX 30, 40 or 50 with driver
+  580.65 or newer.
+- The Windows parts are built on a Windows PC from the same commit and signed here. SmartScreen may ask once; the
+  signed update feed checks the sha256 of every file before anything is installed.
+- **Not built yet:** the macOS and ARM64 Linux Terminals, and the AMD, Intel and Mac engines. Our installer runs
+  everywhere it knows and stops with a plain line naming the package this release does not carry — nothing half
+  installed. Until our own packages land on those systems, use a [source build](docs/SOURCE_INSTALL.md) or
+  [Docker](docs/DOCKER.md).
+- Every command on this page can be run with `--plan` first, as the examples show. A plan downloads and changes
+  nothing: it prints the download, the disk and the memory your computer needs, and names what your computer is missing.
 
 ## Models
 
-We recommend **ISTA-DASLab first**, then **Unsloth** and other providers, where a compatible model fits
-([provider order](docs/MODELS.md#quick-start)). Our feed carries the **DeepSeek** engine today; the Qwen families need
-the Qwen engine pack, which we do not publish yet — today that means a [source build](docs/SOURCE_INSTALL.md).
+Model packs come from **ISTA-DASLab**, **Unsloth** and other providers; the pack you pick must be compatible and fit
+your memory and disk ([provider order](docs/MODELS.md#quick-start)). Our release carries both engines today —
+**DeepSeek** and **Qwen** — for NVIDIA cards under CUDA 13; AMD, Intel and Mac engine builds still mean a
+[source build](docs/SOURCE_INSTALL.md).
 
 <details open>
 <summary><img src="docs/media/models/deepseek.svg" width="22" alt="" align="middle"> &nbsp;<b>DeepSeekV4.1-Flash-1017</b> — runs from our release today</summary>
 
 In the **browser page** and the **Terminal**. What does not fit in memory is read from your SSD, so it
-needs a lot of free disk space.
+needs a lot of free disk space — an NVMe drive is what it was measured on.
 
-| Set | Download | Free disk needed |
+| Set | Download | RAM to run |
 | --- | ---: | ---: |
-| ISTA-DAS 1.75 bpw | 239 GB | about 245 GB |
-| ISTA-DAS 2.00 bpw | 257 GB | about 265 GB |
-| ISTA-DAS 2.25 bpw | 274 GB | about 280 GB |
-| ISTA-DAS Coder (half of the experts removed) | 191 GB | about 197 GB |
-| **Unsloth UD-IQ2_XXS** — ours to offer | 300 GB | about 309 GB |
+| ISTA-DAS Coder (half of the experts removed) | 191 GB | 24 GB |
+| ISTA-DAS 1.75 bpw | 239 GB | 34 GB |
+| Unsloth UD-IQ1_S | 241 GB | 36 GB |
+| ISTA-DAS 2.00 bpw | 257 GB | 40 GB |
+| Unsloth UD-IQ1_M | 258 GB | 40 GB |
+| ISTA-DAS 2.25 bpw | 274 GB | 44 GB |
+| Unsloth UD-IQ2_XXS | 308 GB | 48 GB |
+| Unsloth UD-Q2_K_XL | 343 GB | 58 GB |
+| Unsloth UD-IQ3_XXS | 403 GB | 68 GB |
+| Unsloth UD-IQ3_S | 432 GB | 77 GB |
+| Unsloth UD-Q3_K_XL | 493 GB | 82 GB |
+| Unsloth UD-Q4_K_XL | 501 GB | 298 GB |
+| Unsloth UD-Q8_K_XL | 508 GB | 306 GB |
 
-The last line is the fork's own work: this set's n-gram table is stored as Q5_K, which no engine could read until our
-0.1.59 grew that reader. It needs 48 GB of RAM or more and an NVIDIA card so far — the AMD and Mac runs of that reader
-are still open, so the set stays hidden there ([the whole story](docs/DEEPSEEK41.md)).
+The five sets from UD-IQ2_XXS to UD-Q3_K_XL are the fork's own work: their n-gram tables (Q5_K, Q6_K, MXFP8) and their
+mixed expert layers were unreadable to any engine until our 0.1.59 and 0.1.60 grew those readers. Their quality is not
+measured against the original yet, and on a Mac or an ARM computer they stay hidden until they run there. The two last
+sets are for machines with hundreds of GB of RAM or several cards
+([the whole story](docs/DEEPSEEK41.md)).
 
 ```sh
 deepstrata launch --family deepseek41 --model ist-das-2.00bpw --plan
-deepstrata launch --family deepseek41 --model ud-iq2_xxs --plan      # our addition; needs engine 0.1.59
+deepstrata launch --family deepseek41 --model ud-iq2_xxs --plan      # one of the five big Unsloth sets we made loadable
 ```
 
 Output is the speed of the answer, prompt is how fast Strata reads your input. Both measured with the 2.00 bpw set on
@@ -98,11 +109,11 @@ the machines named, on Linux with CUDA 13 — the boxes, the drives and the rest
 </details>
 
 <details>
-<summary><img src="docs/media/models/qwen.svg" width="22" alt="" align="middle"> &nbsp;<b>Qwen3.8-Flash-Next</b></summary>
+<summary><img src="docs/media/models/qwen.svg" width="22" alt="" align="middle"> &nbsp;<b>Qwen3.8-Flash-Next</b> — runs from our release today</summary>
 
 | Provider | Choices |
 | --- | --- |
-| **ISTA-DASLab · recommended** | Q2\_0, IQ2\_XS, IQ3\_XXS, IQ3\_S. [Coder: IQ1\_M](docs/MODELS.md#coder) for coding. |
+| **ISTA-DASLab** | Q2\_0, IQ2\_XS, IQ3\_XXS, IQ3\_S. [Coder: IQ1\_M](docs/MODELS.md#coder) for coding. |
 | **Unsloth** | UD-IQ4\_XS, UD-Q4\_K\_XL, UD-Q5\_K\_XL, UD-Q6\_K\_XL, Q8\_0 |
 | **Gyro · agentionai** | [Gyro-S, Gyro-M](https://huggingface.co/agentionai/Qwen3.8-Flash-Next-Gyro-GGUF). Lower memory use but slower. |
 | **Other options** | [Swift 1.5](docs/MODELS.md#swift-15), [NVFP4](docs/NVFP4.md), [OrcaRouter](docs/ORCA.md) |
@@ -112,7 +123,7 @@ the machines named, on Linux with CUDA 13 — the boxes, the drives and the rest
 </details>
 
 <details>
-<summary><img src="docs/media/models/qwen.svg" width="22" alt="" align="middle"> &nbsp;<b>Qwen3.6-35B-A3B</b></summary>
+<summary><img src="docs/media/models/qwen.svg" width="22" alt="" align="middle"> &nbsp;<b>Qwen3.6-35B-A3B</b> — runs from our release today</summary>
 
 **Unsloth:** UD-Q4_K_XL, UD-Q6_K_XL, Q8_0. These are the currently documented packs for this model.
 
@@ -168,13 +179,13 @@ Our release folder carries no macOS package yet, so we do not print that command
 <summary>What a source build gives you today</summary>
 
 The chat page in your browser (start a model and run `deepstrata ui`; chat, files and a live preview in one window),
-the Terminal on Windows and macOS, and the engine
+the Terminal on macOS, and the engine
 backends our feed does not carry yet: AMD HIP, Intel SYCL, Apple Metal and Strix Halo. The same code our packages are
 built from; it builds on your machine instead of ours.
 
 <p align="center">
   <img src="docs/media/app-chat.png" width="900" alt="The chat page with a chat and live code preview side by side">
-  <br><sub>Chat, files and a live preview in one window (source build today).</sub>
+  <br><sub>Chat, files and a live preview in one window (the page rides in the Terminal archive).</sub>
 </p>
 
 </details>
@@ -187,13 +198,12 @@ built from; it builds on your machine instead of ours.
 
 | Supported hardware | Needs |
 | --- | --- |
-| **Linux or Windows x86-64 with NVIDIA GeForce RTX 30 / 40 / 50, 12 GB or more** | Driver 580.65 or newer (CUDA 13). [NVIDIA setup](docs/INSTALL.md#what-you-need) |
+| **Linux or Windows x86-64 with NVIDIA GeForce RTX 20 / 30 / 40 / 50, 12 GB or more** | Driver 580.65 or newer (CUDA 13). The Qwen engines also run on the RTX 20 series; the DeepSeek engine needs RTX 30, 40 or 50. [NVIDIA setup](docs/INSTALL.md#what-you-need) |
 
 **Built and measured, our packages for them are still to come** — a [source build](docs/SOURCE_INSTALL.md) runs them now.
 
 | Hardware | Guide |
 | --- | --- |
-| **NVIDIA GeForce RTX 20 series** | [NVIDIA setup](docs/INSTALL.md#what-you-need) |
 | **AMD Radeon RX 7700 / 7800 / 7900, RX 9060 / 9070, AI PRO R9700** | [AMD setup](docs/AMD_HIP.md) |
 | **AMD Radeon RX 6800 / 6900 · experimental** | [RX 6000 setup](docs/AMD_HIP.md#rdna2-gfx1030) |
 | **Intel Arc · Linux** | [Intel setup](docs/INTEL_ARC.md) |
@@ -211,7 +221,7 @@ Anthropic-compatible APIs.
 Run **`deepstrata connect`** to see setup instructions for your tool.
 [Connection guide](docs/TERMINAL_LAUNCH.md#connect-your-apps-deepstrata-connect).
 
-A tool talks to a model you are serving, so from our release today that means the Linux and NVIDIA path above.
+A tool talks to a model you are serving, so from our release today that means the Linux and Windows NVIDIA path above.
 
 <a id="guides"></a>
 <a id="how-fast-is-it"></a>

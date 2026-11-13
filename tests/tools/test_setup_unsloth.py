@@ -11,6 +11,7 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -177,11 +178,15 @@ class Base(unittest.TestCase):
             self.runs.append([str(x) for x in cmd])
 
         patches = [
+            mock.patch.dict(os.environ, {"STRATA_FEED_MODELS": "0"}),       # the feed's model list is not read from the real feed (the test guard in conftest.py)
             mock.patch.object(setup, "ROOT", self.t),
             mock.patch.object(setup, "GPU_PICK", None),
             mock.patch.object(setup, "data_folder", lambda d, *a, **k: (self.t / "data", [])),
             mock.patch.object(setup, "installed_configs", lambda: []),
             mock.patch.object(setup, "gpus", lambda: found),
+            # the cards' speeds come from the CUDA driver of the machine that runs the test (setup.card_speeds), so the Main card was
+            # whichever the real driver (or none) made it; the tests are written for card 0 as the faster one
+            mock.patch.object(setup, "card_speeds", lambda: {g["index"]: 2.0 if g["index"] == 0 else 1.0 for g in found}),
             mock.patch.object(setup, "amd_gpus", lambda *a: list(amd)),
             mock.patch.object(setup, "ram_gb", lambda: ram),
             mock.patch.object(setup, "cpu_info", lambda: ("Test CPU", True, True)),
@@ -353,7 +358,7 @@ class Main(Base):
         """#967: images are allowed with UD-Q4_K_XL (tested end to end since MODEL-UPDATE)."""
         code, out, cfg = self.main(["--context", "8192", "--vision", "yes", "--low-ram", "on"], n_gpus=2)
         self.assertEqual(code, 0, out)
-        self.assertIn("(NVIDIA GeForce RTX 5070, 12 GB) only (--gpus 0,1 shares it across", out)
+        self.assertIn("(NVIDIA GeForce RTX 5070, 12 GB) only (--gpus 1,0 shares it across", out)
         self.assertNotIn("images are not available", out)
         self.assertIn("images: on", out)
         self.assertNotIn("are untested", out)                      # MODEL-UPDATE: run end to end (CUDA, HIP)
@@ -434,7 +439,7 @@ class Main(Base):
             self.assertIn("--resident-budget-gib", cfg["args"])
             code, out, cfg = self.main(["--context", "8192"], n_gpus=2, answers={"which GPUs?": "2"})
             self.assertEqual(code, 0, out)
-            self.assertEqual(cfg["gpu"], [0, 1])
+            self.assertEqual(cfg["gpu"], [1, 0])            # the Main card first (the roles above put it in front)
             self.assertIn("--resident-budget-gib", cfg["args"])
 
     @budget_mode()
@@ -553,16 +558,16 @@ class IQ4XS(Base):
         code, out, _ = self.main(["--check"], m=X)
         self.assertEqual(code, 0, out)
         line = next(ln for ln in out.splitlines() if ln.strip().startswith(X))
-        self.assertIn("fits with 40 GiB of its experts in RAM", line)
+        self.assertRegex(line, r"needs ~65 GB of RAM \+ VRAM: fits$")           # 93.7 GB download minus the 28.8 GB table = 64.9 GB, against 63.7 GB of RAM + 11.9 GB of VRAM
         self.assertNotIn("EXPERIMENTAL", line)
         self.assertNotIn("EXPERIMENTAL", next(ln for ln in out.splitlines() if ln.strip().startswith(M)))
 
     def test_check_below_every_floor(self):
-        # #977: 16 GB fits no size; the RAM line is not [ok] and the verdict says so
-        code, out, _ = self.main(["--check"], ram=16.0, m=X)
+        # #977: 8 GB of RAM and a 12 GB card fit no size (the Coder's 24 GB of weights is the smallest); the RAM line is not [ok] and the verdict says so
+        code, out, _ = self.main(["--check"], ram=8.0, m=X)
         self.assertEqual(code, 1, out)
         self.assertNotIn("[ok] RAM", out)
-        self.assertIn("[!]  RAM: 16 GB (less than", out)
+        self.assertIn("[!]  RAM: 8 GB (less than", out)
         self.assertIn("This PC cannot run Strata yet", out)
         self.assertNotIn("This PC can run Strata", out)
 
@@ -864,10 +869,12 @@ class Resident(Base):
 
     def test_the_menu_and_check_say_so(self):
         code, out, _ = self.main(["--check"], ram=127.8)
-        for m, verdict in ((X, "fits (all of its experts in RAM)"), (M, "fits (all of its experts in RAM)"),
-                           (Q5, "fits (all of its experts in RAM)"), (Q8, "slow here: 104 GiB of its 119 GiB")):
+        for m in (X, M, Q5, Q8):                    # 127.8 GB of RAM and a 12 GB card: the weights (60 to 129 GB, no lookup table) fit together
             line = next(ln for ln in out.splitlines() if ln.strip().startswith(m + " "))
-            self.assertIn(verdict, line)
+            self.assertTrue(line.endswith(": fits"), line)
+        code, out, _ = self.main(["--check"], ram=100.0)
+        line = next(ln for ln in out.splitlines() if ln.strip().startswith(Q8 + " "))
+        self.assertTrue(line.endswith(": may run slower"), line)            # 129 GB of weights against 100 GB + 12 GB
 
     def test_default_is_ud_q4_k_xl_where_it_fits(self):
         """0.1.44 (owner): UD-Q4_K_XL and UD-IQ4_XS are the recommended sizes; the default is UD-Q4_K_XL when the RAM fits
@@ -889,7 +896,7 @@ class Resident(Base):
         """Where the experts fit, two cards are the GGUF models' layer split (no budget question, no #498 note)."""
         code, out, cfg = self.main(["--context", "8192"], n_gpus=2, ram=127.8, answers={"Use these roles?": "y"})     # the recommended roles
         self.assertEqual(code, 0, out)
-        self.assertEqual(cfg["gpu"], [0, 1])
+        self.assertEqual(cfg["gpu"], [1, 0])            # the recommended roles put the Main card first
         self.assertEqual(cfg["layer_split"], "auto")
         self.assertNotIn("--resident-budget-gib", cfg["args"])
         self.assertNotIn("which GPUs?", out)
@@ -931,14 +938,20 @@ class BigFiles(Base):
         self.assertEqual(cfg["model_name"], "qwen3.8-flash-next-unsloth-q8_0")
 
     def test_q8_below_its_ram_is_asked(self):
-        code, out, cfg = self.main(["--context", "8192"], ram=127.8, version="0.1.44", m=Q8,
+        # (127.8 GB of RAM and a 12 GB card hold its 129 GB of weights together: "fits", nothing is asked; 100 GB and the card do not)
+        code, out, cfg = self.main(["--context", "8192"], ram=100.0, version="0.1.44", m=Q8,
                                    answers={"Install it anyway": "n"})
         self.assertEqual(code, 1, out)
-        self.assertIn("Q8_0 needs 136 GB of RAM or more; this PC has 128 GB", out)
+        self.assertIn("Q8_0 needs 136 GB of RAM or more; this PC has 100 GB", out)
         self.assertEqual(self.downloads, [])
-        code, out, cfg = self.main(["--context", "8192"], ram=127.8, version="0.1.44", m=Q8)   # --model + --yes
+        code, out, cfg = self.main(["--context", "8192"], ram=100.0, version="0.1.44", m=Q8)   # --model + --yes
         self.assertEqual(code, 0, out)
-        self.assertEqual(cfg["args"][cfg["args"].index("--resident-budget-gib") + 1], "104")
+        self.assertEqual(cfg["args"][cfg["args"].index("--resident-budget-gib") + 1], "76")
+        self.tmp.cleanup()
+        self.setUp()
+        code, out, cfg = self.main(["--context", "8192"], ram=127.8, version="0.1.44", m=Q8)
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("Q8_0 needs 136 GB of RAM or more", out)
 
     def test_q5_q6_need_the_q6k_engine(self):
         for m in (Q5, Q6):

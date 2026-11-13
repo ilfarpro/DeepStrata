@@ -34,9 +34,10 @@ downloaded twice. Every difference and the rules for keeping them through a sync
 
 ## What our release carries today
 
-Our newest release is **DeepStrata 0.2.12.2** — the Terminal and the engine **0.1.60**, the second release on the
+Our newest release is **DeepStrata 0.2.12.3** — the Terminal and the engine **0.1.60**, the third release on the
 upstream 0.2.12 line. The version is the upstream line we are based on plus our own number, so
-`0.2.12.1`, `0.2.12.2`, then `0.2.13.1` after the next sync ([how we number releases](DIVERGENCE.md#release-numbering-and-tags)).
+`0.2.12.1`, `0.2.12.2`, `0.2.12.3`; the next release, built from this tree, is `0.2.13.1` on upstream 0.2.13
+([how we number releases](DIVERGENCE.md#release-numbering-and-tags)).
 
 | Published by us now | For |
 | --- | --- |
@@ -128,7 +129,7 @@ Not sure what fits? [Choose a model for your computer](docs/MODELS.md#pick-by-me
 ### Linux x86-64 — what our release ships
 
 ```sh
-curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
+curl -fsSL --connect-timeout 15 --max-time 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
 ```
 
 It needs no administrator rights, puts `deepstrata` on your PATH and installs beside Strata, never over it. Then:

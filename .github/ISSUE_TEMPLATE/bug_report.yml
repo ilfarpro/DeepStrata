@@ -65,8 +65,8 @@ body:
     id: version
     attributes:
       label: Strata version
-      description: "In the app: Settings > About. In the Terminal: `strata --version`. From source: `engine` in `GET /v1/status`, or the git commit."
-      placeholder: "Strata 0.2.12 · engine 0.1.58"
+      description: "In the app: Settings > About. In the Terminal: `deepstrata --version`. From source: `engine` in `GET /v1/status`, or the git commit."
+      placeholder: "DeepStrata 0.2.13 · engine 0.1.61"
     validations:
       required: true
   - type: input

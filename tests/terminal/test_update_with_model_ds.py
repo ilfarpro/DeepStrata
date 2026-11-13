@@ -133,11 +133,16 @@ class DeepSeekWithAModel(Dsv41Engine):
         self.assertEqual(self.starts, [("launch-deepseek", self.old)], "started again, on the engine it had")
         self.assertIn("old engine is unchanged", self.script.asked[1][0])
 
-    @unittest.skipUnless(LINUX, "the stand-in model process is a shell sleep")
+    @unittest.skipUnless(LINUX, "the stand-in model process runs from the engine's own file (a copy of this Python)")
     def test_the_file_a_loaded_model_runs_from_is_never_touched(self):
-        self.old.write_text("#!/bin/sh\n/bin/sleep 300\n", encoding="utf-8")   # (a copy of /bin/sleep may be a coreutils multicall that refuses its new name)
+        # The stand-in is a copy of the Python running the tests, started under the engine's file name: the process's program
+        # is that file, as a loaded model's engine is (dsv41_paths.in_use looks at the program's path).  Not a copy of
+        # /bin/sleep: on Ubuntu 26.04 that is coreutils' multi-call program, which refuses any other program name
+        # ("coreutils: unknown program 'strata-dsv41'") and exits at once.
+        import shutil
+        shutil.copy(os.path.realpath(sys.executable), self.old)
         self.old.chmod(0o755)
-        proc = subprocess.Popen([str(self.old)])
+        proc = subprocess.Popen([str(self.old), "-I", "-S", "-c", "import time; time.sleep(300)"])
         self.addCleanup(lambda: (proc.kill(), proc.wait()))
         time.sleep(0.3)
         before = self.old.read_bytes()

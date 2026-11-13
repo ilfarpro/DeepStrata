@@ -1,6 +1,6 @@
 # Strata guides
 
-**New here? Start with [Install Strata](INSTALL.md).** Install the Terminal with one line, or download its archive for your system (Windows, Linux or Mac); it carries the browser page, which `deepstrata ui` opens. It uses released engine packages. This documentation is for version 0.2.12.2.
+**New here? Start with [Install Strata](INSTALL.md).** Install the Terminal with one line, or download its archive for your system (Windows, Linux or Mac); it carries the browser page, which `deepstrata ui` opens. It uses released engine packages. This documentation is for version 0.2.13.
 
 ## Use Strata
 
@@ -9,6 +9,7 @@
 | Install or update | [Terminal and browser page](INSTALL.md) |
 | Choose a model and check memory | [Models and quantizations](MODELS.md) |
 | Run DeepSeek V4.1-Flash (app and Terminal) | [DeepSeek V4.1-Flash](MODELS.md#deepseek-v41-flash) |
+| See which model runs on which hardware | [Model and hardware table](CAPABILITIES.md) |
 | Start from the command line | [Terminal launch](TERMINAL_LAUNCH.md) |
 | Connect a coding tool | [Tool connections](TERMINAL_LAUNCH.md#connect-your-apps-deepstrata-connect) |
 | Fix an install or startup problem | [Troubleshooting](TROUBLESHOOTING.md) |

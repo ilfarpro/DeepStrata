@@ -54,5 +54,5 @@ test('item 8: "Strata" in Settings is the app\'s version; Strata Control\'s 0.1.
 
 test('the host’s own package says the app version the page reports', async () => {
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version;
-  assert.equal(pkg, '0.2.12');
+  assert.equal(pkg, '0.2.13');
 });

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Version 0.2.12, engine 0.1.60. The public model families are DeepSeekV4.1-Flash-1017,
+Version 0.2.13, engine 0.1.61. The public model families are DeepSeekV4.1-Flash-1017,
 Qwen3.8-Flash-Next and Qwen3.6-35B-A3B. DeepSeek V4.1-Flash runs in the app and in the Terminal
 (`deepstrata launch --family deepseek41 --model ist-das-2.00bpw`; sets in
 [docs/MODELS.md](docs/MODELS.md#deepseek-v41-flash)). Read **[docs/AI_REFERENCE.md](docs/AI_REFERENCE.md)** for model availability, APIs, hardware limits and
@@ -33,8 +33,8 @@ page); `deepstrata ui` opens it. For an agent that has a shell, the short versio
 1. Install the Terminal. It needs no administrator rights.
 
    ```sh
-   curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh                  # Linux, Mac
-   irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex                         # Windows PowerShell
+   curl -fsSL --connect-timeout 15 --max-time 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh                  # Linux, Mac
+   irm -TimeoutSec 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex                         # Windows PowerShell
    ```
 
    On Windows, open a new terminal afterwards so that `deepstrata` is on the PATH.

@@ -1,6 +1,6 @@
 # Set up Strata for a user
 
-Use this guide when a user asks an AI agent to install Strata (version 0.2.12.2). There is one release route: the Terminal.
+Use this guide when a user asks an AI agent to install Strata (version 0.2.13). There is one release route: the Terminal.
 Do not start from a source checkout.
 
 - **The Terminal and `deepstrata launch`** (below). This is the route for an agent that has a shell, and the way every
@@ -19,9 +19,9 @@ Model availability, provider preference and API details are in [AI_REFERENCE.md]
 - Check OS, CPU architecture, graphics cards, driver, available RAM/VRAM and free disk space.
 - Use the [hardware guides](INSTALL.md#what-you-need). Linux and Windows packages are x86-64; Mac packages are
   Apple Silicon and need macOS 15 or newer. Older GPUs, Intel Arc and low-memory machines have specific limits.
-- Model support is separate from hardware support. Qwen3.6 currently uses CUDA or HIP; it is not a Metal/SYCL model.
-  DeepSeekV4.1-Flash-1017 (`--family deepseek41`) runs in the app and in the Terminal, on NVIDIA RTX 30, 40 and 50
-  (Windows and Linux) and on the AMD Radeon AI PRO R9700 under Linux. It has three sets: 1.75 bpw (239 GB of disk),
+- Model support is separate from hardware support. <!-- cap:summary:qwen36 -->Qwen3.6-35B-A3B runs in the desktop app and in the Terminal. Hardware: NVIDIA on Windows; NVIDIA on Linux; AMD on Windows; AMD on Linux. Package present but not tested: NVIDIA DGX Spark. Does not run on: Intel Arc on Linux, Apple silicon. Per-hardware limits and measurements: [CAPABILITIES.md](CAPABILITIES.md#qwen36).<!-- /cap -->
+  <!-- cap:summary:deepseek41 -->DeepSeekV4.1-Flash-1017 runs in the desktop app and in the Terminal. Hardware: NVIDIA on Windows (RTX 30, 40 and 50); NVIDIA on Linux (RTX 30, 40 and 50); NVIDIA DGX Spark (GB10); AMD on Windows (Ryzen AI Max / Strix Halo, gfx1151); AMD on Linux (Radeon AI PRO R9700); Apple silicon (64 GB or more, macOS 15 or newer). Does not run on: Intel Arc on Linux. Per-hardware limits and measurements: [CAPABILITIES.md](CAPABILITIES.md#deepseek41).<!-- /cap -->
+  DeepSeekV4.1-Flash-1017 (`--family deepseek41`) has three sets: 1.75 bpw (239 GB of disk),
   2.00 bpw (257 GB) and 2.25 bpw (274 GB), and for a 12 GB card it needs 46 to 64 GB of RAM. The context is 8K.
   `--speed faster|full` (or `--full-quality`) chooses how many experts it uses per word; Faster is the default on a
   PC with 16 GB of graphics memory or less. Print the plan first:
@@ -41,13 +41,13 @@ installs into the user's home folder. The engine and model are acquired during l
 **Linux / Mac:**
 
 ```sh
-curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
+curl -fsSL --connect-timeout 15 --max-time 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
 ```
 
 **Windows PowerShell:**
 
 ```powershell
-irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
+irm -TimeoutSec 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
 ```
 
 Open a new terminal on Windows. On Linux and Mac, use the full executable path printed by the installer if

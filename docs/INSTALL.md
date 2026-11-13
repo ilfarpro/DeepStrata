@@ -1,6 +1,6 @@
 # Install Strata
 
-This page is for anyone installing or updating Strata (version 0.2.12.2). Use the **chat page in your browser** for a
+This page is for anyone installing or updating Strata (version 0.2.13). Use the **chat page in your browser** for a
 graphical interface, or the **Terminal** for `deepstrata launch` and coding tools. Both come from one download: the
 Terminal archive carries the page too. A normal install does not need a source checkout or a startup `.bat` file.
 
@@ -64,13 +64,13 @@ Install once, then use `deepstrata launch`. The Terminal includes Python and dow
 **Linux / Mac**
 
 ```sh
-curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
+curl -fsSL --connect-timeout 15 --max-time 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
 ```
 
 **Windows PowerShell**
 
 ```powershell
-irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
+irm -TimeoutSec 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
 ```
 
 On Windows, open a **new terminal** afterwards. On Linux and Mac, if `deepstrata` is not found, use the full path printed

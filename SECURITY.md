@@ -75,8 +75,8 @@ This is what the other two add.
 The Terminal installs with one line:
 
 ```sh
-curl -fsSL https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
-irm https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
+curl -fsSL --connect-timeout 15 --max-time 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh -o install.sh && sh install.sh
+irm -TimeoutSec 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.ps1 | iex
 ```
 
 Piping a script into a shell runs whatever the server sends, so it deserves the same care as running any downloaded program.
@@ -89,7 +89,7 @@ that archive, so for the first install all trust rests on HTTPS and on the `ilfa
 damaged or half-finished download and a feed that was not signed by the release key; they do not protect you if the release has been replaced
 by someone who controls it. Later updates are checked against the key already on your PC, which is a stronger position.
 
-If that is not enough: save the script (`curl -fsSLO https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh`), read it, and
+If that is not enough: save the script (`curl -fsSLO --connect-timeout 15 --max-time 120 https://github.com/ilfarpro/DeepStrata/releases/latest/download/install.sh`), read it, and
 run it from the file; or build from source instead and check the code you build.
 
 Strata has not had an outside security audit yet.

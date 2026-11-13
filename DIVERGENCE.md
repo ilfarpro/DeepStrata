@@ -38,14 +38,20 @@ Rules that keep the merges mechanical:
 - After every sync: update the "Last synced" line below, add or fix an entry
   if the merge changed a divergence zone, and run the tests named there.
 
-**Last synced:** `strata/main` at `146df3c4` (upstream 0.2.12 line), 2026-11-08.
-Our `main` ahead by 38 commits.
+**Last synced:** `strata/main` at `13eedf55` (upstream 0.2.13 line), 2026-11-13.
+Our `main` was ahead by 115 commits, upstream by 379 (both counted from `146df3c4`).
+The sync accepted upstream's `history/` archive (the April-October 2026 work it moved there) and dropped our own copy of
+those pages (`apps/host/docs/archive/`): one archive, in the place upstream keeps it.
+Upstream's four CI workflows (`backends`, `check`, `docs`, `snapshot`) are not taken: this fork runs its own set
+(`python-tests`, `app-host-tests`, `repo-hygiene`, `docker-images`, `metal-build`, …) and `check.yml` would run the same
+suites a second time. `git checkout 13eedf55 -- .github/workflows/docs.yml` brings one back when we decide to adopt it;
+pushing a workflow file needs a credential with the `workflow` scope.
 
 ## Release numbering and tags
 
 Our release version is the upstream line we are based on plus our own number: the first
-DeepStrata release on upstream 0.2.12 is `0.2.12.1`, the next one on the same line is
-`0.2.12.2`; after a sync to upstream 0.2.13 the next release is `0.2.13.1`. The release
+DeepStrata release on upstream 0.2.12 was `0.2.12.1`, the last one on that line `0.2.12.3`; after the sync to
+upstream 0.2.13 the next release is `0.2.13.1`. The release
 version is the tag, the GitHub release name and title, and the file names of the files we
 rebuild for that release.
 
@@ -53,15 +59,15 @@ The components keep their own numbers, where they live today (pinned by
 `tests/terminal/test_tui2_023_versions.py`):
 
 - the page and the Terminal carry a three-number version (`apps/host/package.json` and `strata_cli.PRODUCT_VERSION`,
-  today 0.2.12): npm takes semver only, and version keys order a bare number — a prerelease suffix does not order
+  today 0.2.13): npm takes semver only, and version keys order a bare number — a prerelease suffix does not order
   (`app_version_key` treats any suffix as merely "below the bare number"), so four numbers there would offer the same
   update forever. A rebuilt page inside one line is rare (the page is upstream code); when it happens the page takes the next
-  third number and the release notes say which line it is from. Up to 0.2.12 the same number also lived in
+  third number and the release notes say which line it is from. Up to the 0.2.13 sync the same number also lived in
   `apps/desktop/src-tauri/Cargo.toml`, where the desktop app's updater compared it against the feed's `app.version`.
-- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.60 …)`
+- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.61 …)`
   today), and a four-number hotfix of those is what `version_key` reads natively.
 
-Tags: a release is tagged `ds-<version>` (`ds-0.2.12.1`); syncs stay `sync-<version>`. The
+Tags: a release is tagged `ds-<version>` (`ds-0.2.13.1`); syncs stay `sync-<version>`. The
 `ds-` prefix is not decoration: a sync fetches upstream tags into the same clone, and upstream
 hotfixes its releases with a fourth number too (`v0.2.7.1` and friends), so a plain `v` tag of
 ours will meet the same name there one day — a shared tag name would break the sync with

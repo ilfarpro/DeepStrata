@@ -2,7 +2,7 @@
 
 This page is for developers who build the Terminal archive and the engine packages. The chat page ships inside the
 Terminal archive: same download, `deepstrata ui` opens it. To install Strata, use [docs/INSTALL.md](../docs/INSTALL.md).
-It describes the current release (Terminal 0.2.5, Control and engines 0.1.50).
+It describes the current release (Terminal 0.2.13, Control and engines 0.1.61).
 How packages are signed and published is in [UPDATES.md](UPDATES.md), and the package format is in [ENGINE-COMPONENT.md](ENGINE-COMPONENT.md).
 
 Release assets show what was published; the platform guides and retained reports show what was tested. A published package does not
@@ -126,7 +126,7 @@ The Terminal bundles a private Python and its dependencies for `windows-x86_64`,
 1. The host serves the page from its own origin, and a browser tab works end to end (`deepstrata ui` from an extracted archive).
 2. The owner transport works: one owner per installation, a second client attaches, a stale owner can be recovered, and no client can stop a process it does not own.
 3. Real inference on a supported pack, with the engine build hash and the model hashes recorded.
-4. `docs/work/QUALIFICATION-KIT.md` run end to end, with raw evidence kept.
+4. A qualification run on that platform, with raw evidence kept. The Mac-first run in October 2026 is the earlier example: [history/docs/work/QUALIFICATION-KIT.md](../history/docs/work/QUALIFICATION-KIT.md).
 
 ## Release checks and gaps
 

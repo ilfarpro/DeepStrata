@@ -23,7 +23,7 @@ quarantined at all. When the fork holds its own certificate, set `SIGN_ID` and `
 ## What to type (once per build)
 
 1. Put these on the Mac in one folder: `sign-and-notarize.sh`, `entitlements-node.plist` (they must stay together), and the file(s) to sign,
-   for example `strata-terminal-0.2.12-darwin-arm64.tar.gz`.
+   for example `strata-terminal-0.2.13-darwin-arm64.tar.gz`.
 2. Open Terminal and go to that folder:  `cd ~/Downloads/sign`
 3. Check the two things the script needs (both should answer without an error):
 
@@ -32,7 +32,7 @@ quarantined at all. When the fork holds its own certificate, set `SIGN_ID` and `
 
 4. Run it (the Terminal archive and any engine packages together; either part can be left out):
 
-       bash sign-and-notarize.sh --terminal strata-terminal-0.2.12-darwin-arm64.tar.gz --engine strata-engine-0.1.60-macos-arm64-metal-folder.tar.gz
+       bash sign-and-notarize.sh --terminal strata-terminal-0.2.13-darwin-arm64.tar.gz --engine strata-engine-0.1.61-macos-arm64-metal-folder.tar.gz
 
    macOS may ask once whether `codesign` may use the key in your Keychain: type your Mac login password and choose "Always Allow".
    Then wait: Apple's check takes a few minutes per file (up to about 15 minutes each; the script waits and prints when it is done).

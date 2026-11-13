@@ -1,6 +1,6 @@
 # Strata reference for AI tools and automated readers
 
-Last reviewed: 25 October 2026 against the 0.2.5 release tree (app and Terminal 0.2.5; Control and engines 0.1.50).
+Last reviewed: 7 November 2026 against the 0.2.13 release tree (app and Terminal 0.2.13; Control and engines 0.1.61).
 App, Control and engine versions differ; use the release notes and the installed component information. This page
 holds the technical context behind the short [README](../README.md). Use [AI_SETUP.md](AI_SETUP.md) to install Strata for a user,
 [AGENTS.md](../AGENTS.md) for repository work, and [MEDIA_KIT.md](MEDIA_KIT.md) for articles or videos.
@@ -80,7 +80,7 @@ does not imply that every model or feature works on it.
 | NVIDIA RTX / CUDA | [INSTALL.md](INSTALL.md#what-you-need) |
 | AMD Radeon / HIP | [AMD_HIP.md](AMD_HIP.md); RX 6000 validation differs from newer cards |
 | Intel Arc / SYCL | [INTEL_ARC.md](INTEL_ARC.md); released Linux SYCL engine (Ubuntu 24.04 or newer), with model preparation and per-card limits. [INTEL.md](INTEL.md) records source-port details |
-| Apple Silicon / Metal | [MAC.md](MAC.md); no DeepSeek yet |
+| Apple Silicon / Metal | [MAC.md](MAC.md). DeepSeek V4.1-Flash <!-- cap:cell:deepseek41:mac -->runs (64 GB or more, macOS 15 or newer)<!-- /cap --> |
 | AMD Ryzen AI Max / Strix Halo | [STRIX_HALO.md](STRIX_HALO.md) |
 | Multiple GPUs and older hardware | [MULTI_GPU.md](MULTI_GPU.md), [OLDER_GPUS.md](OLDER_GPUS.md) |
 

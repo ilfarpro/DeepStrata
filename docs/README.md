@@ -35,6 +35,7 @@ Use the guide for your GPU and operating system. Model and feature support can d
 - [Build or run from a source checkout](SOURCE_INSTALL.md)
 - [Docker](DOCKER.md)
 - [Contribution rules](../CONTRIBUTING.md)
+- [Our roadmap for Unsloth's five held-out DeepSeek sets](roadmap/unsloth-sets/README.md) (what is still open)
 - [Community benchmarks](COMMUNITY_BENCHMARKS.md) and the [standard benchmark protocol](BENCHMARK_PROTOCOL.md)
 - [Release notes](releases/README.md)
 - [How the engine works](HOW_IT_WORKS.md), [technical reference](DETAILS.md) and [Terminal reference](TERMINAL.md)

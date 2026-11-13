@@ -26,7 +26,8 @@
 come from that project; we run them under our own name and install beside the original. Own folders, own ports, own
 update feed, and the command `deepstrata`. Model files are shared on purpose: a model you already have is never
 downloaded twice. Every difference and the rules for keeping them through a sync are in
-[DIVERGENCE.md](DIVERGENCE.md); our own work is tracked in [roadmap/](roadmap).
+[DIVERGENCE.md](DIVERGENCE.md); our own plan and the items still open on it are in
+[docs/roadmap/](docs/roadmap).
 
 **Free, open source, and yours to run.** No account needed.
 

@@ -1,5 +1,10 @@
 # [Engine] Read the n-gram table in Q5_K (opens Unsloth's UD-IQ2_XXS set)
 
+> **Historical design note (2026-11-07).** What it asks for shipped in engine 0.1.59 (release
+> 0.2.12.1): the Engram reader takes Q5_K as `fmt = 4`, its decoder is `src/dsv41/ds4_q5k.cuh`, and
+> the set is on the version list. The code quotes and line numbers below describe the tree of that
+> day. What is still open for the set is in [README.md](README.md).
+
 ## The problem and the result we want
 
 Unsloth ships this model's 2-bit sets, UD-IQ2_XXS (300.5 GB) and UD-Q2_K_XL (334.8 GB), with the

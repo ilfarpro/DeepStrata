@@ -6,7 +6,7 @@ rules for merging the original in without losing our work. Read it before a
 sync merge, and update it in the same merge that changes a divergence.
 
 The fork works in fork mode: no pull requests or issues to the original
-repository. Our own plan lives here, in `roadmap/`.
+repository. Our own plan lives here, in `docs/roadmap/`.
 
 ## Remotes and sync mechanics
 
@@ -134,14 +134,17 @@ in `strata --help` is unchanged. Tests: `tests/terminal/test_flow2_022.py`.
 - Tests: `tests/tools/test_setup_udq4.py`, `tests/tools/test_setup_dsv41.py`,
   `tests/terminal/test_launch_dsv41.py`.
 
-### 6. `roadmap/unsloth-sets/` — our own track (new, ours only)
+### 6. `docs/roadmap/unsloth-sets/` — our own track (new, ours only)
 
-The plan for the five held-out Unsloth sets in fork mode: README (phases end at
-our decision, not a maintainer's), `task-a-q5k-engram.md` and
-`task-b-mxfp4-down.md` (the two engine specs), the live-Hub pins with SHA-256
-and HEAD-check logs, `catalog-prep-iq3.patch`, the layer-composition scans.
-Upstream has nothing here — conflicts are impossible, but keep the pins honest
-(re-check before acting on them).
+The record of Unsloth's five held-out DeepSeek sets and what is still open for
+them: README (the open-items list; both engine changes it planned shipped in
+0.2.12.1 and 0.2.12.2), `task-a-q5k-engram.md` and `task-b-mxfp4-down.md` (the
+two design notes, kept as written), the live-Hub pins with SHA-256 and
+HEAD-check logs, and the layer-composition scans the notes quote. Upstream has
+nothing here — conflicts are impossible, but keep the pins honest (re-check
+before acting on them). These files sit under `docs/`, so the doc scan in
+`tests/terminal/test_fork_identity.py` covers them too: commands name
+`deepstrata`, and addresses name our repository.
 
 ### 7. Telemetry: per-card PCIe fields, temp history, power cap
 
@@ -273,7 +276,7 @@ The `README.md` rewrite of 2026-11-09:
 - The page says **DeepStrata**: the brand mark plus the word as text (the
   upstream wordmark SVG spells "Strata" as outlines — we do not fake a
   re-typeset one), a line on what the fork is, and links to this file and
-  `roadmap/`.
+  `docs/roadmap/`.
 - **Install claims follow our release folder, not the product's reach.** The
   page prints the `install.sh` one-liner (Linux x86-64 — the Terminal and the
   DeepSeek CUDA-13 engine are what our feed publishes today) and names what we

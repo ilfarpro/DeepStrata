@@ -1,5 +1,11 @@
 # [Engine] Let a low-bit layer keep an MXFP4 down matrix (opens Unsloth's four 3-bit sets)
 
+> **Historical design note (2026-11-07).** The decision fell on "support", and it shipped in engine
+> 0.1.60 (release 0.2.12.2) as `gg::expert_shape_ok`: a layer may keep an MXFP4 `down` beside gate
+> and up of one low-bit type, and every other mix is still refused. The code quotes and line
+> numbers below describe the tree of that day. What is still open for the sets is in
+> [README.md](README.md).
+
 ## The problem and the result we want
 
 Unsloth's 3-bit Dynamic sets keep DeepSeek's MXFP4 for the most sensitive expert layers and drop

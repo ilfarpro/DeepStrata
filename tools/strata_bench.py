@@ -21,8 +21,11 @@ token and latency are measured by this client.  Thinking is off for the suite (-
 short and the runs comparable.  The default run takes about 3-10 minutes after the model has loaded (the slower the card, the longer).
 
 The result goes to bench/results/<date>-community-<gpu>-<model>/ : README.md in the format of
-docs/COMMUNITY_BENCHMARKS.md, results.json (every request) and an engine log excerpt.  Home folders, user and host names,
-IP addresses and API keys are replaced by placeholders before anything is written; read it once before you share it.
+docs/COMMUNITY_BENCHMARKS.md, results.json (every request) and an engine log excerpt.  The report names the pack the server
+serves (`/props.model_path`, its last part only; `machine.pack` in results.json), because the API's model name alone does not
+say which quantization was measured: a DeepSeek server answers with the family only ("deepseek-v4.1-flash"), and the pack is
+what tells UD-IQ2_XXS from UD-Q2_K_XL.  Home folders, user and host names, IP addresses and API keys are replaced by
+placeholders before anything is written; read it once before you share it.
 `--compare <older results folder>` prints the two side by side.  Standard library only.
 This is the quick speed check, not the standard benchmark: `strata bench run` follows docs/BENCHMARK_PROTOCOL.md (fixed prompts, thinking on,
 the model card sampling, twelve sanity checks) and writes results other people can compare with.
@@ -643,6 +646,22 @@ def detect_quant(view: dict) -> str | None:
     return None
 
 
+def served_pack(props: dict, engine: dict | None) -> str | None:
+    """The pack (or model file) the server says it serves, as a bare name: `/props.model_path` first, then the engine's own
+    report.  Only the last part of that path goes into a report, as everywhere else here; the server's "pack/full" placeholder
+    is not a pack, and an empty answer stays None."""
+    for path in (props.get("model_path"), (engine or {}).get("model_path")):
+        if not isinstance(path, str) or not path.strip():
+            continue
+        clean = path.strip().replace("\\", "/").rstrip("/")
+        if clean == "pack/full" or clean.endswith("/pack/full"):
+            continue
+        name = clean.rsplit("/", 1)[-1].strip()
+        if name:
+            return name
+    return None
+
+
 def project_version() -> str | None:
     try:
         # UTF-8 as setup.py reads it, whatever the locale's code page (#2792)
@@ -719,6 +738,9 @@ def collect_machine(base: str, key: str, cfg: dict | None, gpu_arg: str | None =
     for d in models.get("data") or []:
         n_ctx = (d.get("meta") or {}).get("n_ctx") or n_ctx
     n_ctx = n_ctx or (props.get("default_generation_settings") or {}).get("n_ctx")
+    # which quantization ran: the config's pack when the benchmark started the server, else the pack the server itself reports
+    pack = served_pack(props, eng)
+    quant = (detect_quant(view) if view else None) or (detect_quant({"args": [pack]}) if pack else None)
     return {
         "gpu": gpu_names, "gpu_vram_mib": vram_mib, "gpu_driver": (used[0].get("driver") if used else local.get("rocm_driver")),
         "gpu_detail": [{k: v for k, v in g.items() if k not in ("name", "vram_mib", "driver")} for g in used] or None,
@@ -730,8 +752,9 @@ def collect_machine(base: str, key: str, cfg: dict | None, gpu_arg: str | None =
         "python": platform.python_version(),
         "strata_version": project_version(), "strata_commit": git_commit(),
         "engine_version": (eng.get("version") or status.get("engine") or str(props.get("build_info", "")).replace("Strata ", "") or None),
-        "model": view.get("model_name") or status.get("model") or props.get("model_alias"),
-        "quant": detect_quant(view) if view else None,
+        "model": view.get("model_name") or status.get("model") or props.get("model_alias") or pack,
+        "quant": quant,
+        "pack": pack,
         "context": n_ctx or eng.get("max_context"), "parallel_slots": props.get("total_slots"),
         "config": view, "launch": launch_line(view) if view else None,
         "engine_info": {k: v for k, v in eng.items() if isinstance(v, (str, int, float, bool, dict)) and k not in ("model_path",)},
@@ -856,8 +879,19 @@ def gpu_slug(machine: dict) -> str:
 
 
 def model_label(machine: dict) -> str:
-    model, q = machine.get("model") or "model", machine.get("quant")
-    return model if not q or slug(q) in slug(model, 200) else f"{model}-{q}"
+    """The name a report and its folder carry: the model with its quantization, or - when the API names no quantization and
+    the pack does - the pack's own name, so two sets of one family do not share a folder."""
+    model, q = machine.get("model") or "", machine.get("quant")
+    pack = machine.get("pack") or ""
+    if pack.lower().endswith((".gguf", ".bin")):
+        pack = ""                                              # a model file's name, not a set
+    if not model:
+        return q or pack or "model"
+    if q:
+        return model if slug(q) in slug(model, 200) else f"{model}-{q}"
+    if pack and slug(pack) != slug(model, 200) and slug(model, 200) in slug(pack, 200):
+        return pack                                            # the pack says the set the model name alone does not
+    return model
 
 
 def results_dir_name(machine: dict, date: str) -> str:
@@ -900,8 +934,11 @@ def render_readme(res: dict) -> str:
     mc, out, p = res["machine"], res["results"], res["params"]
     gpu = " + ".join(mc.get("gpu") or []) or "CPU only"
     vram = f"{mc['gpu_vram_mib'] / 1024:.0f} GiB VRAM" if mc.get("gpu_vram_mib") else "VRAM not read"
-    model = (model_label(mc) if mc.get("model") else mc.get("quant")) or "model not read"
-    L = [f"# Community benchmark on {gpu}", "",
+    named = mc.get("model") or mc.get("quant") or mc.get("pack")
+    model = model_label(mc) if named else "model not read"
+    pack = mc.get("pack") or ""
+    served = f" (served from `{pack}`)" if pack and pack != model else ""   # the label may already be the pack's own name
+    L = [(f"# Community benchmark: {model} on {gpu}" if named else f"# Community benchmark on {gpu}"), "",
          f"Measured on {res['date']} with `tools/strata_bench.py` (suite {SCHEMA}, {p['runs']} runs per test, medians with ranges). "
          f"Speeds are the engine's own timings; first-token times are measured by the client over HTTP. Speed only: no "
          f"correctness check was run.", "",
@@ -919,7 +956,7 @@ def render_readme(res: dict) -> str:
             L.append("- GPU detail (after the run, near idle): " + ", ".join(f"{k}={v}" for k, v in g.items() if v is not None))
     L += ["- Background workloads: not recorded (GPU power limit/draw read above)", "",
          "## Model and configuration", "",
-         f"- Model and quantization: {model}",
+         f"- Model and quantization: {model}{served}",
          f"- Context: {mc.get('context') or 'not read'} tokens; parallel slots: {mc.get('parallel_slots') or 1}",
          f"- Settings: the install's own configuration, unchanged{' (' + mc['config']['backend'] + ' backend)' if mc.get('config', {}).get('backend') else ''}; thinking "
          f"{'on' if p['think'] else 'off'} for the suite; temperature 0", ""]
@@ -982,7 +1019,7 @@ def compare_table(old: dict, new: dict) -> str:
         rows.append(f"{k:32s} {('-' if x is None else format(x, '.2f')):>12s} {('-' if y is None else format(y, '.2f')):>12s} {ch:>9s}")
     ho, hn = old["machine"], new["machine"]
     notes = [f"  {n}: {ho.get(f)} -> {hn.get(f)}" for n, f in (("GPU", "gpu"), ("engine", "engine_version"), ("model", "model"), ("quant", "quant"),
-                                                              ("context", "context")) if ho.get(f) != hn.get(f)]
+                                                              ("pack", "pack"), ("context", "context")) if ho.get(f) != hn.get(f)]
     return "\n".join(rows + (["", "differences:"] + notes if notes else []))
 
 
@@ -1110,6 +1147,8 @@ def main(argv=None) -> int:
                                                 "--think" if a.think else "", f"--runs {a.runs}" if a.runs != 3 else "") if x)},
                "elapsed_s": time.time() - t0, "machine": machine, "results": out}
         parent = Path(a.out) if a.out else ROOT / "bench" / "results"
+        if machine.get("pack"):
+            say(f"Served: {model_label(machine)} (the pack {machine['pack']})")
         d = write_results(res, parent, red, log_excerpt(log_path) if log_path else [])
         say("\nResults (median, range over the runs):")
         say(red(short_table(res)))

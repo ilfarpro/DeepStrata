@@ -28,9 +28,10 @@ class FakeStrata(ThreadingHTTPServer):
     previous prompt (4 characters = 1 token)."""
     daemon_threads = True
 
-    def __init__(self, ctx=32768, fail_after=None):
+    def __init__(self, ctx=32768, fail_after=None, pack_path=None):
         super().__init__(("127.0.0.1", 0), Handler)
         self.ctx, self.prev, self.requests, self.fail_after = ctx, "", 0, fail_after
+        self.pack_path = pack_path                      # what /props.model_path answers: which pack the server serves
         self.lock = threading.Lock()
         threading.Thread(target=self.serve_forever, daemon=True).start()
 
@@ -62,7 +63,10 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/v1/models":
             self.send_json({"object": "list", "data": [{"id": "fake", "meta": {"n_ctx": s.ctx}}]})
         elif self.path == "/props":
-            self.send_json({"total_slots": 4, "model_alias": "fake-model", "build_info": "Strata 9.9.9"})
+            props = {"total_slots": 4, "model_alias": "fake-model", "build_info": "Strata 9.9.9"}
+            if s.pack_path:
+                props["model_path"] = s.pack_path
+            self.send_json(props)
         elif self.path == "/v1/status":
             self.send_json({"machine": {"gpu": {"name": "NVIDIA GeForce RTX 9999", "total_mib": 12288}, "ram": {"total_gib": 64.0}},
                             "engine": "9.9.9", "vram": {"free_mib": 1000}})
@@ -251,7 +255,7 @@ class ReportTests(unittest.TestCase):
             name = dirs[0].name
             self.assertRegex(name, r"^\d{4}-\d\d-\d\d-community-rtx-9999")
             readme = (dirs[0] / "README.md").read_text(encoding="utf-8")
-            for part in ("# Community benchmark on NVIDIA GeForce RTX 9999", "## Hardware and software", "## Model and configuration",
+            for part in ("# Community benchmark: fake-model on NVIDIA GeForce RTX 9999", "## Hardware and software", "## Model and configuration",
                          "## Method", "## Results", "## Correctness and limitations", "### Agent session", "### Concurrency: 2 clients",
                          "| Configuration | Actual prompt tokens | Reused tokens |"):
                 self.assertIn(part, readme)
@@ -260,10 +264,43 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(raw["machine"]["engine_version"], "9.9.9")
             self.assertEqual(raw["results"]["chat"]["decode_tps"]["median"], 60.0)
             blob = readme + json.dumps(raw)
-            self.assertNotIn("Someone", blob)                    # the engine's model_path never reaches the report
+            self.assertNotIn("Someone", blob)                    # a model_path is cut to its name, never a path
             # a second run the same day does not overwrite the first
             self.assertEqual(self.run_main(srv, d), 0)
             self.assertEqual(len(list(Path(d).iterdir())), 2)
+
+    def test_the_pack_the_server_serves_is_named(self):
+        srv = FakeStrata(pack_path="/mnt/big/strata/packs/fake-model-ud-q2_k_xl")
+        self.addCleanup(srv.stop)
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(self.run_main(srv, d), 0)
+            folder = next(Path(d).iterdir())
+            self.assertIn("ud-q2-k-xl", folder.name)                  # the folder says which set ran
+            raw = json.loads((folder / "results.json").read_text(encoding="utf-8"))
+            self.assertEqual(raw["machine"]["pack"], "fake-model-ud-q2_k_xl")
+            self.assertEqual(raw["machine"]["quant"], "UD-Q2_K_XL")
+            readme = (folder / "README.md").read_text(encoding="utf-8")
+            self.assertIn("served from `fake-model-ud-q2_k_xl`", readme)
+            self.assertNotIn("/mnt/big/strata/packs", readme + json.dumps(raw))   # the name is kept, the path is not
+
+    def test_the_pack_comes_from_props_then_from_the_engine(self):
+        self.assertEqual(B.served_pack({"model_path": "/mnt/x/packs/deepseek-v4.1-flash-ud-iq2_xxs"}, {}),
+                         "deepseek-v4.1-flash-ud-iq2_xxs")
+        self.assertEqual(B.served_pack({}, {"model_path": r"C:\m\packs\unsloth-ud-q4_k_xl"}), "unsloth-ud-q4_k_xl")
+        self.assertIsNone(B.served_pack({"model_path": "pack/full"}, {}))
+        self.assertIsNone(B.served_pack({"model_path": "/a/b/pack/full/"}, {}))
+        self.assertIsNone(B.served_pack({}, {}))
+
+    def test_a_pack_the_api_does_not_name_carries_the_set(self):
+        # a DeepSeek server answers with the family only: the quant and the label come from the pack
+        m = {"model": "deepseek-v4.1-flash", "quant": "UD-IQ2_XXS", "pack": "deepseek-v4.1-flash-ud-iq2_xxs"}
+        self.assertEqual(B.detect_quant({"args": [m["pack"]]}), "UD-IQ2_XXS")
+        self.assertEqual(B.model_label(m), "deepseek-v4.1-flash-UD-IQ2_XXS")
+        # no quant in the name at all (an ISTA set): the pack itself is the label, so two sets keep two folders
+        m = {"model": "deepseek-v4.1-flash", "quant": None, "pack": "deepseek-v4.1-flash-ist-das-2.00bpw"}
+        self.assertIsNone(B.detect_quant({"args": [m["pack"]]}))
+        self.assertEqual(B.model_label(m), "deepseek-v4.1-flash-ist-das-2.00bpw")
+        self.assertEqual(B.model_label({"model": "M", "quant": None, "pack": "m.gguf"}), "M")
 
     def test_compare(self):
         srv = FakeStrata()

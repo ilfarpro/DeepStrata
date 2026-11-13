@@ -17,7 +17,7 @@ Measured on 2026-11-13 with `tools/strata_bench.py` (suite 1, 3 runs per test, m
 - Context: 131072 tokens; parallel slots: 1
 - Settings: the install's own configuration, unchanged; thinking off for the suite; temperature 0
 - Experts in VRAM at load: 1358 slots of 15 360 (677 on the 4080 SUPER, 681 on the 5060 Ti); the other 14 002 (174.1 GB) were copied into RAM at load, 182 s; engine 0.1.60
-- Why the set is named here: the server reports only the family name (`deepseek-v4.1-flash`), so the benchmark tool could not record which set it measured. The set, the cards and the expert counts were attached by hand from the launcher's engine start line for this run (2026-11-13 16:27:56, pack `deepseek-v4.1-flash-ud-q2_k_xl`, `--tp 2`).
+- Why the set is named here: the server reports only the family name (`deepseek-v4.1-flash`), so the benchmark tool of that day could not record which set it measured. The set, the cards and the expert counts were attached by hand from the launcher's engine start line for this run (2026-11-13 16:27:56, pack `deepseek-v4.1-flash-ud-q2_k_xl`, `--tp 2`).
 
 ## Method
 

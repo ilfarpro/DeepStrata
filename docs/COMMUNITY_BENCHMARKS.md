@@ -120,8 +120,8 @@ Close other programs first: a browser or a game changes the numbers.
 
 The result goes to `bench/results/<date>-community-<gpu>-<model>/` (or `--out DIR`):
 
-- `README.md` in the format below, with the GPU, VRAM, CPU, RAM, OS, driver, Strata and engine versions, model and
-  quantization, context and your settings filled in from the machine and the server
+- `README.md` in the format below, with the GPU, VRAM, CPU, RAM, OS, driver, Strata and engine versions, model,
+  quantization and the pack the server serves, context and your settings filled in from the machine and the server
 - `results.json` with every request (tokens, timings, errors) and the machine facts
 - `engine-log-excerpt.txt` with the engine's start-up lines (when the benchmark started the server)
 
@@ -150,9 +150,11 @@ Include enough information for someone else to repeat your run:
   other workloads when known or relevant.
 - **Software:** OS, Strata commit and engine version, driver and CUDA version
   (or ROCm for HIP), and release binary or source build. Include changed build options.
-- **Model:** exact repository and revision when available, quantization, GGUF
-  filenames, and vision encoder if enabled. Identify custom packs, expert
-  profiles, or draft vocabularies, with hashes or reproducible preparation steps.
+- **Model:** exact repository and revision when available, quantization, the
+  pack the server serves (the benchmark records it as `machine.pack`, the last
+  part of `/props.model_path`), GGUF filenames, and vision encoder if enabled.
+  Identify custom packs, expert profiles, or draft vocabularies, with hashes or
+  reproducible preparation steps.
 - **Settings:** launch command and relevant run configuration, context limit, KV
   type and streaming window, expert cache, low-RAM mode, prefill size, CPU workers,
   MTP, reasoning effort, sampling, and vision. State whether calibration or

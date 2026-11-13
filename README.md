@@ -44,8 +44,9 @@ upstream 0.2.12 line. The version is the upstream line we are based on plus our 
 | The Terminal — `deepstrata`, Control 0.1.60 | Linux x86-64 |
 | The DeepSeek V4.1-Flash engine 0.1.60 (CUDA 13, sm_86 / sm_89 / sm_120) | Linux x86-64 with NVIDIA RTX 30, 40 or 50, driver 580.65 or newer |
 
-**Not in our release folder yet:** `install.ps1` and a Windows Terminal, the macOS and ARM64 Linux Terminal packages,
-the Qwen engine packages (NVIDIA, AMD, Intel, Mac). Our installer
+**The release page carries what we built:** the Terminal and the CUDA 13 engines for Linux x86-64, plus (since
+`0.2.12.3`) the Windows Terminal and its two engines, built on a Windows PC. Not built yet: the Windows parts of the
+current line, the macOS and ARM64 Linux Terminals, and the AMD, Intel and Mac engines. Our installer
 runs everywhere it knows and stops with a plain line naming the package this release does not carry — nothing half
 installed. Until our own packages land on those systems, use a
 [source build](docs/SOURCE_INSTALL.md) or [Docker](docs/DOCKER.md).

@@ -7,12 +7,11 @@ const TITLE_RE = new RegExp('^\\[(' + AREAS.join('|') + ')\\] \\S');
 const NO_ANSWER = /^(_no response_|none|n\/a|na|-|todo|tbd|\.|\?)$/i;
 const NOT_RUN_LABELS = /^\*\*(passed|failed|not run)\s*:?\*\*\s*:?/gim;
 
-// Version the reopened work must be tested on.
-const CURRENT_VERSION_RE = /\b0\.2\.\d+|0\.2\.0-beta/i;
-// Any version or commit.
+// Any version or commit. The reopen checks name "the newest release" in words instead of pinning
+// a version number here: a pinned number (it was 0.2.0-beta) goes stale on the next line.
 const ANY_VERSION_RE = /\bv?\d+\.\d+(\.\d+)*(-[a-z0-9.]+)?\b|\b[0-9a-f]{7,40}\b|\bcommit\b/i;
 const HARDWARE_RE = /\b(rtx|gtx|geforce|quadro|tesla|radeon|rx ?\d|instinct|arc|a\d{3,4}|b\d{2,3}|apple|m[1-5]( pro| max| ultra)?|nvidia|amd|intel|gpu|cpu|vram|\d+ ?gb|ram|windows|linux|ubuntu|debian|fedora|arch|macos|mac os|wsl)\b/i;
-const REVISION_RE = /0\.2\.\d|beta|\bmain\b|\b[0-9a-f]{7,40}\b/i;
+const REVISION_RE = /\bmain\b|\bv?\d+\.\d+(\.\d+)*\b|\b[0-9a-f]{7,40}\b|\bcommit\b/i;
 
 function stripComments(text) {
   return String(text || '').replace(/<!--[\s\S]*?-->/g, '');
@@ -55,13 +54,15 @@ const FORMS = {
     detect: /what happened/i,
     parts: [
       ['Area', /^area$/i, 2],
-      ['Desktop app, Terminal or source?', /desktop app, terminal or source/i, 2],
+      // The heading was "Desktop app, Terminal or source?" before the browser page replaced the desktop app.
+      ['Browser page, Terminal or source?', /(browser page|desktop app), terminal or source/i, 2],
       ['What happened', /what happened/i, 20],
       ['Reproduction status', /reproduction status/i, 2],
-      ['Strata version', /strata version/i, 3],
+      // /strata version/i matches the old "Strata version" heading and the new "DeepStrata version".
+      ['DeepStrata version', /strata version/i, 3],
       ['Graphics card, memory and system', /graphics card|memory and system/i, 3],
     ],
-    needsCurrentVersion: 'Strata version',
+    needsCurrentVersion: 'DeepStrata version',
   },
   feature: {
     detect: /what do you want to do/i,
@@ -110,12 +111,12 @@ function checkIssue({ title, body, labels = [], mode = 'intake' }) {
     }
     if (needCurrent && form.needsCurrentVersion) {
       const s = findSection(sections, /strata version/i);
-      if (s && realText(s.value) && !CURRENT_VERSION_RE.test(s.value)) {
-        missing.push('Re-test on Strata 0.2.0-beta and put that version in "' + form.needsCurrentVersion + '". If it no longer happens, say so in a comment instead.');
+      if (s && realText(s.value) && !ANY_VERSION_RE.test(s.value)) {
+        missing.push('Re-test on the newest release and put that version in "' + form.needsCurrentVersion + '". If it no longer happens, say so in a comment instead.');
       }
     }
-    if (needCurrent && form.needsCurrentVersionInBody && !CURRENT_VERSION_RE.test(text)) {
-      missing.push('Say which Strata version you measured on. Re-measure on 0.2.0-beta if you can.');
+    if (needCurrent && form.needsCurrentVersionInBody && !ANY_VERSION_RE.test(text)) {
+      missing.push('Say which DeepStrata version you measured on. Re-measure on the newest release if you can.');
     }
     return { ok: missing.length === 0, missing, kind: formKey };
   }
@@ -127,8 +128,9 @@ function checkIssue({ title, body, labels = [], mode = 'intake' }) {
     missing.push('Describe it in the issue body: what happened, what you expected, and the exact error if there is one. The issue forms (New issue > Bug report) list what to include.');
   }
   if (!lenient) {
-    if (!ANY_VERSION_RE.test(text)) missing.push('Add the Strata version (Settings > About, or `strata --version`).');
-    else if (needCurrent && !CURRENT_VERSION_RE.test(text)) missing.push('Re-test on Strata 0.2.0-beta and name that version in the issue. If it no longer happens, say so in a comment instead.');
+    // Reopen only asks for a named version or commit: naming "the newest release" in words cannot be
+    // checked against a number without pinning one here, and a pinned number goes stale (it was 0.2.0-beta).
+    if (!ANY_VERSION_RE.test(text)) missing.push('Add the DeepStrata version (`deepstrata --version`).');
     if (!HARDWARE_RE.test(text)) missing.push('Add your graphics card with its VRAM, your RAM and your operating system.');
   }
   return { ok: missing.length === 0, missing, kind: 'free-form' };
@@ -162,7 +164,7 @@ function checkPull({ title, body, mode = 'intake' }) {
     valText = plain;
   }
   if (mode === 'reopen' && valText && !REVISION_RE.test(valText)) {
-    missing.push('Say in Validation which revision you tested: rebase on main (or 0.2.0-beta) and re-run your checks.');
+    missing.push('Say in Validation which revision you tested: rebase on main and re-run your checks.');
   }
   return { ok: missing.length === 0, missing, kind: 'pull' };
 }
@@ -175,7 +177,7 @@ function checklist(missing) {
   return missing.map((m) => '- [ ] ' + m).join('\n');
 }
 
-const CONTRIB = 'https://github.com/Niko1221/Strata/blob/main/CONTRIBUTING.md';
+const CONTRIB = 'https://github.com/ilfarpro/DeepStrata/blob/main/CONTRIBUTING.md';
 
 function intakeComment(isPull, missing) {
   return [

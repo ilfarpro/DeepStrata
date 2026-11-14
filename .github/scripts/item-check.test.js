@@ -7,11 +7,11 @@ const bot = require('./reset-bot');
 const bugForm = (over = {}) => {
   const f = {
     'Area': '[Engine]  (speed, kernels, models, the server and API)',
-    'Desktop app, Terminal or source?': 'Terminal (the `strata` command)',
+    'Browser page, Terminal or source?': 'Terminal (the `deepstrata` command)',
     'What happened': 'Decode stops after two minutes with "CUDA error 700". I expected it to continue.',
     'Smallest steps or command that reproduce it': '_No response_',
     'Reproduction status': 'Reproduced locally',
-    'Strata version': 'Strata 0.2.0-beta · engine 0.1.45.3',
+    'DeepStrata version': 'DeepStrata 0.2.13.1 · engine 0.1.61',
     'Graphics card, memory and system': 'RTX 5070 12 GB · 64 GB RAM · Windows 11',
     ...over,
   };
@@ -39,19 +39,22 @@ test('filled bug form passes in both modes', () => {
 });
 
 test('bug form: missing parts are named', () => {
-  const r = c.checkIssue({ title: 'decode stops', body: bugForm({ 'Strata version': '_No response_', 'What happened': 'bad' }) });
+  const r = c.checkIssue({ title: 'decode stops', body: bugForm({ 'DeepStrata version': '_No response_', 'What happened': 'bad' }) });
   assert.ok(!r.ok);
   assert.ok(r.missing.some((m) => /title/i.test(m)));
   assert.ok(r.missing.some((m) => m.includes('What happened')));
-  assert.ok(r.missing.some((m) => m.includes('Strata version')));
+  assert.ok(r.missing.some((m) => m.includes('DeepStrata version')));
 });
 
-test('reopen needs a 0.2 version, intake does not', () => {
-  const body = bugForm({ 'Strata version': 'Strata 0.1.44' });
+test('reopen wants a version named, intake does not', () => {
+  const body = bugForm({ 'DeepStrata version': 'DeepStrata 0.2.13.1 · engine 0.1.61' });
   assert.ok(c.checkIssue({ title: '[Engine] x y', body, mode: 'intake' }).ok);
-  const r = c.checkIssue({ title: '[Engine] x y', body, mode: 'reopen' });
+  assert.ok(c.checkIssue({ title: '[Engine] x y', body, mode: 'reopen' }).ok);
+  const vague = bugForm({ 'DeepStrata version': 'the newest one' });
+  assert.ok(c.checkIssue({ title: '[Engine] x y', body: vague, mode: 'intake' }).ok);
+  const r = c.checkIssue({ title: '[Engine] x y', body: vague, mode: 'reopen' });
   assert.ok(!r.ok);
-  assert.ok(r.missing.some((m) => m.includes('0.2.0-beta')));
+  assert.ok(r.missing.some((m) => m.includes('newest release')));
 });
 
 test('html comments and placeholders do not count', () => {
@@ -60,7 +63,7 @@ test('html comments and placeholders do not count', () => {
 });
 
 test('feature and question forms', () => {
-  const f = '### Area\n\n[GUI]  (the desktop app)\n\n### What do you want to do?\n\nLet me pin a model to the top of the list in the app.';
+  const f = '### Area\n\n[GUI]  (the page in the browser)\n\n### What do you want to do?\n\nLet me pin a model to the top of the list in the page.';
   assert.ok(c.checkIssue({ title: '[GUI] pin models', body: f, mode: 'reopen' }).ok);
   assert.ok(!c.checkIssue({ title: '[GUI] pin models', body: '### Area\n\n[GUI]\n\n### What do you want to do?\n\n_No response_' }).ok);
   const q = '### Area\n\n[Other]\n\n### Your question\n\nHow do I move the model folder to another drive?';
@@ -68,13 +71,13 @@ test('feature and question forms', () => {
 });
 
 test('free-form issue', () => {
-  const good = 'Strata 0.2.0-beta on an RTX 3060 12 GB with 32 GB RAM on Linux: the server hangs when I send two requests at once. Expected both to finish.';
+  const good = 'DeepStrata 0.2.13.1 on an RTX 3060 12 GB with 32 GB RAM on Linux: the server hangs when I send two requests at once. Expected both to finish.';
   assert.ok(c.checkIssue({ title: '[Engine] hang on two requests', body: good, mode: 'reopen' }).ok);
   assert.ok(!c.checkIssue({ title: '[Engine] hang', body: 'it crashes', mode: 'intake' }).ok);
-  const old = good.replace('0.2.0-beta', '0.1.40');
-  assert.ok(c.checkIssue({ title: '[Engine] hang', body: old, mode: 'intake' }).ok);
-  assert.ok(!c.checkIssue({ title: '[Engine] hang', body: old, mode: 'reopen' }).ok);
-  assert.ok(c.checkIssue({ title: '[Other] idea', body: 'It would help if the app remembered my last model between runs, today I pick it again.', labels: ['enhancement'], mode: 'reopen' }).ok);
+  const noVersion = good.replace('DeepStrata 0.2.13.1 on an', 'On an');
+  assert.ok(!c.checkIssue({ title: '[Engine] hang', body: noVersion, mode: 'intake' }).ok);
+  assert.ok(c.checkIssue({ title: '[Engine] hang', body: noVersion, mode: 'intake' }).missing.some((m) => m.includes('DeepStrata version')));
+  assert.ok(c.checkIssue({ title: '[Other] idea', body: 'It would help if the page remembered my last model between runs, today I pick it again.', labels: ['enhancement'], mode: 'reopen' }).ok);
 });
 
 const prBody = (over = {}) => {

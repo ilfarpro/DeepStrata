@@ -1,13 +1,13 @@
 name: Bug report
-description: Something in Strata doesn't work as documented
+description: Something in DeepStrata doesn't work as documented
 title: "[Area] "
 labels: ["bug"]
 body:
   - type: markdown
     value: |
-      Thanks for the report. Please read [CONTRIBUTING.md](https://github.com/Niko1221/Strata/blob/main/CONTRIBUTING.md) first.
+      Thanks for the report. Please read [CONTRIBUTING.md](https://github.com/ilfarpro/DeepStrata/blob/main/CONTRIBUTING.md) first.
 
-      Search the [open and closed issues](https://github.com/Niko1221/Strata/issues?q=is%3Aissue) first: this may already be tracked, and new evidence belongs in that thread.
+      Search the [open and closed issues](https://github.com/ilfarpro/DeepStrata/issues?q=is%3Aissue) first: this may already be tracked, and new evidence belongs in that thread.
 
       Write only what you saw. Do not guess at steps, errors, hardware or severity.
 
@@ -20,7 +20,7 @@ body:
       options:
         - "[Engine]  (speed, kernels, models, the server and API)"
         - "[GUI]  (the page in the browser)"
-        - "[TUI]  (the Terminal: strata launch, connect, monitor)"
+        - "[TUI]  (the Terminal: deepstrata launch, connect, monitor)"
         - "[Benchmark]  (measurements and reports)"
         - "[Docs]  (documentation)"
         - "[Other]  (anything else, including setup and installation)"
@@ -29,11 +29,11 @@ body:
   - type: dropdown
     id: how
     attributes:
-      label: Desktop app, Terminal or source?
+      label: Browser page, Terminal or source?
       options:
-        - Desktop app (Windows, Linux or Mac)
-        - Terminal (the `strata` command)
-        - Source (START-HERE.bat, setup.sh or a build)
+        - Browser page (the chat page, `deepstrata ui`)
+        - Terminal (the `deepstrata` command)
+        - Source (`START-HERE.bat`, `setup.sh` or a build from source)
         - Docker
         - Other
     validations:
@@ -64,9 +64,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: Strata version
-      description: "In the app: Settings > About. In the Terminal: `deepstrata --version`. From source: `engine` in `GET /v1/status`, or the git commit."
-      placeholder: "DeepStrata 0.2.13 · engine 0.1.61"
+      label: DeepStrata version
+      description: "In the Terminal: `deepstrata --version`. From source: `engine` in `GET /v1/status`, or the git commit."
+      placeholder: "DeepStrata 0.2.13.1 · engine 0.1.61"
     validations:
       required: true
   - type: input
@@ -90,7 +90,7 @@ body:
     attributes:
       label: Logs
       description: |
-        The app: Settings > Engine > Diagnostics > View logs > Save logs, then drag the file in. The Terminal: paste the output of `strata doctor`. From source: drag in `strata-<model>.log` from your Strata folder.
+        The Terminal: paste the output of `deepstrata doctor` here, or attach the engine log from the run folder shown at launch. From source: attach the engine log next to your build.
         Remove API keys, passwords and private text first.
     validations:
       required: false
@@ -98,4 +98,4 @@ body:
     value: |
       A couple of extras that help a lot:
 
-      - Check the [troubleshooting page](https://github.com/Niko1221/Strata/blob/main/docs/TROUBLESHOOTING.md) first, many reports are already solved there.
+      - Check the [troubleshooting page](https://github.com/ilfarpro/DeepStrata/blob/main/docs/TROUBLESHOOTING.md) first, many reports are already solved there.

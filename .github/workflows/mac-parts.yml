@@ -1,0 +1,121 @@
+name: macOS parts
+
+# The unsigned macOS half of a release. packaging/build_mac_parts.sh builds the Terminal archive (tar.gz), the Qwen Metal
+# engine and the strata-dsv41 engine, runs the Terminal smoke test, and writes mac-parts.json with every hash. It never
+# sees the feed key: signing happens on the release PC, in `packaging/release.py assemble`.
+#
+# Started by hand only, like the Windows parts. A hosted macos-26 runner (Apple Silicon) is enough: the Metal engine
+# compiles its kernels when it starts, so no graphics card is needed to build it, and the Terminal smoke test runs the
+# mock engine. The build needs Apple's metal-cpp and the pinned llama.cpp, which this workflow downloads below.
+#
+# Then, on the release PC (Linux):
+#   python packaging/release.py build --mac-parts <the build-mac-parts folder, or its .zip>
+# Download the artifact (set upload_parts) or copy the folder off the runner.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Parts to build: terminal, qwen, dsv41 (comma separated; empty builds all three)'
+        required: false
+        default: ''
+      commit:
+        description: 'Commit to build (empty: the commit this workflow runs on)'
+        required: false
+        default: ''
+      skip_smoke:
+        description: 'Skip the Terminal smoke test (the release tool then refuses these parts; build check only)'
+        type: boolean
+        default: false
+      upload_parts:
+        description: 'Upload the parts folder as an artifact (hundreds of MB)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-parts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  parts:
+    name: Build the macOS parts
+    # the macOS 26 SDK, same as the Metal build check: the engine names Metal 4 symbols behind @available
+    runs-on: macos-26
+    timeout-minutes: 180
+    env:
+      # setup.py's LLAMA_CPP_COMMIT and metal/setup_mac.py's metal-cpp pin, the same as metal-build.yml
+      LLAMA_CPP_COMMIT: 3cf03257f219afbe7334045ff7c6a06ac68c627d
+      METAL_CPP_URL: https://developer.apple.com/metal/cpp/files/metal-cpp_26.zip
+      METAL_CPP_SHA256: 4df3c078b9aadcb516212e9cb03004cbc5ce9a3e9c068fa3144d021db585a3a4
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Tools
+        run: brew install ninja
+      # Everything outside the checkout: packaging/build_mac_parts.sh refuses a tree with uncommitted changes,
+      # and an untracked folder here would be exactly that.
+      - name: metal-cpp
+        run: |
+          curl -fsSL "$METAL_CPP_URL" -o "$RUNNER_TEMP/metal-cpp.zip"
+          echo "$METAL_CPP_SHA256  $RUNNER_TEMP/metal-cpp.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/metal-cpp.zip" -d "$RUNNER_TEMP/_mcpp"
+      - name: llama.cpp (ggml) at the pinned commit
+        run: |
+          mkdir "$RUNNER_TEMP/llama.cpp" && cd "$RUNNER_TEMP/llama.cpp"
+          git init -q
+          git remote add origin https://github.com/ggml-org/llama.cpp.git
+          git fetch -q --depth 1 origin "$LLAMA_CPP_COMMIT"
+          git checkout -q FETCH_HEAD
+      # --only and --commit are passed through the environment: an empty string must not turn into a positional argument.
+      - name: Build the parts (Terminal, Qwen Metal, strata-dsv41)
+        env:
+          INPUT_ONLY: ${{ inputs.only }}
+          INPUT_COMMIT: ${{ inputs.commit }}
+          INPUT_SKIP_SMOKE: ${{ inputs.skip_smoke && '1' || '' }}
+          METAL_CPP_DIR: ${{ runner.temp }}/_mcpp/metal-cpp
+          STRATA_GGML_DIR: ${{ runner.temp }}/llama.cpp
+        run: |
+          arguments=()
+          if [ -n "$INPUT_ONLY" ]; then arguments+=(--only "$INPUT_ONLY"); fi
+          if [ -n "$INPUT_COMMIT" ]; then arguments+=(--commit "$INPUT_COMMIT"); fi
+          if [ -n "$INPUT_SKIP_SMOKE" ]; then arguments+=(--skip-smoke); fi
+          bash packaging/build_mac_parts.sh ${arguments[@]+"${arguments[@]}"}
+      # A short summary in the run page: the release PC reads the file itself, this is for the person who started the run.
+      - name: Summarize the parts
+        if: ${{ !cancelled() }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          import pathlib
+          path = pathlib.Path("build-mac-parts/mac-parts.json")
+          print("| field | value |")
+          print("| --- | --- |")
+          if not path.is_file():
+              print("| parts | **no mac-parts.json was written** |")
+              raise SystemExit
+          parts = json.loads(path.read_text())
+          smoke = "ran" if parts.get("smoke", {}).get("terminal") else "MISSING"
+          rows = [("commit", f"`{parts['commit']}`"), ("dirty", parts["dirty"]),
+                  ("clang", parts["toolchain"].get("clang", "")), ("macOS", parts["toolchain"].get("macos", "")),
+                  ("component", parts["component_version"]),
+                  ("product / page", f"{parts['product_version']} / {parts['host_version']}"),
+                  ("components", ", ".join(parts["components"]) or "none"),
+                  ("Terminal smoke", smoke)]
+          for name, value in rows:
+              print(f"| {name} | {value} |")
+          print()
+          print("Parts folder on the runner: `build-mac-parts`")
+          PY
+      - name: Upload the parts folder
+        if: ${{ !cancelled() && inputs.upload_parts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-parts
+          path: build-mac-parts/**
+          if-no-files-found: warn
+          retention-days: 3

@@ -16,6 +16,7 @@ qualify every GPU, model or feature on its platform.
 | Build an engine package | [ENGINE-COMPONENT.md](ENGINE-COMPONENT.md#building-a-package) |
 | Make a release: plan, build, sign, verify, publish | [UPDATES.md](UPDATES.md#releasing) (`python packaging/release.py --help`) |
 | Build the Windows parts on a Windows PC and import them | [UPDATES.md](UPDATES.md#releasing) (`packaging/build_windows.ps1`) |
+| Build the macOS parts on an Apple Silicon Mac and import them | [UPDATES.md](UPDATES.md#releasing) (`packaging/build_mac_parts.sh`) |
 | Sign and publish a release by hand | [UPDATES.md](UPDATES.md#releasing) |
 | Test an update against a local feed | [UPDATES.md](UPDATES.md#testing-locally) |
 
@@ -38,9 +39,10 @@ Each row is an OS, CPU ABI and backend. A row is `qualified` only after the acce
 | `macos-x86_64-*` | none | none | Unsupported. The macOS engine is Apple Silicon only. |
 
 **DeepSeek V4.1-Flash.** The signed feed's `dsv41` member carries the DeepSeek engine `strata-dsv41` as its own package: Windows
-NVIDIA `cuda13`, Linux NVIDIA `cuda13`, Linux AMD `rx9070`, and since 0.2.7 Windows AMD `rdna3` (Ryzen AI Max, gfx1151). All other
-engine packages carry no DeepSeek engine. Build `strata-dsv41` with `packaging/build_dsv41_cuda.sh` (Linux) or
-`packaging/build_dsv41_windows.bat` (Windows), then package it with `package_engine.py --require-dsv41`; or pack it as the separate
+NVIDIA `cuda13`, Linux NVIDIA `cuda13`, Linux AMD `rx9070`, Windows AMD `rdna3` (Ryzen AI Max, gfx1151), and Apple Silicon Metal. All other
+engine packages carry no DeepSeek engine. Build `strata-dsv41` with `packaging/build_dsv41_cuda.sh` (Linux),
+`packaging/build_dsv41_windows.bat` (Windows) or `packaging/mac/build_dsv41_engine.sh` (macOS), then package it with
+`package_engine.py --require-dsv41`; or pack it as the separate
 download (`feed_tool.py pack-engine --prefix strata-dsv41`, [UPDATES.md](UPDATES.md#the-feed)).
 
 Windows AMD (gfx1151): build `strata-dsv41` with `tools\dsv41\win\build_hip_win.bat` (the ROCm venv, default `gfx1151`) and stage
@@ -131,7 +133,8 @@ The Terminal bundles a private Python and its dependencies for `windows-x86_64`,
 ## Release checks and gaps
 
 - CI covers scripts, Terminal checks, Metal builds and Docker images ([.github/workflows](../.github/workflows)). It does not replace native
-  packaging, signing or real-GPU acceptance on every target. Some recipes still run by hand.
+  packaging, signing or real-GPU acceptance on every target. The Windows and macOS release parts build in two hand-started workflows
+  (`windows-parts.yml`, `mac-parts.yml`) whose folders `release.py build` imports. The HIP, SYCL and `linux-aarch64` recipes still run by hand.
 - Signing needs the owner's credentials, which are never in this tree. The feed and every engine package are signed with the feed key
   (`feed_tool.py`). The Mac Terminal archive is signed and notarised on a Mac that holds the Developer ID certificate. No Windows code-signing
   certificate is configured, so Windows may warn about the archive.

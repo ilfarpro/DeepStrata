@@ -3,10 +3,12 @@ a GPU or the network."""
 
 import hashlib
 import importlib.util
+import io
 import json
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -255,6 +257,7 @@ class Targets(unittest.TestCase):
     def test_a_windows_control_package_is_zip_and_a_linux_one_is_tar(self):
         self.assertEqual(release.control_format(release.WINDOWS), "zip")
         self.assertEqual(release.control_format(release.LINUX), "tar.gz")
+        self.assertEqual(release.control_format(release.MAC), "tar.gz")
 
     def test_the_plan_names_the_platforms_it_releases(self):
         linux = release.artifact_plan("0.1.60", (release.LINUX,))
@@ -263,8 +266,16 @@ class Targets(unittest.TestCase):
         windows = release.artifact_plan("0.1.60", (release.WINDOWS,))
         self.assertTrue(any(item["artifact"].endswith("windows-x86_64.zip") for item in windows))
         self.assertFalse(any("linux" in item["artifact"] for item in windows))
-        both = release.artifact_plan("0.1.60")
-        self.assertEqual({item["platform"] for item in both}, {release.LINUX, release.WINDOWS})
+        mac = release.artifact_plan("0.1.60", (release.MAC,))
+        self.assertTrue(any(item["artifact"].endswith("macos-arm64-metal.tar.gz") for item in mac))
+        self.assertTrue(any(item["artifact"].endswith("macos-arm64.tar.gz") for item in mac))
+        self.assertFalse(any("linux" in item["artifact"] or "windows" in item["artifact"] for item in mac))
+        for targets in ((release.LINUX,), (release.WINDOWS,), (release.MAC,)):
+            with self.subTest(targets):
+                self.assertTrue(release.artifact_plan("0.1.60", targets))
+        everything = release.artifact_plan("0.1.60")
+        self.assertEqual({item["platform"] for item in everything},
+                         {release.LINUX, release.WINDOWS, release.MAC})
 
     def test_notes_follow_the_targets(self):
         windows = release.generate_notes(version="0.2.12.2", component="0.1.60", commit="a" * 40,
@@ -276,6 +287,13 @@ class Targets(unittest.TestCase):
                                        previous=None, records=[], targets=(release.LINUX,))
         self.assertIn("install.sh", linux)
         self.assertNotIn("install.ps1", linux)
+        mac = release.generate_notes(version="0.2.12.2", component="0.1.60", commit="a" * 40,
+                                     previous=None, records=[], targets=(release.LINUX, release.MAC))
+        self.assertIn("macOS (Apple Silicon)", mac)
+        self.assertIn("Developer ID", mac)
+        self.assertIn("Qwen Metal engine", mac)
+        self.assertNotIn("install.ps1", mac)
+        self.assertNotIn("Qwen CUDA 13 engine `0.1.60` for `macos-arm64`", mac)
 
 
 def _write_json(path: Path, data) -> None:
@@ -292,7 +310,7 @@ SMOKE_CHECKS = ("version", "doctor", "profile list", "serve: chat answer")
 
 
 def make_engine(base: Path, out: Path, *, entry: str, extra: list[str] | None = None) -> Path:
-    """One unsigned engine package, written by the repo's own packager: exactly what build_windows.ps1 calls on Windows."""
+    """One unsigned CUDA engine package, written by the repo's own packager: exactly what build_windows.ps1 calls on Windows."""
     stage = base / f"stage-{Path(entry).stem}"
     stage.mkdir()
     (stage / entry).write_bytes(b"MZ")
@@ -308,36 +326,92 @@ def make_engine(base: Path, out: Path, *, entry: str, extra: list[str] | None = 
     return out / "0.1.60-windows-x86_64-cuda-cuda13"
 
 
-def windows_parts(base: Path, *, commit: str = COMMIT, component: str = "0.1.60", product: str = "0.2.12.2",
-                  cuda: str = "13.0.88", dirty: bool = False, smoke: bool = True, smoke_ok: bool = True,
-                  schema: int = 1, platform: str = "windows-x86_64", engines: bool = False) -> Path:
-    """A folder shaped like the one packaging/build_windows.ps1 writes: the Terminal zip, its smoke report, the manifest."""
-    parts = base / "build-windows-parts"
-    archive = parts / "terminal" / f"strata-terminal-{component}-windows-x86_64.zip"
+def make_engine_mac(base: Path, out: Path, *, entry: str, extra: list[str] | None = None) -> Path:
+    """One unsigned Metal engine package: what build_mac_parts.sh builds. `strata` carries the picture reader and
+    the kernel sources it compiles at start; the DeepSeek one ships text-only (--no-picture-reader)."""
+    stage = base / f"stage-mac-{Path(entry).stem}"
+    stage.mkdir()
+    (stage / entry).write_bytes(b"\xcf\xfa\xed\xfe")          # a Mach-O header, as the real binaries start
+    (stage / "LICENSE").write_bytes(b"DeepStrata\n")
+    if entry == "strata":
+        (stage / "strata-vision").write_bytes(b"\xcf\xfa\xed\xfe")
+    kernels = stage / "metal" / "kernels"
+    kernels.mkdir(parents=True)
+    (kernels / "mm.metal").write_text("// one kernel\n", encoding="utf-8")
+    subprocess.run([sys.executable, "packaging/package_engine.py", "--src", str(stage), "--backend", "metal",
+                    "--version", "0.1.60", "--out", str(out), "--platform", "macos-arm64",
+                    "--arch", "apple-gpu", "--entrypoint", entry, "--build-id", "abcdef123456",
+                    "--include", "metal/**", *(extra or [])],
+                   cwd=str(ROOT), check=True, capture_output=True, text=True)
+    return out / "0.1.60-macos-arm64-metal"
+
+
+def _tar_gz(archive: Path, members: dict[str, tuple[bytes, int]]) -> None:
     archive.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(archive, "w") as zf:
-        zf.writestr("bundle/bin/deepstrata.cmd", "@echo off\r\n")
-        zf.writestr("bundle/host/dist/index.html", "<!doctype html>\n")
-        zf.writestr("bundle/node/node.exe", b"MZ")
-        zf.writestr("bundle/strata.py", "print('strata')\n")
+    with tarfile.open(archive, "w:gz") as tar:
+        for name, (payload, mode) in members.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(payload)
+            info.mode = mode
+            info.mtime = 0
+            tar.addfile(info, io.BytesIO(payload))
+
+
+def parts_folder(base: Path, *, platform: str = "windows-x86_64", commit: str = COMMIT, component: str = "0.1.60",
+                 product: str = "0.2.12.2", cuda: str = "13.0.88", dirty: bool = False, smoke: bool = True,
+                 smoke_ok: bool = True, schema: int = 1, engines: bool = False) -> Path:
+    """A folder shaped like the one build_windows.ps1 / build_mac_parts.sh write: the Terminal archive, its smoke
+    report, and the `<platform>-parts.json` manifest. `platform` may name any platform, also one the builder
+    would never write the folder for (what a mixed-up hand-off looks like)."""
+    handoff = release.PARTS_HANDOFFS[platform]
+    is_windows = platform == release.WINDOWS
+    parts = base / f"build-{handoff['short']}-parts"
+    fmt = "zip" if is_windows else "tar.gz"
+    suffix = "-windows-x86_64" if is_windows else "-darwin-arm64"
+    archive = parts / "terminal" / f"strata-terminal-{component}{suffix}.{fmt}"
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    if is_windows:
+        with zipfile.ZipFile(archive, "w") as zf:
+            zf.writestr("bundle/bin/deepstrata.cmd", "@echo off\r\n")
+            zf.writestr("bundle/host/dist/index.html", "<!doctype html>\n")
+            zf.writestr("bundle/node/node.exe", b"MZ")
+            zf.writestr("bundle/strata.py", "print('strata')\n")
+    else:
+        _tar_gz(archive, {"bundle/bin/deepstrata": (b"#!/bin/sh\n", 0o755),
+                          "bundle/host/dist/index.html": (b"<!doctype html>\n", 0o644),
+                          "bundle/node/bin/node": (b"\xcf\xfa\xed\xfe", 0o755),
+                          "bundle/strata.py": (b"print('strata')\n", 0o644)})
     components = {"terminal": {"archive": f"terminal/{archive.name}", "sha256": _sha256(archive),
-                               "bytes": archive.stat().st_size, "format": "zip"}}
+                               "bytes": archive.stat().st_size, "format": fmt}}
     if engines:
-        for name, entry, extra in (("qwen", "strata.exe", []), ("dsv41", "strata-dsv41.exe", ["--require-dsv41"])):
-            folder = make_engine(base, parts / ("engines" if name == "qwen" else "dsv41"), entry=entry, extra=extra)
+        if is_windows:
+            builds = (("qwen", "strata.exe", []), ("dsv41", "strata-dsv41.exe", ["--require-dsv41"]))
+        else:
+            builds = (("qwen", "strata", []), ("dsv41", "strata-dsv41", ["--no-picture-reader"]))
+        maker = make_engine if is_windows else make_engine_mac
+        for name, entry, extra in builds:
+            folder = maker(base, parts / ("engines" if name == "qwen" else "dsv41"), entry=entry, extra=extra)
             components[name] = {"folder": folder.relative_to(parts).as_posix(),
                                 "manifest_sha256": _sha256(folder / "engine-component.json")}
     manifest = {"schema_version": schema, "platform": platform, "commit": commit, "dirty": dirty,
                 "component_version": component, "product_version": product, "host_version": product,
-                "toolchain": {"cuda": cuda}, "components": components,
+                "toolchain": {"cuda": cuda} if is_windows else {"clang": "17.0.0"}, "components": components,
                 "smoke": {}}
     if smoke:
         report = parts / "smoke" / "smoke-terminal.json"
         _write_json(report, {"ok": smoke_ok, "archive": archive.name,
                              "checks": {name: {"ok": smoke_ok} for name in SMOKE_CHECKS}})
         manifest["smoke"]["terminal"] = {"report": "smoke/smoke-terminal.json", "sha256": _sha256(report)}
-    _write_json(parts / "windows-parts.json", manifest)
+    _write_json(parts / handoff["manifest"], manifest)
     return parts
+
+
+def windows_parts(base: Path, **overrides) -> Path:
+    return parts_folder(base, platform=release.WINDOWS, **overrides)
+
+
+def mac_parts(base: Path, **overrides) -> Path:
+    return parts_folder(base, platform=release.MAC, **overrides)
 
 
 def windows_journal(**overrides) -> dict:
@@ -347,8 +421,18 @@ def windows_journal(**overrides) -> dict:
     return data
 
 
-class WindowsParts(unittest.TestCase):
-    """The hand-off from a Windows build machine: what is imported, and what is refused."""
+def mac_journal(**overrides) -> dict:
+    data = {"commit": COMMIT, "component_version": "0.1.60", "product_version": "0.2.12.2",
+            "host_version": "0.2.12.2", "targets": [release.LINUX, release.MAC]}
+    data.update(overrides)
+    return data
+
+
+class PartsHandoffMixin:
+    """The import tests, run for each platform's hand-off shape."""
+
+    platform = ""
+    journal = staticmethod(windows_journal)
 
     def release_directory(self, base: Path) -> Path:
         directory = base / "RELEASE" / "0.2.12.2"
@@ -356,8 +440,15 @@ class WindowsParts(unittest.TestCase):
         return directory
 
     def import_parts(self, parts: Path, directory: Path, wanted: list[str] | None = None, **overrides):
-        return release._import_windows_parts(directory, windows_journal(**overrides), parts,
-                                             wanted or ["terminal"], rebuild=True)
+        return release._import_parts(directory, self.journal(**overrides), parts,
+                                     wanted or ["terminal"], self.platform, rebuild=True)
+
+
+class WindowsParts(PartsHandoffMixin, unittest.TestCase):
+    """The hand-off from a Windows build machine: what is imported, and what is refused."""
+
+    platform = release.WINDOWS
+    journal = staticmethod(windows_journal)
 
     def test_the_terminal_archive_is_copied_unpacked_and_its_smoke_report_kept(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -449,8 +540,13 @@ class WindowsParts(unittest.TestCase):
     def test_another_platform_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
+            parts = windows_parts(base)
+            manifest = parts / "windows-parts.json"
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["platform"] = "linux-x86_64"
+            _write_json(manifest, data)
             with self.assertRaises(release.ReleaseError) as caught:
-                self.import_parts(windows_parts(base, platform="linux-x86_64"), self.release_directory(base))
+                self.import_parts(parts, self.release_directory(base))
             self.assertIn("platform is", str(caught.exception))
 
     def test_parts_from_an_uncommitted_tree_are_refused(self):
@@ -523,6 +619,60 @@ class WindowsParts(unittest.TestCase):
         self.assertEqual(release._platform_map(nested), nested)
 
 
+class MacParts(PartsHandoffMixin, unittest.TestCase):
+    """The hand-off from an Apple Silicon Mac: a tar.gz Terminal, Metal engines, the same manifest shape."""
+
+    platform = release.MAC
+    journal = staticmethod(mac_journal)
+
+    def test_the_mac_terminal_archive_is_copied_unpacked_and_its_smoke_report_kept(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = mac_parts(base)
+            directory = self.release_directory(base)
+            imported, record = self.import_parts(parts, directory)
+            self.assertEqual(sorted(imported), ["terminal"])
+            info = imported["terminal"]
+            self.assertTrue(info["archive"].endswith("strata-terminal-0.1.60-darwin-arm64.tar.gz"))
+            self.assertTrue((directory / info["unpack"] / "bin" / "deepstrata").is_file())
+            self.assertTrue((directory / info["unpack"] / "node" / "bin" / "node").is_file())
+            self.assertTrue((directory / info["smoke"]).is_file())
+            self.assertTrue(info["smoke_ok"])
+            self.assertTrue(record["manifest_sha256"])
+
+    def test_the_mac_engines_are_imported_and_checked(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = mac_parts(base, engines=True)
+            directory = self.release_directory(base)
+            imported, _ = self.import_parts(parts, directory, ["terminal", "qwen", "dsv41"])
+            self.assertEqual(sorted(imported), ["dsv41", "qwen", "terminal"])
+            self.assertTrue((directory / imported["qwen"]["folder"] / "engine-component.json").is_file())
+            self.assertTrue((directory / imported["dsv41"]["folder"] / "engine-component.json").is_file())
+
+    def test_mac_parts_can_arrive_as_one_zip(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = mac_parts(base, engines=True)
+            bundle = base / "mac-parts.zip"
+            with zipfile.ZipFile(bundle, "w") as zf:
+                for path in sorted(parts.rglob("*")):
+                    if path.is_file():
+                        zf.write(path, f"build-mac-parts/{path.relative_to(parts).as_posix()}")
+            directory = self.release_directory(base)
+            imported, _ = self.import_parts(bundle, directory, ["terminal", "qwen", "dsv41"])
+            self.assertEqual(sorted(imported), ["dsv41", "qwen", "terminal"])
+
+    def test_mac_parts_are_not_windows_parts(self):
+        # the manifest names the platform, and the file itself is in the folder's own name: a mixed-up hand-off is refused
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            with self.assertRaises(release.ReleaseError) as caught:
+                release._import_parts(self.release_directory(base), mac_journal(), mac_parts(base),
+                                      ["terminal"], release.WINDOWS, rebuild=True)
+            self.assertIn("windows-parts.json", str(caught.exception))
+
+
 def engine_package(feed: Path, platform: str, *, version: str = "0.1.60",
                    archs=("sm_86", "sm_89", "sm_120", "compute_120")):
     """An EnginePackage whose archive exists in `feed`, so the feed entry and the file can be checked."""
@@ -532,6 +682,18 @@ def engine_package(feed: Path, platform: str, *, version: str = "0.1.60",
     return release.feedmod.EnginePackage(
         version=version, platform=platform, backend="cuda", variant="cuda13", archs=tuple(archs),
         min_driver={"nvidia": "580.65"}, min_runtime=None, build_id="b" * 12, url=name, format="tar.gz",
+        size=len(payload), sha256=hashlib.sha256(payload).hexdigest(), manifest_sha256="0" * 64,
+        installed_bytes=len(payload))
+
+
+def mac_engine_package(feed: Path, *, version: str = "0.1.60", archs=("apple-gpu",)):
+    """The macOS entry: a Metal package has no variant, no NVIDIA driver to pin and one arch, `apple-gpu`."""
+    name = f"strata-engine-{version}-{release.MAC}-metal.tar.gz"
+    payload = b"payload for the Mac"
+    (feed / name).write_bytes(payload)
+    return release.feedmod.EnginePackage(
+        version=version, platform=release.MAC, backend="metal", variant="", archs=tuple(archs),
+        min_driver={}, min_runtime=None, build_id="b" * 12, url=name, format="tar.gz",
         size=len(payload), sha256=hashlib.sha256(payload).hexdigest(), manifest_sha256="0" * 64,
         installed_bytes=len(payload))
 
@@ -585,6 +747,35 @@ class FeedChecks(unittest.TestCase):
             with self.assertRaises(release.ReleaseError):
                 release._selection_checks(SimpleNamespace(engine=packages[:1], dsv41=[]),
                                           (release.LINUX, release.WINDOWS))
+
+    def test_the_mac_entry_must_be_metal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            feed = Path(temporary)
+            package = mac_engine_package(feed)
+            release._verify_engine_entry(SimpleNamespace(engine=[package], dsv41=[]),
+                                         "engine", feed, release.MAC, "0.1.60")
+            cuda_as_mac = engine_package(feed, release.MAC)
+            with self.assertRaises(release.ReleaseError) as caught:
+                release._verify_engine_entry(SimpleNamespace(engine=[cuda_as_mac], dsv41=[]),
+                                             "engine", feed, release.MAC, "0.1.60")
+            self.assertIn("unexpected package cuda/cuda13", str(caught.exception))
+            missing_arch = mac_engine_package(feed, archs=())
+            with self.assertRaises(release.ReleaseError) as caught:
+                release._verify_engine_entry(SimpleNamespace(engine=[missing_arch], dsv41=[]),
+                                             "engine", feed, release.MAC, "0.1.60")
+            self.assertIn("apple-gpu", str(caught.exception))
+
+    def test_selection_serves_the_mac_its_metal_package(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            feed = Path(temporary)
+            packages = [engine_package(feed, release.LINUX), mac_engine_package(feed)]
+            lines = release._selection_checks(SimpleNamespace(engine=packages, dsv41=[]),
+                                              (release.LINUX, release.MAC))
+            self.assertEqual(len(lines), 2)          # one line for the CUDA target, one for the Mac
+            with self.assertRaises(release.ReleaseError) as caught:
+                release._selection_checks(SimpleNamespace(engine=packages[:1], dsv41=[]),
+                                          (release.LINUX, release.MAC))
+            self.assertIn("macos-arm64", str(caught.exception))
 
 
 if __name__ == "__main__":

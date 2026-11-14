@@ -203,19 +203,19 @@ component versions, because the updater compares those: the page reports its `ap
 **The release tool**
 
 `packaging/release.py` is the release-side orchestrator. It builds what the release PC can build natively (the Linux parts),
-imports what a Windows PC built, signs everything with the feed key, writes one signed feed, checks it the way a user's PC
-would, and only then creates the GitHub release:
+imports what a Windows PC and an Apple Silicon Mac built, signs everything with the feed key, writes one signed feed,
+checks it the way a user's PC would, and only then creates the GitHub release:
 
     python packaging/release.py plan --require-merged <branch>   # checks, tests, writes RELEASE/<version>/release.json
-    python packaging/release.py build --windows-parts <folder>   # App Host, Terminal/Control, Qwen cuda13, dsv41 cuda13
+    python packaging/release.py build --windows-parts <folder> --mac-parts <folder>   # App Host, Terminal/Control, engines
     python packaging/release.py assemble                         # sign, pack, write the signed feed and installers
     python packaging/release.py verify                           # feed, hashes, selection and a real Terminal run
     python packaging/release.py publish                          # tag, GitHub release, upload, install.sh from latest
 
-With no `--target`, `plan` releases both platforms (`linux-x86_64` and `windows-x86_64`); `--target linux-x86_64` (or
-`--target windows-x86_64`) narrows it to one. The journal records the platforms and every later step follows them, so a
-Linux-only release never asks for Windows parts. A journal written before Windows was a target has no list and stays
-Linux-only.
+With no `--target`, `plan` releases the three platforms it builds (`linux-x86_64`, `windows-x86_64` and `macos-arm64`);
+`--target linux-x86_64` (or another one) narrows it down. The journal records the platforms and every later step follows
+them, so a Linux-only release never asks for Windows or macOS parts. A journal written before those were targets has no
+list and stays Linux-only.
 
 **The Windows parts.** `packaging/build_windows.ps1` runs on a Windows x64 PC with the CUDA 13 toolkit, Visual Studio 2022
 with the C++ workload, CMake, Ninja, Node 24.12+ and Python 3.10+. It writes an unsigned parts folder: the Terminal archive
@@ -230,6 +230,19 @@ engine is used).
 is started by hand (`workflow_dispatch`), so no pull request depends on that machine. The parts folder is left on the runner
 (`build-windows-parts`); copy it to the release PC, or set `upload_parts` to keep it as a workflow artifact (hundreds of MB),
 then pass the folder to `build --windows-parts`.
+
+**The macOS parts.** `packaging/build_mac_parts.sh` runs on an Apple Silicon Mac with Xcode Command Line Tools, CMake, Ninja,
+Node 24.12+ and Python 3.10+, plus Apple's metal-cpp and the pinned llama.cpp (`METAL_CPP_DIR` and `STRATA_GGML_DIR` name
+them). It writes the same shape of unsigned parts folder: the Terminal archive (tar.gz), the Qwen Metal engine, the
+`strata-dsv41` engine and `mac-parts.json`, and it runs the Terminal smoke test on that Mac.
+`build --mac-parts <folder or .zip>` imports it and refuses parts built from another commit or a dirty tree, another
+component version, a missing or failed smoke report, or a file whose hash changed after the manifest was written. No GPU is
+needed: the Metal engine compiles its kernels when it starts, so the build only compiles and links.
+
+`.github/workflows/mac-parts.yml` runs that script on a hosted `macos-26` runner and downloads the metal-cpp and llama.cpp
+pins itself. Like the Windows workflow it is started by hand; set `upload_parts` and pass the downloaded folder to
+`build --mac-parts`. The Mac artifacts are not signed with a Developer ID (see "The Mac archive" below), and the generated
+release notes say so, the way they say it about SmartScreen on Windows.
 
 Run it with the checkout's Python (the `.venv` that `setup.py`/`setup.sh` made, or another interpreter with
 `requirements.txt`, `requirements-monitor.txt` and `pytest`): `plan` runs pytest in that same interpreter, and a bare
@@ -267,16 +280,17 @@ checkout with mode 0600. The GitHub token is read from `GH_TOKEN`/`GITHUB_TOKEN`
 anything. A release must be built from a clean `main` commit; the journal names that commit and every later step refuses a
 different checkout, so a half-built release cannot be signed from another tree.
 
-**What the automated release carries today.** `linux-x86_64` and `windows-x86_64`: for each, the Terminal archive (and the
-same bundle packed as the Control package that `install.sh` / `install.ps1` and the updater use), the Qwen CUDA 13 engine and
-the DeepSeek `strata-dsv41` CUDA 13 engine, all at the CMake version (0.1.61 today). The Windows binaries are not
-Authenticode-signed: SmartScreen may ask once before the Terminal runs, and the generated release notes say so. macOS, HIP and
-`linux-aarch64` builds are made on their own machines and still need the steps below; a release that must serve those
+**What the automated release carries today.** `linux-x86_64`, `windows-x86_64` and `macos-arm64`: for each, the Terminal
+archive (and the same bundle packed as the Control package that `install.sh` / `install.ps1` and the updater use), the Qwen
+engine and the DeepSeek `strata-dsv41` engine — CUDA 13 on the two PC platforms, Metal on the Mac — all at the CMake version
+(0.1.61 today). The Windows binaries are not Authenticode-signed: SmartScreen may ask once before the Terminal runs. The Mac
+artifacts carry no Developer ID: the first open may warn. The generated release notes say both. HIP and `linux-aarch64`
+builds are made on their own machines and still need the steps below; a release that must serve those
 platforms is not complete until their Control and engine packages are on the same release page (one Control package per
 platform; the feed lists them all). The release version (`0.2.13.1`) is the tag and the GitHub release; the files and the
 feed carry the component versions, because the updater compares those.
 
-**Steps for the platforms the release tool does not build (macOS, HIP, linux-aarch64)**
+**Steps for the platforms the release tool does not build (HIP, linux-aarch64)**
 
     python packaging/feed_tool.py sign-package <engine package folder> --key <feed-key.json>        # every engine package
     python packaging/feed_tool.py pack-engine  <engine package folder> --out RELEASE/engine --url-prefix=

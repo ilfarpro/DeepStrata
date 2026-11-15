@@ -27,7 +27,7 @@ Each row is an OS, CPU ABI and backend. A row is `qualified` only after the acce
 
 | Target | Terminal artifact | Engine package recipe | Status |
 | --- | --- | --- | --- |
-| `macos-arm64-metal` | `.tar.gz` (next row) | Metal `strata`, bundled with `strata-vision` (`packaging/build_vision_mac.sh`) | Engine built; the old DMG self-test passed from the mounted image. Inference measurements are in [MAC.md](../docs/MAC.md). The fork's builds go out unsigned until the fork holds its own Developer ID ([mac/README.md](mac/README.md)). |
+| `macos-arm64-metal` | `.tar.gz` (next row) | Metal `strata`, bundled with `strata-vision` (`packaging/build_vision_mac.sh`); both halves in one hand-off folder (`packaging/build_mac_parts.sh`, `release.py build --mac-parts`) | Engine built; the old DMG self-test passed from the mounted image. Inference measurements are in [MAC.md](../docs/MAC.md). The fork's builds go out unsigned until the fork holds its own Developer ID ([mac/README.md](mac/README.md)). |
 | `darwin-arm64` Terminal | self-contained `.tar.gz` (page and Node inside) | any | Built and verified. Runs from a moved directory with no system Python; `deepstrata ui` opened the page from the extracted archive. |
 | `windows-x86_64-cuda` | `.zip` (page and Node inside) | `cuda13` and `cuda12` | Engines built and tested on a Windows PC with an NVIDIA card: a real model, an agent chat. |
 | `windows-x86_64-hip` | `.zip` | `tools/hip/build_windows.bat` | Published. Strix Halo inference is recorded in [STRIX_HALO.md](../docs/STRIX_HALO.md). This does not qualify every discrete Radeon card ([AMD_HIP.md](../docs/AMD_HIP.md)). |

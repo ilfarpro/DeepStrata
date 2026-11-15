@@ -10,8 +10,8 @@ It has to run on the Mac that holds the certificate. It never asks for, reads or
 and the notarytool profile (`strata-notary`); `SIGN_ID` and `NOTARY_PROFILE` override them.
 
 **The fork holds no Developer ID certificate yet**, and those two names are the original product's. Until the fork has a certificate of
-its own the Mac builds ship without a Developer ID and without notarisation. On release day: build the Terminal archive
-(`python packaging/package_terminal.py --target darwin-arm64`), then run
+its own the Mac builds ship without a Developer ID and without notarisation. On release day: build the Mac parts
+(`bash packaging/build_mac_parts.sh`, or the `mac-parts` workflow), then run
 
     bash sign-and-notarize.sh --terminal <the built archive> --dry-run
 

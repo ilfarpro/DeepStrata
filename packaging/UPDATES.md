@@ -234,7 +234,9 @@ then pass the folder to `build --windows-parts`.
 **The macOS parts.** `packaging/build_mac_parts.sh` runs on an Apple Silicon Mac with Xcode Command Line Tools, CMake, Ninja,
 Node 24.12+ and Python 3.10+, plus Apple's metal-cpp and the pinned llama.cpp (`METAL_CPP_DIR` and `STRATA_GGML_DIR` name
 them). It writes the same shape of unsigned parts folder: the Terminal archive (tar.gz), the Qwen Metal engine, the
-`strata-dsv41` engine and `mac-parts.json`, and it runs the Terminal smoke test on that Mac.
+`strata-dsv41` engine and `mac-parts.json`, and it runs the Terminal smoke test on that Mac. The manifest itself is written
+by `packaging/mac/parts_manifest.py`, last and through a temporary name: it hashes what the folder holds, and the release
+tool then writes a manifest with the same script in its own tests, so the two sides of that contract stay in step.
 `build --mac-parts <folder or .zip>` imports it and refuses parts built from another commit or a dirty tree, another
 component version, a missing or failed smoke report, or a file whose hash changed after the manifest was written. No GPU is
 needed: the Metal engine compiles its kernels when it starts, so the build only compiles and links.
@@ -305,7 +307,8 @@ feed carry the component versions, because the updater compares those.
 
 `packaging/mac/sign-and-notarize.sh` still signs and notarises Mac artifacts: `--terminal <archive>` for the Terminal
 archive, `--engine` for an engine package, and its `.app`/dmg paths for whatever desktop artifact an old release still
-points at. **Until the fork holds its own Apple certificate** its Mac builds go out without a Developer ID and without
+points at. It runs on the Mac that holds the certificate, after `build_mac_parts.sh` has built the archive and while the
+parts folder is still there. **Until the fork holds its own Apple certificate** its Mac builds go out without a Developer ID and without
 notarisation, with `--dry-run` running the checks with an ad-hoc signature and touching no Apple account; a downloaded
 archive may warn on the first open and [docs/TROUBLESHOOTING.md](../docs/TROUBLESHOOTING.md) teaches the bypass. With a
 certificate of our own, run the real procedure and the warning is gone.

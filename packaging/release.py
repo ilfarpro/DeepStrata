@@ -1615,6 +1615,23 @@ def _require_built(component: dict[str, dict], name: str, platform: str) -> dict
     return info
 
 
+def check_imported_terminal(directory: Path, terminals: dict, platform: str) -> str:
+    """The Terminal of an imported platform was smoke-tested on that platform, not here: verify trusts that report, and
+    re-hashes the archive so an archive swapped after the import is caught. Returns the line to print on success."""
+    handoff = PARTS_HANDOFFS[platform]
+    info = _require_built(terminals, "terminal", platform)
+    if not info.get("smoke_ok"):
+        raise ReleaseError(f"the imported {handoff['label']} Terminal has no passing smoke report; build the parts on "
+                           f"that platform again without {handoff['skip_smoke']} and import them")
+    archive = directory / info["archive"]
+    if not archive.is_file():
+        raise ReleaseError(f"{archive} is missing; import the {handoff['label']} parts again")
+    if sha256_file(archive) != info.get("sha256"):
+        raise ReleaseError(f"{archive} changed after it was imported; import the {handoff['label']} parts again")
+    return (f"{handoff['label']} Terminal archive: the one the {handoff['label']} build smoke-tested "
+            f"(a {handoff['label']} run is not repeated here)")
+
+
 def _signed_copy(source: Path, destination: Path) -> Path:
     if destination.exists():
         shutil.rmtree(destination)
@@ -1905,23 +1922,9 @@ def cmd_verify(args) -> int:
                 raise ReleaseError(f"the Terminal smoke test failed; see {smoke_path}")
             checks.append("Linux Terminal archive: smoke test (bundled Python, Node, page, mock serve) passed")
     if WINDOWS in targets:
-        info = _require_built(terminals, "terminal", WINDOWS)
-        if not info.get("smoke_ok"):
-            raise ReleaseError("the imported Windows Terminal has no passing smoke report; build the parts on Windows again "
-                               "without -SkipSmoke and import them")
-        archive = directory / info["archive"]
-        if sha256_file(archive) != info.get("sha256"):
-            raise ReleaseError(f"{archive} changed after it was imported; import the Windows parts again")
-        checks.append("Windows Terminal archive: the one the Windows build smoke-tested (a Windows run is not repeated here)")
+        checks.append(check_imported_terminal(directory, terminals, WINDOWS))
     if MAC in targets:
-        info = _require_built(terminals, "terminal", MAC)
-        if not info.get("smoke_ok"):
-            raise ReleaseError("the imported macOS Terminal has no passing smoke report; build the parts on a Mac again "
-                               "without --skip-smoke and import them")
-        archive = directory / info["archive"]
-        if sha256_file(archive) != info.get("sha256"):
-            raise ReleaseError(f"{archive} changed after it was imported; import the macOS parts again")
-        checks.append("macOS Terminal archive: the one the Mac build smoke-tested (a macOS run is not repeated here)")
+        checks.append(check_imported_terminal(directory, terminals, MAC))
     checks.extend(_selection_checks(parsed, targets))
 
     for name in ("install.sh", "install.ps1"):

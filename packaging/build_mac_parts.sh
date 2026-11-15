@@ -113,9 +113,7 @@ jobs_count="$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 mkdir -p "$out/terminal" "$out/smoke"
 
 build_id="${head:0:12}"
-manifest="$out/mac-parts.json"
-terminal_rel=""; terminal_sha=""; terminal_bytes=""; smoke_rel=""; smoke_sha=""
-qwen_rel=""; qwen_sha=""; dsv41_rel=""; dsv41_sha=""
+terminal_rel=""; smoke_rel=""; qwen_rel=""; dsv41_rel=""   # what the manifest names, set below
 
 # ----------------------------------------------------------------- the page
 if want terminal && [ -z "$skip_host" ]; then
@@ -195,54 +193,21 @@ if want dsv41; then
 fi
 
 # ----------------------------------------------------------------- the hand-off manifest
-say "writing mac-parts.json"
-BP_OUT="$out" BP_MANIFEST="$manifest" BP_COMMIT="$head" BP_DIRTY="$dirty" BP_COMPONENT="$component" \
-BP_PRODUCT="$product" BP_HOST="$host_version" BP_TERMINAL="$terminal_rel" BP_SMOKE="$smoke_rel" \
-BP_QWEN="$qwen_rel" BP_DSV41="$dsv41_rel" BP_NODE="$node_version" BP_CLANG="$(clang --version | head -1)" \
-BP_CMAKE="$(cmake --version 2>/dev/null | head -1)" BP_GIT="$(git --version | head -1)" \
-BP_MACOS="$(sw_vers -productVersion 2>/dev/null || echo unknown)" \
-python3 - <<'PY'
-import datetime
-import hashlib
-import json
-import os
-from pathlib import Path
-
-env = os.environ
-root, manifest = Path(env["BP_OUT"]), Path(env["BP_MANIFEST"])
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-components, smoke = {}, {}
-if env["BP_TERMINAL"]:
-    archive = root / env["BP_TERMINAL"]
-    components["terminal"] = {"archive": env["BP_TERMINAL"], "sha256": sha256(archive),
-                              "bytes": archive.stat().st_size, "format": "tar.gz"}
-if env["BP_SMOKE"]:
-    report = root / env["BP_SMOKE"]
-    smoke["terminal"] = {"report": env["BP_SMOKE"], "sha256": sha256(report)}
-for name, key in (("qwen", "BP_QWEN"), ("dsv41", "BP_DSV41")):
-    if env[key]:
-        folder = root / env[key]
-        components[name] = {"folder": env[key], "manifest_sha256": sha256(folder / "engine-component.json")}
-manifest.write_text(json.dumps({
-    "schema_version": 1,
-    "platform": "macos-arm64",
-    "commit": env["BP_COMMIT"],
-    "dirty": env["BP_DIRTY"] == "true",
-    "component_version": env["BP_COMPONENT"],
-    "product_version": env["BP_PRODUCT"],
-    "host_version": env["BP_HOST"],
-    "built_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "source": "packaging/build_mac_parts.sh",
-    "toolchain": {"clang": env["BP_CLANG"], "macos": env["BP_MACOS"], "node": env["BP_NODE"],
-                  "cmake": env["BP_CMAKE"], "git": env["BP_GIT"]},
-    "components": components,
-    "smoke": smoke,
-}, indent=1) + "\n", encoding="utf-8")
-print(f"wrote {manifest}")
-PY
+say "writing mac-parts.json (the hand-off manifest release.py reads)"
+# The manifest is written last, and by a script of its own so the schema it writes is tested on any machine
+# (tests/tools/test_release_tool.py writes one with it and reads it back with release.py).
+manifest_args=(--out "$out" --commit "$head" --component "$component" --product "$product" --host "$host_version")
+[ -z "$terminal_rel" ] || manifest_args+=(--terminal "$terminal_rel")
+[ -z "$smoke_rel" ] || manifest_args+=(--smoke "$smoke_rel")
+[ -z "$qwen_rel" ] || manifest_args+=(--engine "qwen=$qwen_rel")
+[ -z "$dsv41_rel" ] || manifest_args+=(--engine "dsv41=$dsv41_rel")
+manifest_args+=(--toolchain "clang=$(clang --version | head -1)")
+manifest_args+=(--toolchain "macos=$(sw_vers -productVersion 2>/dev/null || echo unknown)")
+manifest_args+=(--toolchain "cmake=$(cmake --version 2>/dev/null | head -1)")
+manifest_args+=(--toolchain "git=$(git --version | head -1)")
+[ -z "$node_version" ] || manifest_args+=(--toolchain "node=$node_version")
+[ "$dirty" = false ] || manifest_args+=(--dirty)
+python3 "$ROOT/packaging/mac/parts_manifest.py" ${manifest_args[@]+"${manifest_args[@]}"} || fail "the manifest was not written"
 
 say "done: $out"
 echo "next, on the release PC:"

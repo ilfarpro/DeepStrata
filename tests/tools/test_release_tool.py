@@ -4,13 +4,16 @@ a GPU or the network."""
 import hashlib
 import importlib.util
 import io
+import contextlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 import unittest
+import unittest.mock
 import zipfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -243,6 +246,28 @@ class Targets(unittest.TestCase):
         self.assertEqual(release.journal_targets({"targets": ["linux-x86_64"]}), ("linux-x86_64",))
         self.assertEqual(release.journal_targets({"targets": ["linux-x86_64", "windows-x86_64"]}),
                          ("linux-x86_64", "windows-x86_64"))
+        self.assertEqual(release.journal_targets({"targets": ["macos-arm64"]}), ("macos-arm64",))
+        self.assertEqual(release.journal_targets({"targets": ["linux-x86_64", "windows-x86_64", "macos-arm64"]}),
+                         ("linux-x86_64", "windows-x86_64", "macos-arm64"))
+
+    def test_the_release_targets_must_be_platforms_this_tool_knows(self):
+        self.assertEqual(release._release_targets({"targets": ["macos-arm64"]}), ("macos-arm64",))
+        with self.assertRaises(release.ReleaseError) as caught:
+            release._release_targets({"targets": ["linux-x86_64", "linux-aarch64"]})
+        self.assertIn("linux-aarch64", str(caught.exception))
+        self.assertIn("cannot assemble", str(caught.exception))
+
+    def test_every_handoff_points_at_a_file_in_the_tree(self):
+        # the messages a release prints tell the operator which script and workflow to run: they must exist
+        for platform, handoff in release.PARTS_HANDOFFS.items():
+            with self.subTest(platform):
+                self.assertTrue((ROOT / handoff["builder"]).is_file(), handoff["builder"])
+                self.assertTrue((ROOT / ".github" / "workflows" / f"{handoff['workflow']}.yml").is_file())
+                self.assertTrue(handoff["manifest"].endswith("-parts.json"))
+                self.assertNotEqual(handoff["short"], "")
+        self.assertEqual(release.PARTS_HANDOFFS[release.MAC]["short"], "mac")
+        self.assertNotEqual(release.PARTS_HANDOFFS[release.MAC]["short"],
+                            release.PARTS_HANDOFFS[release.WINDOWS]["short"])
 
     def test_a_windows_zip_is_a_release_asset(self):
         for name in ("strata-control-0.1.60-windows-x86_64.zip", "strata-terminal-0.1.60-windows-x86_64.zip",
@@ -359,28 +384,30 @@ def _tar_gz(archive: Path, members: dict[str, tuple[bytes, int]]) -> None:
 
 def parts_folder(base: Path, *, platform: str = "windows-x86_64", commit: str = COMMIT, component: str = "0.1.60",
                  product: str = "0.2.12.2", cuda: str = "13.0.88", dirty: bool = False, smoke: bool = True,
-                 smoke_ok: bool = True, schema: int = 1, engines: bool = False) -> Path:
+                 smoke_ok: bool = True, schema: int = 1, engines: bool = False, wrapped: bool = True) -> Path:
     """A folder shaped like the one build_windows.ps1 / build_mac_parts.sh write: the Terminal archive, its smoke
     report, and the `<platform>-parts.json` manifest. `platform` may name any platform, also one the builder
-    would never write the folder for (what a mixed-up hand-off looks like)."""
+    would never write the folder for (what a mixed-up hand-off looks like). `wrapped=False` writes the archive's
+    members at the root instead of under one top-level folder."""
     handoff = release.PARTS_HANDOFFS[platform]
     is_windows = platform == release.WINDOWS
     parts = base / f"build-{handoff['short']}-parts"
+    prefix = "bundle/" if wrapped else ""
     fmt = "zip" if is_windows else "tar.gz"
     suffix = "-windows-x86_64" if is_windows else "-darwin-arm64"
     archive = parts / "terminal" / f"strata-terminal-{component}{suffix}.{fmt}"
     archive.parent.mkdir(parents=True, exist_ok=True)
     if is_windows:
         with zipfile.ZipFile(archive, "w") as zf:
-            zf.writestr("bundle/bin/deepstrata.cmd", "@echo off\r\n")
-            zf.writestr("bundle/host/dist/index.html", "<!doctype html>\n")
-            zf.writestr("bundle/node/node.exe", b"MZ")
-            zf.writestr("bundle/strata.py", "print('strata')\n")
+            zf.writestr(f"{prefix}bin/deepstrata.cmd", "@echo off\r\n")
+            zf.writestr(f"{prefix}host/dist/index.html", "<!doctype html>\n")
+            zf.writestr(f"{prefix}node/node.exe", b"MZ")
+            zf.writestr(f"{prefix}strata.py", "print('strata')\n")
     else:
-        _tar_gz(archive, {"bundle/bin/deepstrata": (b"#!/bin/sh\n", 0o755),
-                          "bundle/host/dist/index.html": (b"<!doctype html>\n", 0o644),
-                          "bundle/node/bin/node": (b"\xcf\xfa\xed\xfe", 0o755),
-                          "bundle/strata.py": (b"print('strata')\n", 0o644)})
+        _tar_gz(archive, {f"{prefix}bin/deepstrata": (b"#!/bin/sh\n", 0o755),
+                          f"{prefix}host/dist/index.html": (b"<!doctype html>\n", 0o644),
+                          f"{prefix}node/bin/node": (b"\xcf\xfa\xed\xfe", 0o755),
+                          f"{prefix}strata.py": (b"print('strata')\n", 0o644)})
     components = {"terminal": {"archive": f"terminal/{archive.name}", "sha256": _sha256(archive),
                                "bytes": archive.stat().st_size, "format": fmt}}
     if engines:
@@ -671,6 +698,531 @@ class MacParts(PartsHandoffMixin, unittest.TestCase):
                 release._import_parts(self.release_directory(base), mac_journal(), mac_parts(base),
                                       ["terminal"], release.WINDOWS, rebuild=True)
             self.assertIn("windows-parts.json", str(caught.exception))
+
+    def test_an_archive_without_a_top_level_folder_is_unpacked_too(self):
+        # package_terminal.py wraps the bundle in one folder today (tarfile.add(root, arcname=...)); a change there must
+        # not leave the imported Terminal's `unpack` pointing at a folder that holds bin/ only one level deeper
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            directory = self.release_directory(base)
+            imported, _ = release._import_parts(directory, mac_journal(),
+                                                mac_parts(base, wrapped=False), ["terminal"], release.MAC,
+                                                rebuild=True)
+            unpack = directory / imported["terminal"]["unpack"]
+            self.assertTrue((unpack / "bin" / "deepstrata").is_file())
+            self.assertTrue((unpack / "node" / "bin" / "node").is_file())
+
+    def test_an_archive_that_is_not_a_terminal_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = mac_parts(base)
+            archive = next((parts / "terminal").glob("*.tar.gz"))
+            _tar_gz(archive, {"bundle/README.txt": (b"nothing here\n", 0o644)})
+            manifest = parts / "mac-parts.json"
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["components"]["terminal"]["sha256"] = _sha256(archive)
+            data["components"]["terminal"]["bytes"] = archive.stat().st_size
+            _write_json(manifest, data)
+            with self.assertRaises(release.ReleaseError) as caught:
+                release._import_parts(self.release_directory(base), mac_journal(), parts, ["terminal"],
+                                      release.MAC, rebuild=True)
+            self.assertIn("bin/deepstrata", str(caught.exception))
+
+
+class ImportedTerminal(unittest.TestCase):
+    """`verify` trusts the smoke report the building platform wrote, and re-hashes the archive so a swap is caught."""
+
+    def imported(self, base: Path, **overrides) -> tuple[Path, dict]:
+        directory = base / "RELEASE" / "0.2.12.2"
+        directory.mkdir(parents=True)
+        archive = directory / "parts" / "mac" / "terminal.tar.gz"
+        archive.parent.mkdir(parents=True)
+        archive.write_bytes(b"the Mac build's Terminal archive")
+        info = {"archive": "parts/mac/terminal.tar.gz", "sha256": _sha256(archive), "smoke_ok": True}
+        info.update(overrides)
+        return directory, {release.MAC: info}
+
+    def test_a_smoke_tested_archive_passes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory, terminals = self.imported(Path(temporary))
+            line = release.check_imported_terminal(directory, terminals, release.MAC)
+            self.assertIn("macOS Terminal archive", line)
+            self.assertIn("not repeated here", line)
+
+    def test_an_archive_without_a_passing_smoke_report_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory, terminals = self.imported(Path(temporary), smoke_ok=False)
+            with self.assertRaises(release.ReleaseError) as caught:
+                release.check_imported_terminal(directory, terminals, release.MAC)
+            self.assertIn("no passing smoke report", str(caught.exception))
+            self.assertIn("--skip-smoke", str(caught.exception))
+
+    def test_an_archive_replaced_after_the_import_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory, terminals = self.imported(Path(temporary))
+            (directory / "parts" / "mac" / "terminal.tar.gz").write_bytes(b"a different archive, same name")
+            with self.assertRaises(release.ReleaseError) as caught:
+                release.check_imported_terminal(directory, terminals, release.MAC)
+            self.assertIn("changed after it was imported", str(caught.exception))
+
+    def test_a_missing_archive_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory, terminals = self.imported(Path(temporary))
+            (directory / "parts" / "mac" / "terminal.tar.gz").unlink()
+            with self.assertRaises(release.ReleaseError) as caught:
+                release.check_imported_terminal(directory, terminals, release.MAC)
+            self.assertIn("is missing", str(caught.exception))
+
+    def test_a_platform_that_was_never_imported_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory, _ = self.imported(Path(temporary))
+            with self.assertRaises(release.ReleaseError) as caught:
+                release.check_imported_terminal(directory, {}, release.MAC)
+            self.assertIn("was not built or imported", str(caught.exception))
+
+
+def release_checkout(base: Path, *, targets: tuple[str, ...] = (release.MAC,), **journal_fields) -> tuple[Path, str]:
+    """A throwaway git checkout holding a plan journal, so `build`/`assemble`/`verify` run their commit and clean-tree
+    checks for real. Returns (the release directory, the commit)."""
+    root = base / "checkout"
+    root.mkdir()
+    (root / ".gitignore").write_text("/RELEASE/\n", encoding="utf-8")
+    (root / "README.txt").write_text("a stand-in checkout\n", encoding="utf-8")
+    git = ["git", "-C", str(root), "-c", "user.email=test@example.com", "-c", "user.name=Test"]
+    subprocess.run(git + ["init", "-q"], check=True)
+    subprocess.run(git + ["add", "."], check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "a stand-in commit"], check=True)
+    commit = subprocess.run(git + ["rev-parse", "HEAD"], check=True, text=True,
+                            capture_output=True).stdout.strip()
+    directory = root / "RELEASE" / "0.2.12.2"
+    directory.mkdir(parents=True)
+    journal = {"schema_version": 1, "release": "0.2.12.2", "commit": commit,
+               "component_version": "0.1.60", "product_version": "0.2.12.2", "host_version": "0.2.12.2",
+               "targets": list(targets), "steps": {"plan": {"ok": True}}}
+    journal.update(journal_fields)
+    _write_json(directory / "release.json", journal)
+    return directory, commit
+
+
+def build_mac_release(root_of_release: Path, parts: Path | None) -> None:
+    args = SimpleNamespace(release=None, root=str(root_of_release), only=None, rebuild=False,
+                           rebuild_host=False, cuda_root=None, windows_parts=None,
+                           mac_parts=None if parts is None else str(parts))
+    release.cmd_build(args)
+
+
+class MacOnlyBuild(unittest.TestCase):
+    """`release.py build` end to end for a release that carries only macOS: no CUDA, no npm, no Mac."""
+
+    def make_release(self, base: Path, **overrides) -> tuple[Path, str]:
+        return release_checkout(base, **overrides)
+
+    def build(self, root_of_release: Path, parts: Path | None) -> None:
+        build_mac_release(root_of_release, parts)
+
+    def test_the_mac_parts_are_imported_and_recorded(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            directory, commit = self.make_release(base)
+            self.build(directory.parent.parent, mac_parts(base, commit=commit, engines=True))
+            journal = json.loads((directory / "release.json").read_text(encoding="utf-8"))
+            build = journal["steps"]["build"]
+            self.assertTrue(build["ok"])
+            self.assertEqual(build["targets"], [release.MAC])
+            self.assertEqual(sorted(build["components"]), ["dsv41", "qwen", "terminal"])
+            terminal = build["components"]["terminal"][release.MAC]
+            self.assertTrue((directory / terminal["unpack"] / "bin" / "deepstrata").is_file())
+            self.assertTrue(terminal["smoke_ok"])
+            self.assertEqual(build["mac_parts"]["components"], ["dsv41", "qwen", "terminal"])
+            for name in ("qwen", "dsv41"):
+                self.assertTrue((directory / "logs" / f"verify-mac-{name}.log").is_file())
+
+    def test_a_second_build_reuses_the_journal_without_the_parts_folder(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            directory, commit = self.make_release(base)
+            root = directory.parent.parent
+            self.build(root, mac_parts(base, commit=commit, engines=True))
+            before = json.loads((directory / "release.json").read_text(encoding="utf-8"))["steps"]["build"]
+            self.build(root, None)                     # the journal already names the imported parts
+            after = json.loads((directory / "release.json").read_text(encoding="utf-8"))["steps"]["build"]
+            self.assertEqual(sorted(after["components"]), sorted(before["components"]))
+            self.assertEqual(after["components"]["terminal"][release.MAC]["sha256"],
+                             before["components"]["terminal"][release.MAC]["sha256"])
+
+    def test_a_mac_target_without_parts_is_refused_with_what_to_run(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            directory, _ = self.make_release(base)
+            with self.assertRaises(release.ReleaseError) as caught:
+                self.build(directory.parent.parent, None)
+            message = str(caught.exception)
+            self.assertIn("the macOS parts are missing", message)
+            self.assertIn("build_mac_parts.sh", message)
+            self.assertIn("--mac-parts", message)
+
+    def test_parts_from_another_commit_are_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            directory, _ = self.make_release(base)
+            with self.assertRaises(release.ReleaseError) as caught:
+                self.build(directory.parent.parent, mac_parts(base, commit="b" * 40, engines=True))
+            self.assertIn("was built from", str(caught.exception))
+
+    def test_a_directory_with_uncommitted_changes_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            directory, commit = self.make_release(base)
+            (directory.parent.parent / "README.txt").write_text("changed\n", encoding="utf-8")
+            with self.assertRaises(release.ReleaseError) as caught:
+                self.build(directory.parent.parent, mac_parts(base, commit=commit))
+            self.assertIn("uncommitted changes", str(caught.exception))
+
+
+class CommandLine(unittest.TestCase):
+    """The flags an operator types: the three platforms and both parts hand-offs must be accepted by the parser."""
+
+    def parse(self, *argv):
+        parser = release.build_parser()
+        return parser.parse_args(list(argv))
+
+    def test_every_target_is_accepted_and_macos_is_the_default_release(self):
+        for target in release.TARGETS:
+            with self.subTest(target):
+                self.assertEqual(self.parse("plan", "--target", target).target, [target])
+        self.assertEqual(self.parse("plan").target, None)
+        with self.assertRaises(SystemExit):
+            self.parse("plan", "--target", "linux-aarch64")
+
+    def test_both_parts_hand_offs_take_a_folder_or_a_zip(self):
+        parsed = self.parse("build", "--windows-parts", "a.zip", "--mac-parts", "b")
+        self.assertEqual(parsed.windows_parts, Path("a.zip"))
+        self.assertEqual(parsed.mac_parts, Path("b"))
+        self.assertIsNone(self.parse("build").mac_parts)
+
+    def test_the_help_names_the_third_platform(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), contextlib.suppress(SystemExit):
+            release.main(["plan", "--help"])
+        self.assertIn("macos-arm64", output.getvalue())
+
+
+class ManifestWriter(unittest.TestCase):
+    """`packaging/mac/parts_manifest.py` and `release.py` are two sides of one contract: this writes a folder's manifest
+    with the script the Mac build calls last, then imports that folder with the release tool."""
+
+    script = ROOT / "packaging" / "mac" / "parts_manifest.py"
+
+    def release_directory(self, base: Path) -> Path:
+        directory = base / "RELEASE" / "0.2.12.2"
+        directory.mkdir(parents=True)
+        return directory
+
+    def write(self, parts: Path, *extra, **overrides) -> subprocess.CompletedProcess:
+        args = {"--commit": COMMIT, "--component": "0.1.60", "--product": "0.2.12.2", "--host": "0.2.12.2"}
+        args.update(overrides)
+        command = [sys.executable, str(self.script), "--out", str(parts)]
+        for name, value in args.items():
+            command += [name, value]
+        command += ["--toolchain", "clang=Apple clang version 17.0.0", *extra]
+        return subprocess.run(command, cwd=str(ROOT), capture_output=True, text=True)
+
+    def parts_with_terminal(self, base: Path) -> Path:
+        parts = base / "build-mac-parts"
+        archive = parts / "terminal" / "strata-terminal-0.1.60-darwin-arm64.tar.gz"
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        _tar_gz(archive, {"bundle/bin/deepstrata": (b"#!/bin/sh\n", 0o755),
+                          "bundle/host/dist/index.html": (b"<!doctype html>\n", 0o644),
+                          "bundle/node/bin/node": (b"\xcf\xfa\xed\xfe", 0o755)})
+        _write_json(parts / "smoke" / "smoke-terminal.json",
+                    {"ok": True, "archive": archive.name,
+                     "checks": {name: {"ok": True} for name in SMOKE_CHECKS}})
+        return parts
+
+    def test_the_manifest_it_writes_is_the_one_release_reads(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = self.parts_with_terminal(base)
+            result = self.write(parts, "--terminal", "terminal/strata-terminal-0.1.60-darwin-arm64.tar.gz",
+                                "--smoke", "smoke/smoke-terminal.json")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((parts / "mac-parts.json").is_file())
+            self.assertFalse((parts / "mac-parts.json.tmp").exists())      # written through a temporary name, then renamed
+            manifest = release._read_parts_manifest(parts, release.MAC)
+            self.assertEqual(manifest["platform"], release.MAC)
+            self.assertEqual(list(manifest["components"]), ["terminal"])
+            self.assertEqual(manifest["toolchain"], {"clang": "Apple clang version 17.0.0"})
+            release._check_parts(manifest, mac_journal(), parts, release.MAC)
+            imported, _ = release._import_parts(self.release_directory(base), mac_journal(), parts,
+                                                ["terminal"], release.MAC, rebuild=True)
+            self.assertTrue(imported["terminal"]["smoke_ok"])
+
+    def test_engine_folders_are_hashed_and_imported(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = self.parts_with_terminal(base)
+            folder = make_engine_mac(base, parts / "engines", entry="strata")
+            result = self.write(parts, "--terminal", "terminal/strata-terminal-0.1.60-darwin-arm64.tar.gz",
+                                "--smoke", "smoke/smoke-terminal.json",
+                                "--engine", f"qwen=engines/{folder.name}")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = release._read_parts_manifest(parts, release.MAC)
+            self.assertEqual(manifest["components"]["qwen"]["manifest_sha256"],
+                             _sha256(folder / "engine-component.json"))
+            imported, record = release._import_parts(self.release_directory(base), mac_journal(), parts,
+                                                     ["terminal", "qwen"], release.MAC, rebuild=True)
+            self.assertEqual(sorted(imported), ["qwen", "terminal"])
+            self.assertEqual(record["components"], ["qwen", "terminal"])
+
+    def test_a_folder_with_nothing_in_it_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            parts = self.parts_with_terminal(Path(temporary))
+            result = self.write(parts)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("nothing to record", result.stderr)
+            self.assertFalse((parts / "mac-parts.json").exists())
+
+    def test_a_missing_file_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = self.parts_with_terminal(base)
+            result = self.write(parts, "--terminal", "terminal/not-there.tar.gz")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("not a file", result.stderr)
+            self.assertFalse((parts / "mac-parts.json").exists(), "a refused run must write no manifest")
+
+    def test_an_engine_folder_without_a_manifest_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = self.parts_with_terminal(base)
+            (parts / "engines" / "half-built").mkdir(parents=True)
+            result = self.write(parts, "--engine", "qwen=engines/half-built")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("engine-component.json", result.stderr)
+
+    def test_an_engine_name_it_does_not_know_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = self.parts_with_terminal(base)
+            result = self.write(parts, "--engine", "qwen3=engines/x")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("--engine expects", result.stderr)
+
+    def test_a_dirty_tree_is_recorded_and_then_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = self.parts_with_terminal(base)
+            result = self.write(parts, "--terminal", "terminal/strata-terminal-0.1.60-darwin-arm64.tar.gz", "--dirty")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = release._read_parts_manifest(parts, release.MAC)
+            self.assertTrue(manifest["dirty"])
+            with self.assertRaises(release.ReleaseError) as caught:
+                release._check_parts(manifest, mac_journal(), parts, release.MAC)
+            self.assertIn("uncommitted tree", str(caught.exception))
+
+    def test_another_component_version_is_refused_by_the_release_tool(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            parts = self.parts_with_terminal(base)
+            self.assertEqual(self.write(parts, "--terminal", "terminal/strata-terminal-0.1.60-darwin-arm64.tar.gz",
+                                        "--component", "0.1.59").returncode, 0)
+            manifest = release._read_parts_manifest(parts, release.MAC)
+            with self.assertRaises(release.ReleaseError) as caught:
+                release._check_parts(manifest, mac_journal(), parts, release.MAC)
+            self.assertIn("carries component", str(caught.exception))
+
+
+class MacReleaseChain(unittest.TestCase):
+    """The whole release side for a macOS-only release, end to end and offline: a plan journal, `build` importing a Mac
+    parts folder, `assemble` with a throwaway key, and `verify`. Nothing here touches GitHub, a GPU or the network."""
+
+    def make_key(self, base: Path) -> tuple[Path, str]:
+        keys = base / "keys"
+        subprocess.run([sys.executable, "packaging/feed_tool.py", "keygen", "--out", str(keys)],
+                       cwd=str(ROOT), check=True, capture_output=True, text=True)
+        public = json.loads((keys / "feed-key.pub.json").read_text(encoding="utf-8"))
+        return keys / "feed-key.json", public["keys"][0]["key_id"]
+
+    @contextlib.contextmanager
+    def trusted(self, keys: Path):
+        """Trust the throwaway key for this run: `assemble` and `verify` otherwise insist on the key the build ships."""
+        trusted = release.signing.load_trusted_keys(str(keys / "feed-key.pub.json"))
+        with unittest.mock.patch.object(release.signing, "load_trusted_keys", return_value=trusted):
+            yield
+
+    def test_a_macos_only_release_assembles_into_a_feed_that_serves_the_mac(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            key_path, key_id = self.make_key(base)
+            directory, commit = release_checkout(base, sequence=1, key_id=key_id)
+            root = directory.parent.parent
+            build_mac_release(root, mac_parts(base, commit=commit, engines=True))
+
+            with self.trusted(base / "keys"):
+                release.cmd_assemble(SimpleNamespace(release=None, root=str(root), key=str(key_path),
+                                                     expires_days=None))
+            feed = directory / "feed"
+            self.assertTrue((feed / "strata-feed.json").is_file())
+            self.assertTrue((feed / "strata-feed.json.sig").is_file())
+            self.assertTrue((feed / "strata-control-0.1.60-macos-arm64.tar.gz").is_file())
+            self.assertTrue((feed / "strata-engine-0.1.60-macos-arm64-metal.tar.gz").is_file())
+            self.assertTrue((feed / "strata-dsv41-0.1.60-macos-arm64-metal.tar.gz").is_file())
+            manifest = (feed / "install-manifest.txt").read_text(encoding="utf-8")
+            self.assertIn("macos-arm64", manifest)
+            journal = json.loads((directory / "release.json").read_text(encoding="utf-8"))
+            self.assertTrue(journal["steps"]["assemble"]["ok"])
+
+            with self.trusted(base / "keys"):
+                release.cmd_verify(SimpleNamespace(release=None, root=str(root), skip_smoke=True))
+            report = json.loads((directory / "verify.json").read_text(encoding="utf-8"))
+            self.assertTrue(report["ok"])
+            self.assertIn("macOS Terminal archive: the one the macOS build smoke-tested (a macOS run is not repeated here)",
+                          report["checks"])
+            self.assertIn("select_engine picks the metal engine on macos-arm64", report["checks"])
+
+    def test_verify_refuses_a_mac_archive_replaced_after_assemble(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            key_path, key_id = self.make_key(base)
+            directory, commit = release_checkout(base, sequence=1, key_id=key_id)
+            root = directory.parent.parent
+            build_mac_release(root, mac_parts(base, commit=commit, engines=True))
+            with self.trusted(base / "keys"):
+                release.cmd_assemble(SimpleNamespace(release=None, root=str(root), key=str(key_path),
+                                                     expires_days=None))
+            journal = json.loads((directory / "release.json").read_text(encoding="utf-8"))
+            archive = directory / journal["steps"]["build"]["components"]["terminal"][release.MAC]["archive"]
+            archive.write_bytes(archive.read_bytes() + b"a late edit")
+            with self.trusted(base / "keys"):
+                with self.assertRaises(release.ReleaseError) as caught:
+                    release.cmd_verify(SimpleNamespace(release=None, root=str(root), skip_smoke=True))
+            self.assertIn("changed after it was imported", str(caught.exception))
+
+
+class MacPackageLayout(unittest.TestCase):
+    """The stage `packaging/build_mac_parts.sh` builds for the Qwen engine, with the tree's real kernel sources and
+    shipped tables (only the two binaries are stand-ins). It must package and verify, and the package must carry
+    everything `metal/src/resource_path.h` says the engine reads at start."""
+
+    def test_the_staged_layout_packages_and_carries_the_runtime_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            stage = base / "stage"
+            (stage / "metal").mkdir(parents=True)
+            for binary in ("strata", "strata-vision"):
+                (stage / binary).write_bytes(b"\xcf\xfa\xed\xfe")
+                (stage / binary).chmod(0o755)
+            (stage / "LICENSE").write_text("DeepStrata\n", encoding="utf-8")
+            shutil.copytree(ROOT / "metal" / "kernels", stage / "metal" / "kernels")
+            shutil.copytree(ROOT / "metal" / "src" / "engine" / "msl", stage / "metal" / "engine-msl")
+            shutil.copy2(ROOT / "third_party" / "ggml" / "ggml-common.h", stage / "metal" / "ggml-common.h")
+            (stage / "metal" / "data").mkdir()
+            for name in ("expert-profile.bin", "draft_vocab.bin"):
+                shutil.copy2(ROOT / "data" / name, stage / "metal" / "data" / name)
+            subprocess.run([sys.executable, "packaging/package_engine.py", "--src", str(stage), "--backend", "metal",
+                            "--version", "0.1.60", "--out", str(base / "engines"), "--platform", "macos-arm64",
+                            "--arch", "apple-gpu", "--entrypoint", "strata", "--build-id", "abcdef123456",
+                            "--include", "metal/**"],
+                           cwd=str(ROOT), check=True, capture_output=True, text=True)
+            folder = base / "engines" / "0.1.60-macos-arm64-metal"
+            subprocess.run([sys.executable, "packaging/package_engine.py", "--verify", str(folder)],
+                           cwd=str(ROOT), check=True, capture_output=True, text=True)
+            files = {path.relative_to(folder).as_posix() for path in folder.rglob("*") if path.is_file()}
+            for wanted in ("strata", "strata-vision", "metal/ggml-common.h",
+                           "metal/data/expert-profile.bin", "metal/data/draft_vocab.bin",
+                           "metal/kernels/quant.metal", "metal/engine-msl/mtp.metal"):
+                with self.subTest(wanted):
+                    self.assertIn(wanted, files)
+
+    def test_a_stage_without_the_picture_reader_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            stage = base / "stage"
+            stage.mkdir()
+            (stage / "strata").write_bytes(b"\xcf\xfa\xed\xfe")
+            result = subprocess.run([sys.executable, "packaging/package_engine.py", "--src", str(stage),
+                                     "--backend", "metal", "--version", "0.1.60", "--out", str(base / "engines"),
+                                     "--platform", "macos-arm64", "--arch", "apple-gpu",
+                                     "--entrypoint", "strata"],
+                                    cwd=str(ROOT), capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("strata-vision", result.stdout + result.stderr)
+
+
+class HandoffScripts(unittest.TestCase):
+    """The parts builders themselves: the flags release.py's messages tell an operator to pass must exist, and the macOS
+    one must refuse to run anywhere but an Apple Silicon Mac. Its build is only validated on real hardware."""
+
+    script = ROOT / "packaging" / "build_mac_parts.sh"
+    workflow = ROOT / ".github" / "workflows" / "mac-parts.yml"
+
+    def test_the_script_is_there_and_executable(self):
+        self.assertTrue(self.script.is_file())
+        self.assertTrue(os.access(self.script, os.X_OK), "packaging/build_mac_parts.sh must be executable")
+
+    def test_the_shell_syntax_is_valid(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("bash is not installed")
+        result = subprocess.run([bash, "-n", str(self.script)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_the_help_lists_every_flag_the_release_can_ask_for(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("bash is not installed")
+        result = subprocess.run([bash, str(self.script), "--help"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0)
+        for flag in ("--out", "--commit", "--version", "--only", "--skip-host", "--skip-smoke", "--allow-dirty"):
+            with self.subTest(flag):
+                self.assertIn(flag, result.stdout)
+        self.assertIn(release.PARTS_HANDOFFS[release.MAC]["manifest"], result.stdout)
+
+    def test_an_unknown_flag_is_refused(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("bash is not installed")
+        result = subprocess.run([bash, str(self.script), "--not-a-flag"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("unknown argument", result.stderr)
+
+    def test_the_script_names_the_manifest_and_takes_the_flags_release_mentions(self):
+        text = self.script.read_text(encoding="utf-8")
+        self.assertIn(release.PARTS_HANDOFFS[release.MAC]["manifest"], text)
+        for flag in (release.PARTS_HANDOFFS[release.MAC]["dirty_flag"],
+                     release.PARTS_HANDOFFS[release.MAC]["skip_smoke"],
+                     release.PARTS_HANDOFFS[release.MAC]["only_flag"]):
+            with self.subTest(flag):
+                self.assertIn(flag, text)
+        # the manifest itself is written by a script of its own, so the schema can be tested on any machine
+        writer = ROOT / "packaging" / "mac" / "parts_manifest.py"
+        self.assertIn("parts_manifest.py", text)
+        writer_text = writer.read_text(encoding="utf-8")
+        self.assertIn(f'PLATFORM = "{release.MAC}"', writer_text)
+        self.assertIn(f"SCHEMA = {release.PARTS_SCHEMA}", writer_text)
+        self.assertIn(f'MANIFEST = "{release.PARTS_HANDOFFS[release.MAC]["manifest"]}"', writer_text)
+
+    def test_it_refuses_to_build_off_an_apple_silicon_mac(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("bash is not installed")
+        if sys.platform == "darwin":
+            # on a Mac the script would really build: its live run is the mac-parts workflow, not this test
+            self.skipTest("this check only means something away from macOS")
+        result = subprocess.run([bash, str(self.script)], capture_output=True, text=True, timeout=120)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Apple Silicon Mac", result.stderr)
+
+    def test_the_workflow_runs_the_script_on_a_hosted_mac(self):
+        text = self.workflow.read_text(encoding="utf-8")
+        self.assertIn("packaging/build_mac_parts.sh", text)
+        self.assertIn("macos-26", text)
+        self.assertIn("workflow_dispatch", text)
+        self.assertIn("build-mac-parts", text)
+        # the pins the Metal build check uses: metal-cpp and llama.cpp fetched outside the checkout the script requires clean
+        self.assertIn("METAL_CPP_SHA256", text)
+        self.assertIn("LLAMA_CPP_COMMIT", text)
+        self.assertIn("RUNNER_TEMP", text)
 
 
 def engine_package(feed: Path, platform: str, *, version: str = "0.1.60",

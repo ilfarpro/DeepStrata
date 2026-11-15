@@ -97,7 +97,8 @@ multi-GPU path, not a hypothetical one.
 | `eab2eea` | a start says when another program holds a GPU's memory | planned |
 | `c1e95b2` | `STRATA_DS4_RAM_MARGIN_GB` for the memory planning (default 8 GiB) | done |
 | `e0c6d59` | the Engram `mlock` error names the memlock limit and the `limits.d` fix | planned |
-| `772f483`, `68ef483` | EXL3 packs: an F16 dense matrix loads as BF16; the packer takes a BF16 head, INT4 Engram tables, type-ordered shards | check whether we read such packs |
+| `772f483` | EXL3 packs: an F16 dense matrix loads as BF16 | done (model load maps F16 to BF16; such a pack still to be run) |
+| `68ef483` | the packer takes a BF16 head, INT4 Engram tables, type-ordered shards | planned (a packing tool, not the engine) |
 | `2d30b9d` | a request with pictures, logprobs or ablation runs on one GPU instead of being refused | only with the mixed helper; skip |
 | `afcbcad` | LF line endings (no content change) | skip |
 | `206f800` | Windows build of the two-GPU helper | no helper here; skip |
@@ -137,3 +138,4 @@ multi-GPU path, not a hypothetical one.
 | faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | `strata-dsv41` builds; load A/B still to run |
 | `ignore_eos` and `logit_bias` | engine reports `INFO logit_bias=1`; the server turns `ignore_eos: true` into a ban of the end tokens | `pytest tests/serve/test_logit_bias.py` (15 pass, 1 pre-existing environment failure) |
 | RAM margin | `STRATA_DS4_RAM_MARGIN_GB` (8): planning headroom, read once | `strata-dsv41` builds |
+| EXL3 F16 dense | an F16 matrix loads as BF16 at model load | `strata-dsv41` builds; a pack with an F16 `engram.wkv` still to be run |

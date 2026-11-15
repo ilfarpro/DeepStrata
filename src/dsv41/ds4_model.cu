@@ -317,6 +317,13 @@ float bf16_to_f32(uint16_t b) {
     std::memcpy(&f, &u, 4);
     return f;
 }
+// a float as BF16, rounded to nearest even (a NaN stays a quiet NaN)
+static uint16_t f32_to_bf16(float f) {
+    uint32_t u;
+    std::memcpy(&u, &f, 4);
+    if ((u & 0x7fffffffu) > 0x7f800000u) return (uint16_t) (u >> 16 | 0x40u);
+    return (uint16_t) ((u + 0x7fffu + (u >> 16 & 1u)) >> 16);
+}
 float f16_to_f32(uint16_t h) {
     const uint32_t s = (uint32_t) (h >> 15) << 31, e = (h >> 10) & 0x1f, m = h & 0x3ff;
     uint32_t u;
@@ -2143,6 +2150,9 @@ struct Model::Impl {
     bool mat_bf16(Dev& d, const std::string& pre, const Tensor& t, x3::Mat& m, std::string& err, size_t* acct, int part,
                   int np, bool cols) {
         const bool q8 = t.dtype == "Q8_0";
+        // an F16 matrix (turboderp's EXL3 packs keep engram.wkv so): read as F16, then BF16 on the host, as every BF16
+        // dense matrix here runs.  Project Maya 772f483.
+        const bool f16 = t.dtype == "F16";
         // a ggml K-quant dense matrix (Q4_K / Q5_K / Q6_K: 256 values a block; the GEMV path of ds4_iq)
         const int ggt = (t.dtype == "Q4_K" || t.dtype == "Q5_K" || t.dtype == "Q6_K") ? gg_type_of(t.dtype) : -1;
         if (ggt > 0) return mat_gg(d, pre, t, ggt, m, err, acct, part, np, cols);
@@ -2157,6 +2167,10 @@ struct Model::Impl {
         if (t.bytes != w.size() || !pk.read(t, w.data())) {
             err = pre + ": read failed";
             return false;
+        }
+        if (f16) {   // (2 bytes a value either way: the rest of this reads it as BF16)
+            uint16_t* h = (uint16_t*) w.data();
+            for (size_t i = 0; i < w.size() / 2; ++i) h[i] = f32_to_bf16(f16_to_f32(h[i]));
         }
         if (np > 1) {
             const int whole = cols ? n : k, wd = whole / np;
@@ -2207,7 +2221,7 @@ struct Model::Impl {
     // splits evenly, its groups only as wide as that goes)
     bool mat(Dev& d, const std::string& pre, x3::Mat& m, std::string& err, size_t* acct, int part = 0, int np = 1,
              bool cols = true, int rot = 0) {
-        if (const Tensor* tw = pk.get(pre + ".weight"); tw != nullptr && (tw->dtype == "BF16" || tw->dtype == "Q8_0" || tw->dtype == "Q4_K" || tw->dtype == "Q5_K" || tw->dtype == "Q6_K"))
+        if (const Tensor* tw = pk.get(pre + ".weight"); tw != nullptr && (tw->dtype == "BF16" || tw->dtype == "F16" || tw->dtype == "Q8_0" || tw->dtype == "Q4_K" || tw->dtype == "Q5_K" || tw->dtype == "Q6_K"))
             return mat_bf16(d, pre, *tw, m, err, acct, part, np, cols);
         const Tensor* tr = pk.get(pre + ".trellis");
         const Tensor* su = pk.get(pre + ".suh");

@@ -75,8 +75,8 @@ multi-GPU path, not a hypothetical one.
 | Maya | What | Measurement | Status |
 |---|---|---|---|
 | `18ada27`, `6b1119f`, `f692477` | `q8_mv` (Q8_0 GEMV) on the tensor cores for 3 to 16 columns (`STRATA_DS4_Q8MV_TC`), same bits, sm_80+ CUDA | opt-in; no default speed claim | done |
-| `b4f78bb` | indexer slab rows from this prompt's keys, not `--max-context` (`DS4_AI_RUN`), same answers | VRAM only (128 rows) | planned |
-| `335f4f1`, `027992c` | load reads the shards round-robin (`MAYA_DS4_LOAD_INTERLEAVE`), same bytes, on | EXL3 2.9: 109 -> 75 s load | planned |
+| `b4f78bb` | indexer slab rows from this prompt's keys, not `--max-context` (`STRATA_DS4_AI_RUN`), same answers | VRAM only (128 rows) | done |
+| `335f4f1`, `027992c` | load reads the shards round-robin (`STRATA_DS4_LOAD_INTERLEAVE`, on), `STRATA_DS4_LOAD_THREADS`, `STRATA_DS4_LOAD_DROP_CACHE` | EXL3 2.9: 109 -> 75 s load | done |
 | `50a3313` (#639) | one-launch attention for a step of several requests (`MAYA_DS4_MULTI_ATTN`), same bits, on | 43.9 -> 49.3 tok/s aggregate (8 GPUs, `--parallel 2`) | planned |
 | `7f431b6` | `STRATA_DS4_READ_ORDER=arrival`: prompts read in arrival order, answers write between pieces | agent p95 first token 13.5 s against 29.1 s (3 GPUs) | done |
 | `807f3f0` (#772) | `ignore_eos` (run to `max_tokens`) and `logit_bias` on DeepSeek | 4-token answer -> 200 of 200 | planned |
@@ -133,3 +133,5 @@ multi-GPU path, not a hypothetical one.
 | `q8_mv` tensor cores | `STRATA_DS4_Q8MV_TC` (off): 3..16 columns, same bits, sm_80+ | `strata-dsv41` builds (CUDA); no GPU here, so no A/B yet |
 | prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | `strata-dsv41` builds (CUDA); the GPU test and quality gate still to run |
 | prompt read order | `STRATA_DS4_READ_ORDER=arrival` (off): a prompt keeps its place in line; pieces beside a running answer | `strata-dsv41` builds; server-side A/B with `--parallel` still to run |
+| indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt, same answers | `strata-dsv41` builds; no GPU to measure |
+| faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | `strata-dsv41` builds; load A/B still to run |

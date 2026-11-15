@@ -6319,6 +6319,13 @@ struct Model::Impl {
         return ram_part[(size_t) sl][0] + cp_lay[(size_t) l.il][(size_t) r] + zc_delta[(size_t) sl];
     }
 
+    // STRATA_DS4_LOAD_DROP_CACHE (on): once an expert's bytes are copied into VRAM or RAM, drop their pages from
+    // the file cache (posix_fadvise DONTNEED) instead of holding the same bytes twice; 0 keeps them (a restart
+    // starts warm).  Project Maya 1523a07, by @Ross-Yang-94.
+    static bool load_drop_cache() {
+        const char* v = std::getenv("STRATA_DS4_LOAD_DROP_CACHE");
+        return v == nullptr || std::atoi(v) != 0;
+    }
     bool load_experts(std::string& err) {
         if (!L.empty() && L[0].lay.fmt == gg::kFmtMXFP4) return load_experts_mx(err);
         // every expert's region, in file order, by a few threads; VRAM ones through a pinned staging blob.  In place
@@ -6356,11 +6363,41 @@ struct Model::Impl {
                 return la.region_file[(size_t) a.e] < lb.region_file[(size_t) b.e];
             return la.region_off[(size_t) a.e] < lb.region_off[(size_t) b.e];
         });
+        // STRATA_DS4_LOAD_INTERLEAVE (on unless 0, Project Maya 1523a07, by @Ross-Yang-94): the files round-robin -
+        // the first expert of each file, then the second, ... - so the threads read several files at once (a pack
+        // split over two drives streams both).  0: file by file.
+        if (const char* iv = std::getenv("STRATA_DS4_LOAD_INTERLEAVE");
+            iv == nullptr || *iv == 0 || std::atoi(iv) != 0) {
+            std::vector<int> rank(jobs.size());
+            int cur = -1, r = 0;
+            for (size_t i = 0; i < jobs.size(); ++i) {
+                const int f = L[(size_t) jobs[i].layer].region_file[(size_t) jobs[i].e];
+                if (f != cur) {
+                    cur = f;
+                    r = 0;
+                }
+                rank[i] = r++;
+            }
+            std::vector<size_t> idx(jobs.size());
+            for (size_t i = 0; i < idx.size(); ++i) idx[i] = i;
+            std::sort(idx.begin(), idx.end(), [&](size_t a, size_t b) {
+                if (rank[a] != rank[b]) return rank[a] < rank[b];
+                return L[(size_t) jobs[a].layer].region_file[(size_t) jobs[a].e] <
+                       L[(size_t) jobs[b].layer].region_file[(size_t) jobs[b].e];
+            });
+            std::vector<Job> sorted;
+            sorted.reserve(jobs.size());
+            for (size_t i : idx) sorted.push_back(jobs[i]);
+            jobs.swap(sorted);
+        }
+        const bool drop_cache = load_drop_cache();
         std::atomic<size_t> next{0};
         std::atomic<bool> failed{false};
         std::mutex emu;
         std::string ferr;
-        const int nth = 12;
+        // STRATA_DS4_LOAD_THREADS (12): the threads that read the experts' regions.
+        const char* ntv = std::getenv("STRATA_DS4_LOAD_THREADS");
+        const int nth = std::max(1, ntv != nullptr ? std::atoi(ntv) : 12);
         size_t maxr = 0, maxb = 0;
         for (const Layer& l : L) {
             maxb = std::max(maxb, l.blob);
@@ -6408,10 +6445,14 @@ struct Model::Impl {
                             failed.store(true);
                             break;
                         }
-                        if (file_experts)
-                            os::advise(pk.fds[(size_t) l.region_file[(size_t) e]], l.region_off[(size_t) e], l.region_bytes[(size_t) e], false);
+                        if (drop_cache)
+                            os::advise(pk.fds[(size_t) l.region_file[(size_t) e]], l.region_off[(size_t) e],
+                                       l.region_bytes[(size_t) e], false);
                     } else if (!file_experts) {
                         for (int X = 0; X < NH; ++X) repack_part(l, region.data(), X, l.hh[(size_t) e][(size_t) X]);
+                        if (drop_cache)   // copied into RAM: the pages are dead (in place, the CPU lane *is* the cache)
+                            os::advise(pk.fds[(size_t) l.region_file[(size_t) e]], l.region_off[(size_t) e],
+                                       l.region_bytes[(size_t) e], false);
                     }
                     const int64_t db = done_bytes.fetch_add((int64_t) l.region_bytes[(size_t) e]) +
                                        (int64_t) l.region_bytes[(size_t) e];

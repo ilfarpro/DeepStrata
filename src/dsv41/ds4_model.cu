@@ -1214,6 +1214,16 @@ struct Model::Impl {
     // first request that has penalties; each pick waits for its stream, so the next one's rows never overwrite them
     int pen_n = 0;
     float pen_repeat = 1.0f, pen_freq = 0.0f, pen_present = 0.0f;
+    // the request's logit_bias (Model::set_logit_bias, GEN logit_bias=<id>:<bias>,...): a row of g.vocab biases on the
+    // head device that every pick of the request adds to its logits (sample, verify, the multi steps' picks; not the
+    // drafter's own proposals, which the verify then judges by the biased logits).  nullptr: none.  The last few rows
+    // stay, keyed by their entries, so the requests of a --parallel step do not upload theirs at each token
+    const float* cur_bias = nullptr;
+    struct BiasRow {
+        std::string key;
+        float* row = nullptr;
+    };
+    std::vector<BiasRow> bias_rows;
     static constexpr int kPenCap = 4096;
     int32_t* h_pen = nullptr;
     int32_t* d_pen = nullptr;
@@ -11373,6 +11383,42 @@ struct Model::Impl {
         return d_pen;
     }
 
+    void set_logit_bias(const std::vector<std::pair<int, float>>& e) {
+        cur_bias = nullptr;
+        if (e.empty()) return;
+        std::string key;
+        for (const auto& [id, b] : e) key += std::to_string(id) + ':' + std::to_string(b) + ',';
+        for (BiasRow& r : bias_rows)
+            if (r.key == key) {
+                cur_bias = r.row;
+                return;
+            }
+        Dev& d = devs[(size_t) head_dev];
+        cudaSetDevice(d.id);
+        BiasRow r;
+        if (bias_rows.size() >= 4) {   // (the oldest row again: its last pick is done before it is written)
+            r = bias_rows.front();
+            bias_rows.erase(bias_rows.begin());
+            cudaStreamSynchronize(d.st);
+        } else {
+            std::string err;
+            if (!dalloc(d, r.row, (size_t) g.vocab, err)) {
+                std::fprintf(stderr, "ds4: the logit_bias row: %s - this request's picks without it\n", err.c_str());
+                return;
+            }
+        }
+        std::vector<float> h((size_t) g.vocab, 0.0f);
+        for (const auto& [id, b] : e)
+            if (id >= 0 && id < g.vocab) h[(size_t) id] = b;
+        if (cudaMemcpy(r.row, h.data(), h.size() * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+            std::fprintf(stderr, "ds4: the logit_bias row: %s\n", cudaGetErrorString(cudaGetLastError()));
+            return;
+        }
+        r.key = std::move(key);
+        bias_rows.push_back(r);
+        cur_bias = r.row;
+    }
+
     // `hist_end`: the pick's penalty history ends there (toks[0 .. hist_end): the tokens up to its row's position)
     int sample_row(int row, float temperature, float top_p, int top_k, float min_p, uint64_t seed, uint64_t counter,
                    const float* bias, int64_t hist_end) {
@@ -11420,6 +11466,7 @@ struct Model::Impl {
             strata::dsv41k::SamplerParams sp;
             sp.greedy = true;
             sp.temperature = 0.0f;
+            sp.logit_bias = cur_bias;
             int h = 0;
             const int* hr = pen_rows(p0 + 1, T, sp, h);
             strata::dsv41k::sample_tokens(hd.logits, T, V, hr, h, sp, d_ints + 16, hd.st);   // (the T rows at once)
@@ -11456,6 +11503,7 @@ struct Model::Impl {
             sp.min_p = min_p;
             sp.seed = seed;
             sp.counter = counter;
+            sp.logit_bias = cur_bias;
             int h = 0;
             const int* hr = pen_rows(p0 + 1, n, sp, h);
             strata::dsv41k::sample_verify(hd.logits, n, V, sp, d_specq, d_ints + 32, d_ints + 16, hd.st, hr, h);
@@ -11466,7 +11514,7 @@ struct Model::Impl {
             CK(cudaStreamSynchronize(hd.st));
             while (m < n && h_idx[m] == drafts[(size_t) m]) ++m;
             next = m < n ? h_idx[m]
-                         : sample_row(n, temperature, top_p, top_k, min_p, seed, counter + (uint64_t) n, nullptr,
+                         : sample_row(n, temperature, top_p, top_k, min_p, seed, counter + (uint64_t) n, cur_bias,
                                       p0 + 1 + n);
         }
         drafts_q = false;
@@ -14626,6 +14674,7 @@ struct Model::Impl {
         sp.min_p = min_p;
         sp.seed = seed;
         sp.counter = counter;
+        sp.logit_bias = cur_bias;
         int h = 0;
         const int* hr = pen_rows((int64_t) toks.size(), 1, sp, h);   // (the last fed token's row: every token consumed)
         strata::dsv41k::sample_tokens(d.logits + (size_t) std::max(0, n_logits - 1) * g.vocab, 1, g.vocab, hr, h,
@@ -14814,6 +14863,7 @@ struct Model::Impl {
             strata::dsv41k::SamplerParams sp;
             sp.greedy = true;
             sp.temperature = 0.0f;
+            sp.logit_bias = cur_bias;
             int h = 0;
             const int* hr = pen_rows(r.p0 + 1, r.n, sp, h, &q.toks);
             strata::dsv41k::sample_tokens(lg, r.n, V, hr, h, sp, d_ints + 16, hd.st);
@@ -14833,6 +14883,7 @@ struct Model::Impl {
             sp.min_p = min_p;
             sp.seed = seed;
             sp.counter = counter;
+            sp.logit_bias = cur_bias;
             if (n > 0) {
                 for (int k = 0; k < n; ++k) {
                     h_specq[(size_t) k].n = 1;
@@ -14935,6 +14986,7 @@ struct Model::Impl {
         sp.min_p = min_p;
         sp.seed = seed;
         sp.counter = counter;
+        sp.logit_bias = cur_bias;
         const std::vector<int32_t>& hist = seq_tokens(mrows[(size_t) row]);
         int h = 0;
         const int* hr = pen_rows((int64_t) hist.size(), 1, sp, h, &hist);
@@ -15112,6 +15164,7 @@ void Model::begin_request() { p_->begin_request(); }
 int Model::sample(float t, float tp, int tk, float mp, uint64_t seed, uint64_t counter) {
     return p_->sample(t, tp, tk, mp, seed, counter);
 }
+void Model::set_logit_bias(const std::vector<std::pair<int, float>>& entries) { p_->set_logit_bias(entries); }
 void Model::set_penalties(int last_n, float repeat, float freq, float present) {
     const bool on = last_n > 0 && (repeat != 1.0f || freq != 0.0f || present != 0.0f);
     p_->pen_n = on ? last_n : 0;

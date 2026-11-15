@@ -79,7 +79,7 @@ multi-GPU path, not a hypothetical one.
 | `335f4f1`, `027992c` | load reads the shards round-robin (`STRATA_DS4_LOAD_INTERLEAVE`, on), `STRATA_DS4_LOAD_THREADS`, `STRATA_DS4_LOAD_DROP_CACHE` | EXL3 2.9: 109 -> 75 s load | done |
 | `50a3313` (#639) | one-launch attention for a step of several requests (`MAYA_DS4_MULTI_ATTN`), same bits, on | 43.9 -> 49.3 tok/s aggregate (8 GPUs, `--parallel 2`) | planned |
 | `7f431b6` | `STRATA_DS4_READ_ORDER=arrival`: prompts read in arrival order, answers write between pieces | agent p95 first token 13.5 s against 29.1 s (3 GPUs) | done |
-| `807f3f0` (#772) | `ignore_eos` (run to `max_tokens`) and `logit_bias` on DeepSeek | 4-token answer -> 200 of 200 | planned |
+| `807f3f0` (#772) | `ignore_eos` (run to `max_tokens`) and `logit_bias` on DeepSeek | 4-token answer -> 200 of 200 | done |
 | `8896cac` (#511) | `HC_FUSE` / `ROUTE_FUSE`: a token's small launches fused, checked at load | opt-in, exact | later |
 | `387f824` (#512) | `DECODE_TRIM`: four more exact trims, checked at load | opt-in, exact | later |
 | `7f1b17d`, `7a4a96f` | indexer scores on the matrix cores (`DS4_INDEX_TC`); gfx11 default, NVIDIA opt-in | +3% / +6% / +10% at 8K / 32K / 64K on gfx11 | later |
@@ -135,3 +135,4 @@ multi-GPU path, not a hypothetical one.
 | prompt read order | `STRATA_DS4_READ_ORDER=arrival` (off): a prompt keeps its place in line; pieces beside a running answer | `strata-dsv41` builds; server-side A/B with `--parallel` still to run |
 | indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt, same answers | `strata-dsv41` builds; no GPU to measure |
 | faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | `strata-dsv41` builds; load A/B still to run |
+| `ignore_eos` and `logit_bias` | engine reports `INFO logit_bias=1`; the server turns `ignore_eos: true` into a ban of the end tokens | `pytest tests/serve/test_logit_bias.py` (15 pass, 1 pre-existing environment failure) |

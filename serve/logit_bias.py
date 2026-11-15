@@ -111,3 +111,29 @@ def validate_request(req, engine, vocab_size):
         if getattr(engine, "info", {}).get("logit_bias") != 1:
             raise ValueError("logit_bias: this engine does not support token biases; use a supporting CUDA/HIP build")
     return normalized
+
+
+def ignore_eos(req, engine, vocab_size, stop_ids, eos_ids=()):
+    """`ignore_eos` (vLLM's and llama.cpp's): ban the tokens that end an answer, so it runs to max_tokens - through
+    the logit bias, as llama.cpp does it, so the text past the model's natural end stays text it would write.
+    Returns True when the request was changed.  Raises when it cannot be honoured (fail closed, before a byte is sent).
+    """
+    ignore = req.get("ignore_eos")
+    if ignore is None:
+        return False
+    if not isinstance(ignore, bool):
+        raise ValueError("ignore_eos: true or false")
+    if not ignore:
+        return False
+    try:
+        limit = int(req.get("max_completion_tokens") or req.get("max_tokens") or 0)
+    except (TypeError, ValueError):
+        limit = 0
+    if limit <= 0:
+        raise ValueError("ignore_eos: needs max_tokens (the answer would run until the context is full)")
+    if (getattr(engine, "info", None) or {}).get("logit_bias") != 1:
+        raise ValueError("ignore_eos: this engine does not apply token biases; use a supporting CUDA/HIP build")
+    bias = normalize(req.get("logit_bias"), vocab_size)
+    bias.update({int(t): -100.0 for t in set(stop_ids) | set(eos_ids)})
+    req["logit_bias"] = bias
+    return True

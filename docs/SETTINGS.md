@@ -50,6 +50,13 @@ Off unless you set them. The last column says where each one is described.
 | `STRATA_DISJOINT_ADAPT` | number | NVIDIA and AMD, Intel Arc | [DISJOINT_EXPERT_CACHE.md](DISJOINT_EXPERT_CACHE.md) |
 | `STRATA_DMA_BATCH` | number | NVIDIA and AMD | [BATCHED_DMA.md](BATCHED_DMA.md), [DETAILS.md](DETAILS.md) |
 | `STRATA_DOWN_WS` | on / off | NVIDIA and AMD | [OLDER_GPUS.md](OLDER_GPUS.md), [release-notes-0.2.7.md](releases/release-notes-0.2.7.md) |
+| `STRATA_DS4_AI_RUN` | on / off | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
+| `STRATA_DS4_ATTN_MMA` | on / off | NVIDIA | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
+| `STRATA_DS4_LOAD_DROP_CACHE` | on / off | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
+| `STRATA_DS4_LOAD_INTERLEAVE` | on / off | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
+| `STRATA_DS4_LOAD_THREADS` | number | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
+| `STRATA_DS4_Q8MV_TC` | number | NVIDIA | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
+| `STRATA_DS4_READ_ORDER` | text | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
 | `STRATA_DS4_READ_PIECES` | number | NVIDIA and AMD | - |
 | `STRATA_DS4_SLOT_GB` | number | NVIDIA and AMD | [DEEPSEEK41.md](DEEPSEEK41.md) |
 | `STRATA_DS4_SLOT_KEEP` | number | NVIDIA and AMD | [DEEPSEEK41.md](DEEPSEEK41.md) |

@@ -143,3 +143,32 @@ class LogitBiasCache(unittest.TestCase):
         for n in range(logit_bias._CACHE_MAX + 3):
             normalize({str(i): -(n + 1) for i in range(100)})
         self.assertEqual(len(logit_bias._cache), logit_bias._CACHE_MAX)
+
+
+class IgnoreEos(unittest.TestCase):
+    def test_the_end_tokens_are_banned_and_the_request_s_own_bias_stays(self):
+        from types import SimpleNamespace
+        from serve.logit_bias import ignore_eos
+        req = {"ignore_eos": True, "max_tokens": 8, "logit_bias": {"3": 2.0}}
+        engine = SimpleNamespace(info={"logit_bias": 1})
+        self.assertTrue(ignore_eos(req, engine, 100, {1}, {2}))
+        self.assertEqual(req["logit_bias"], {1: -100.0, 2: -100.0, 3: 2.0})
+
+    def test_it_needs_a_cap(self):
+        from types import SimpleNamespace
+        from serve.logit_bias import ignore_eos
+        with self.assertRaises(ValueError):
+            ignore_eos({"ignore_eos": True}, SimpleNamespace(info={"logit_bias": 1}), 100, {1})
+
+    def test_an_engine_without_biases_is_refused(self):
+        from types import SimpleNamespace
+        from serve.logit_bias import ignore_eos
+        with self.assertRaises(ValueError):
+            ignore_eos({"ignore_eos": True, "max_tokens": 8}, SimpleNamespace(info={}), 100, {1})
+
+    def test_false_and_absent_are_no_ops(self):
+        from types import SimpleNamespace
+        from serve.logit_bias import ignore_eos
+        engine = SimpleNamespace(info={"logit_bias": 1})
+        self.assertFalse(ignore_eos({}, engine, 100, {1}))
+        self.assertFalse(ignore_eos({"ignore_eos": False}, engine, 100, {1}))

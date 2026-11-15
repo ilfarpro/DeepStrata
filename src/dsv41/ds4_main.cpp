@@ -358,6 +358,9 @@ struct Req {
     // (-1: the whole context, which the engine caps at its window; 0: none)
     int pen_n = 0;
     float pen_repeat = 1.0f, pen_freq = 0.0f, pen_present = 0.0f;
+    // logit_bias=<id>:<bias>,... (OpenAI's logit_bias; the server's ignore_eos bans the end tokens with -100): added to
+    // the logits of every pick of the answer (Model::set_logit_bias); none: the picks exactly as without
+    std::vector<std::pair<int, float>> bias;
     std::string file;   // GENI: the pictures
     std::vector<int> ids;
 };
@@ -505,6 +508,16 @@ bool parse_gen(const std::string& line, Req& r, bool geni) {
         else if (k == "penalty_repeat") r.pen_repeat = std::strtof(v.c_str(), nullptr);
         else if (k == "penalty_freq") r.pen_freq = std::strtof(v.c_str(), nullptr);
         else if (k == "penalty_present") r.pen_present = std::strtof(v.c_str(), nullptr);
+        else if (k == "logit_bias") {   // <id>:<bias>,... (the server checked them: ids in the vocabulary, -100..100)
+            size_t at = 0;
+            while (at < v.size()) {
+                const size_t end = std::min(v.find(',', at), v.size()), colon = v.find(':', at);
+                if (colon != std::string::npos && colon < end)
+                    r.bias.emplace_back(std::atoi(v.substr(at, colon - at).c_str()),
+                                        std::strtof(v.substr(colon + 1, end - colon - 1).c_str(), nullptr));
+                at = end + 1;
+            }
+        }
         else if (k == "rid") r.rid = std::atoll(v.c_str());
     }
     return !r.ids.empty() && (!geni || !r.file.empty());
@@ -513,6 +526,7 @@ bool parse_gen(const std::string& line, Req& r, bool geni) {
 int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float conf_min, const std::string& pack) {
     std::vector<int> eos = parse_ids(eos_list);
     for (const std::string& l : m.info_lines()) std::printf("%s\n", l.c_str());
+    std::printf("INFO logit_bias=1\n");   // (GEN logit_bias=<id>:<bias>,...: added to the logits of every pick)
     if (m.seq_count() > 1)   // (--parallel: n conversations at once, GEN rid=<id>)
         std::printf("READY %lld stop multi=%d\n", (long long) m.max_context(), m.seq_count());
     else
@@ -1394,6 +1408,7 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
         m.set_penalties(r.pen_n < 0 ? INT_MAX : r.pen_n,
                         std::isfinite(r.pen_repeat) && r.pen_repeat > 0.0f ? r.pen_repeat : 1.0f,
                         std::isfinite(r.pen_freq) ? r.pen_freq : 0.0f, std::isfinite(r.pen_present) ? r.pen_present : 0.0f);
+        m.set_logit_bias(r.bias);
         int tok = m.sample(r.temperature, r.top_p, r.top_k, r.min_p, r.seed, counter++);
         std::vector<int> got;
         // STAT for the Monitor every 8 tokens and at the end, over this answer so far: the GLM engine's keys (speed, the
@@ -1561,11 +1576,12 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
             held = std::move(held_of[(size_t) s]);
             held_of[(size_t) s].clear();
         };
-        const auto penalties = [&](const Req& r) {
+        const auto penalties = [&](const Req& r) {   // (and its logit_bias: the request's picks, set before each)
             m.set_penalties(r.pen_n < 0 ? INT_MAX : r.pen_n,
                             std::isfinite(r.pen_repeat) && r.pen_repeat > 0.0f ? r.pen_repeat : 1.0f,
                             std::isfinite(r.pen_freq) ? r.pen_freq : 0.0f,
                             std::isfinite(r.pen_present) ? r.pen_present : 0.0f);
+            m.set_logit_bias(r.bias);
         };
         const auto release = [&](const Act& a) {   // (its conversation free for the next request)
             seq_rid[(size_t) a.seq] = -1;

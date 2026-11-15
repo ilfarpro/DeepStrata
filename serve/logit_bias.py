@@ -134,6 +134,9 @@ def ignore_eos(req, engine, vocab_size, stop_ids, eos_ids=()):
     if (getattr(engine, "info", None) or {}).get("logit_bias") != 1:
         raise ValueError("ignore_eos: this engine does not apply token biases; use a supporting CUDA/HIP build")
     bias = normalize(req.get("logit_bias"), vocab_size)
-    bias.update({int(t): -100.0 for t in set(stop_ids) | set(eos_ids)})
+    banned = {int(t) for t in set(stop_ids) | set(eos_ids)}
+    if vocab_size is not None:   # (one engine's ids on another's vocabulary are not sent)
+        banned = {t for t in banned if 0 <= t < vocab_size}
+    bias.update({t: -100.0 for t in banned})
     req["logit_bias"] = bias
     return True

@@ -698,8 +698,9 @@ __global__ void pred_proj_k(const float* x, int D, float* out) {
 }
 
 // STRATA_DS4_AI_RUN=1 (Project Maya b4f78bb): the indexer's slab rows come from this run's keys rather than the
-// context's width, so a short prompt computes fewer slabs (the same GEMM shapes, the same answers).  Off by default:
-// the default path allocates and loops exactly as before.
+// context's width, so a short prompt computes fewer slabs.  Off by default: the default path allocates and loops
+// exactly as before.  Maya's "same answers" did not hold for logits in our 128K test on this pack (the GEMM's M
+// goes 96 -> 128, and top-1 fell to 94.2% against byte-identical control runs): opt-in, and quality-gated.
 static bool ai_run_on() {
     static const bool on = [] {
         const char* e = std::getenv("STRATA_DS4_AI_RUN");
@@ -11803,7 +11804,7 @@ struct Model::Impl {
                         return false;
                     // STRATA_DS4_AI_RUN=1: the slab's rows as wide as this run's keys, not the context's - a
                     // prompt shorter than the context gets the rows a context of its length would (128 below ~64K
-                    // keys), the same GEMM shapes and fewer slabs (Project Maya b4f78bb)
+                    // keys), fewer slabs, but the GEMM's M changes too (Project Maya b4f78bb; not bit-identical here)
                     long long ssr = ss;
                     int air = c.AI;
                     if (ai_run_on()) {

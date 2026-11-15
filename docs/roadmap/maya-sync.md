@@ -292,10 +292,10 @@ from a card we do not have is welcome in the issue with the commands above.
 |---|---|---|
 | (this page) | the map above | read against Maya `6651b5b` and `7e68a30` |
 | `q8_mv` tensor cores | `STRATA_DS4_Q8MV_TC` (off): 3..16 columns, same bits, sm_80+ | device suite and `--rows` pass with 0, 1, 2 on sm_89 (RTX 4080 SUPER); the sm_120 card passes the suite too |
-| prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | prompt 37.03 -> 37.58 tok/s and decode unchanged (3 pairs, 512-token prompt, TP2); on the chunked path top-1 94.99%, KL 0.0191 (BF16 rounding, as the kernel says), so it needs the quality gate, not `cmp` |
+| prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | prompt 37.03 -> 37.58 tok/s and decode unchanged (3 pairs, 512-token prompt, TP2); on the chunked path top-1 94.48%, KL 0.0236 (BF16 rounding, as the kernel says), so it needs the quality gate, not `cmp` |
 | prompt read order | `STRATA_DS4_READ_ORDER=arrival` (off): a prompt keeps its place in line; pieces beside a running answer | `strata-dsv41` builds; server-side A/B with `--parallel` still to run |
-| indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt | at 128K the switch is **not** the same bits on this hardware: top-1 95.26%, KL 0.0176 against a run-to-run noise of <=0.0009. Needs either the GEMM's M kept at the old value or a quality gate of its own; a `--no-expert-cache` run is next |
-| faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | loads ran on both cards (copy into RAM 103-146 s); the first A/B moved logits at 4x the noise (top-1 97.57%, KL 0.00368), so a `--no-expert-cache` run decides whether that is placement or the load order |
+| indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt | with the expert cache off and identical runs as the control, the switch still moves the logits: top-1 94.21%, KL 0.0181. Not a same-bits feature on this pack at 128K (its GEMM M changes 96 -> 128); opt-in, kept off, quality-gated |
+| faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | with the expert cache off the rollback is **identical** (top-1 100.00%, KL 0); the earlier 0.00368 was placement noise, not the switch. Loads ran on both cards (copy into RAM 103-146 s) |
 | `ignore_eos` and `logit_bias` | engine reports `INFO logit_bias=1`; the server turns `ignore_eos: true` into a ban of the end tokens | `tests/serve/test_logit_bias.py`: 16 pass, including the HTTP path |
 | RAM margin | `STRATA_DS4_RAM_MARGIN_GB` (8): planning headroom, read once | `strata-dsv41` builds |
 | EXL3 F16 dense | an F16 matrix loads as BF16 at model load | `strata-dsv41` builds; a pack with an F16 `engram.wkv` still to be run |
@@ -349,6 +349,17 @@ is the one result that must be repeated before it is called. The next run switch
 (`--no-expert-cache`) so the CPU/GPU placement cannot move, and repeats det1, det2, AI_RUN, the load
 rollback and ATTN_MMA; that run decides whether `cmp` can be the gate at all.
 
-So far: the Q8MV_TC row check is the only exactness claim this hardware confirms. AI_RUN's "same
-answers" does not hold for logits at 128K as ported (the GEMM's M changes 96 -> 128), and ATTN_MMA moves
-them, as its kernel says it may. Both are opt-in; neither is a default.
+With `--no-expert-cache` the same five variants came out:
+
+| Run | top-1 vs det1 | KL |
+|---|---|---|
+| det1 vs det2 | **100.00%** | **0** |
+| det1 vs load rollback | **100.00%** | **0** |
+| det1 vs `AI_RUN=1` | 94.21% | 0.0181 |
+| det1 vs `ATTN_MMA=1` | 94.48% | 0.0236 |
+
+So the gate works once the expert cache is off: two identical runs are byte-identical, and the load
+switches are exact. AI_RUN's "same answers" does not hold for logits at 128K as ported (its GEMM M
+changes 96 -> 128), and ATTN_MMA moves them, as its kernel says it may. Both stay opt-in and off; neither
+is a default. The run-to-run noise with the cache on is a property of the TP2 expert split, not of these
+switches, and it is worth knowing before anyone reads a `cmp` on a live configuration.

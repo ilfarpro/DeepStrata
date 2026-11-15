@@ -178,8 +178,7 @@ dequant/GEMM kernel tests by hand for CUDA or HIP.
 ### 3. The exactness gate for a "same bits" feature
 
 The opt-in features that claim the same numbers (`STRATA_DS4_Q8MV_TC`, `STRATA_DS4_LOAD_*`,
-`STRATA_DS4_RAM_MARGIN_GB`, `logit_bias`; `AI_RUN` is under the quality gate until the no-cache run
-below says otherwise) are checked with the score tool: the same
+`STRATA_DS4_RAM_MARGIN_GB`, `logit_bias`) are checked with the score tool: the same
 segments through the engine with and without the switch. Top-1 agreement and a KL of 0 are the pass
 condition. Two things make a run comparable with the next one, and the first hardware run missed both:
 
@@ -195,10 +194,6 @@ condition. Two things make a run comparable with the next one, and the first har
   of this build came out 99.33% top-1, KL 4e-4 apart. `--no-expert-cache` keeps the profile's VRAM set
   fixed and is the only mode where `cmp` means anything here.
 
-AI_RUN needs a context long enough for its shorter slab to differ: on this pack `--max-context 16384`
-already gives the 128-row slab, so the switch is a no-op. At `--max-context 131072` the context-wide slab
-is 96 rows and AI_RUN's 128 rows are the change being tested.
-
 ```sh
 python tools/quant_quality.py ids --tokenizer "$PACK/tokenizer" \
     --set data/quant_quality/v1 --seg-tokens 512 --out /tmp/dsv41.ids.json
@@ -209,19 +204,23 @@ COMMON=(--pack "$PACK" --gpus 0,1 --tp 2 --max-context 131072 --window 128 \
 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/base.tsv
 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/base2.tsv
 cmp /tmp/base.tsv /tmp/base2.tsv && echo "deterministic"
-STRATA_DS4_AI_RUN=1 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/ai_run.tsv
-cmp /tmp/base.tsv /tmp/ai_run.tsv && echo "AI_RUN: identical"
+STRATA_DS4_LOAD_INTERLEAVE=0 STRATA_DS4_LOAD_DROP_CACHE=0 \
+    $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/load_old.tsv
+cmp /tmp/base.tsv /tmp/load_old.tsv && echo "load rollback: identical"
 ```
 
 The first pair is not ceremony: if two runs of the same build differ, nothing below them means anything.
+On this pack the check passes only with `--no-expert-cache`; with the cache on, two identical runs came
+out 99.33% top-1 and KL 4e-4 apart (see `Hardware run`).
 
 For a quick prompt-only check, `--dump-logits` writes every prompt position's logits (F32, the
 vocabulary per row); the two files must be `cmp`-identical for a feature that claims the same bits:
 
 ```sh
 $EXE "${COMMON[@]}" --ids "$IDS" --n 0 --dump-logits /tmp/base.f32
-STRATA_DS4_AI_RUN=1 $EXE "${COMMON[@]}" --ids "$IDS" --n 0 --dump-logits /tmp/ai.f32
-cmp /tmp/base.f32 /tmp/ai.f32
+STRATA_DS4_LOAD_INTERLEAVE=0 STRATA_DS4_LOAD_DROP_CACHE=0 \
+    $EXE "${COMMON[@]}" --ids "$IDS" --n 0 --dump-logits /tmp/load_old.f32
+cmp /tmp/base.f32 /tmp/load_old.f32
 ```
 
 Two caveats: `--dump-logits` covers the prompt, not the decode rows; and the Q8_0 tensor-core path
@@ -231,15 +230,24 @@ conversations in a step), and compare with the scalar run.
 
 ### 4. Quality gate for a feature that moves the last bits
 
-`STRATA_DS4_ATTN_MMA=1` uses BF16 products: within rounding of the scalar kernels, not the same bits
-(the header of the kernel says so). It is selected only for a **chunked** prompt (`gen > 0`) of 16 rows or
-more: `--window 128` in the commands above is what reaches it, and the "prompt attention on the tensor
-cores" line at load only says the card is eligible, not that a kernel ran. Run the score set with and
-without it and read top-1, KL and perplexity; do not require a byte-identical dump.
+Two switches move the logits on this hardware, so they are measured against the score set and read as
+top-1, KL and perplexity; a byte-identical dump is not the pass condition for either.
+
+- **`STRATA_DS4_ATTN_MMA=1`** uses BF16 products: within rounding of the scalar kernels, not the same bits
+  (the header of the kernel says so). It is selected only for a **chunked** prompt (`gen > 0`) of 16 rows
+  or more: `--window 128` in the commands above is what reaches it, and the "prompt attention on the tensor
+  cores" line at load only says the card is eligible, not that a kernel ran.
+- **`STRATA_DS4_AI_RUN=1`** changes the indexer's slab rows to this run's keys. It needs a context long
+  enough for the shorter slab to differ: on this pack `--max-context 16384` already gives the 128-row
+  slab, so the switch is a no-op; at `--max-context 131072` the context-wide slab is 96 rows and AI_RUN's
+  128 are the change being tested. That change is also the GEMM's M, so the answer is not bit-identical
+  either (Maya's commit says "same answers"; our 128K run says otherwise).
 
 ```sh
 STRATA_DS4_ATTN_MMA=1 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/mma.tsv
 python tools/quant_quality.py compare /tmp/base.tsv /tmp/mma.tsv
+STRATA_DS4_AI_RUN=1 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/ai_run.tsv
+python tools/quant_quality.py compare /tmp/base.tsv /tmp/ai_run.tsv
 ```
 
 Record the numbers with the card, the pack and the context. A text check on a coding-agent prompt is

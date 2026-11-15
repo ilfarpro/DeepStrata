@@ -1535,6 +1535,10 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
             return x > 0 ? x : dflt;
         };
         const bool read_pieces = env_count("STRATA_DS4_READ_PIECES", 0) > 0 && m.prompt_chunk() > 0;
+        // STRATA_DS4_READ_ORDER=arrival (Project Maya #751): a prompt reads in the order it came, the later ones
+        // waiting; while an answer runs it reads a piece at a time and the answer writes between them.
+        const char* read_order = std::getenv("STRATA_DS4_READ_ORDER");
+        const bool read_arrival = read_order != nullptr && std::strcmp(read_order, "arrival") == 0;
         const size_t read_piece = m.prompt_chunk() > 0 ? (size_t) m.prompt_chunk() * (size_t) m.pipeline_stages() *
                                                              (size_t) env_count("STRATA_DS4_READ_PIECE", 1)
                                                        : (size_t) m.feed_unit();
@@ -1794,7 +1798,7 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
         // a prompt whole in one piece joins the line ahead of the longer reads, behind the other one-piece prompts
         const auto one_piece = [&](const Act* a) { return a->r.ids.size() - a->P.done <= read_piece; };
         const auto join_read = [&](Act* a) {
-            if (!one_piece(a)) {
+            if (!read_pieces || read_arrival || !one_piece(a)) {   // (arrival: the order they came)
                 read_line.push_back(a);
                 return;
             }
@@ -1850,7 +1854,10 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
             }
             a->seq = best;
             a->reading = true;
-            if (!read_pieces || !a->P.pics.empty()) {   // (pictures: the prompt whole now)
+            // arrival reads a prompt whole unless an answer is running: it then writes tokens between the pieces
+            const bool answering_now = std::any_of(acts.begin(), acts.end(),
+                                                   [](const std::unique_ptr<Act>& x) { return !x->reading; });
+            if ((!read_pieces && (!read_arrival || !answering_now)) || !a->P.pics.empty()) {   // (pictures: whole now)
                 read_turn(*a, r.ids.size(), false);
                 if (a->ended) {
                     in.forget(rid);
@@ -1891,7 +1898,10 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
             read_line.pop_front();
             const bool alone = read_line.empty() && !answering;
             if (!a->done) read_turn(*a, alone ? a->r.ids.size() : read_piece, alone);
-            if (a->reading && !a->done) read_line.push_back(a);
+            if (a->reading && !a->done) {   // (arrival: the prompt in front keeps its turn, the later ones wait)
+                if (read_pieces) read_line.push_back(a);
+                else read_line.push_front(a);
+            }
         };
         std::function<void()> settle;
         // the next turn: a piece once the rounds since the last one are due while a prompt is being read, else a round
@@ -1980,11 +1990,19 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
         eng.run();
         reader.join();
         settle_stop();
+        // Each idle sequence still owns its conversation when the parallel scheduler exits: set every one aside,
+        // not only the bound one (Project Maya #732, 78228a0).
+        if (slot_max > 0) {
+            for (int s = 0; s < nseq; ++s) {
+                bind(s);
+                slot_put(" as the parallel engine ended");
+            }
+        }
     }
     // the engine ends (QUIT or the end of its input): the conversation in the model is set aside, and every one in
     // RAM is written to the folder, so the next run reads on from them
     if (slot_max > 0) {
-        if (held.empty()) slot_put(" as the engine ended");
+        if (!multi && held.empty()) slot_put(" as the engine ended");
         size_t written = 0;
         while (true) {   // (a write can take the folder's least recently used conversation away: the list is asked again)
             size_t i = SIZE_MAX;

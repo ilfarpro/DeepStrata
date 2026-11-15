@@ -103,29 +103,164 @@ multi-GPU path, not a hypothetical one.
 | `afcbcad` | LF line endings (no content change) | skip |
 | `206f800` | Windows build of the two-GPU helper | no helper here; skip |
 
-### 4. Deliberately not ported
+### 4. Not ported in this branch: the list to keep
+
+Everything here is deliberately left out of `f-maya-sync`. It is not forgotten and not judged
+unimportant: each row says what it would take, so a later branch can pick it up without rediscovering
+why it stopped. The next group is the work that can be taken in any order.
+
+#### 4.1 Deferred, with what each needs
+
+| Maya | What | Why not here | The first step next time |
+|---|---|---|---|
+| `50a3313`, `edd7aee`, `1b05d50`, `f0baf58`, `401fc17`, `4fa8fb6` | the tensor-parallel rework: AR2 (one-launch exact TP2 all-reduce), AR_P2P (buffers in the first GPU's VRAM), peer-VRAM all-reduce, uneven parts, host-free TP, DSpark spread | our `ArGroup` (src/dsv41/ds4_kernels.cuh) is host-staged: every member's partial goes through one host-mapped row, and the sums are a kernel over it. Maya's commits replace that transport (`ar2_kernel`, peer buffers, calibration, `DS4_AR2`/`DS4_AR_P2P`/`DS4_HIP_PEER_AR`) and need two or more NVIDIA GPUs to validate. A half-port would be untested code on the one path that cannot be checked here | branch `f-maya-tp` on a 2-GPU box. Start with AR2 exact mode for `nm == 2` (the prompt chunks), keep the host path as the fallback, gate bit-identity with `--multi-check` and the score set, then AR_P2P behind its ReBAR check, then peer AR |
+| `50a3313` | MULTI_ATTN: a multi step's attention for all its rows in one launch (`ds4_multi_attn.hpp`, the selection/attention kernels, shared scratch) | our `--parallel` step launches attention per conversation; the one-launch version is a rework of the step's buffers and kernels, and the gain was measured with 8 GPUs (`--parallel 2`) | port with the same shape, measure with `--multi-check` (rows against alone) and `--parallel 2` on two cards |
+| `50a3313` | `logprobs` on DeepSeek (engine side: `ds4_logprobs.hpp`, the `LP` lines, top-k/alternative lists) | our engine has no logprobs at all; the server's LP path was written for the Qwen engine. It is a feature of its own, not a sync fix | take it with a client that needs it: sampler plumbing first (top-k ids and log-probs per row), then the `LP` protocol, then the server's `LogprobEntries` |
+| `8c34c00` | END: a request that leaves a GPU in a fault prints `END`, and the next request starts a fresh engine | our fatal path already exits 3 (`die_gpu_fatal`), and the server restarts the engine; a partial END without `Model::broken()` (the stream-query check) could hide a fault instead of reporting it | add `Model::broken()` (query every device's stream), call it after a request and at `STOP`, print `END` before `DONE`, and test the server's restart with a forced fault |
+| `c25b1db`, `7f469f8` | LENT_RAM: pinned-RAM copies of experts a prompt's buffers lie over, so the CPU lane does not read them back from disk | needs the pinned store and the borrow path, a memory subsystem of its own | measure the disk read-back first; port only if the gain repeats here |
+| `7f1b17d`, `7a4a96f` | indexer scores on the matrix cores (`INDEX_TC`) | gfx11's default and an NVIDIA opt-in in Maya; no NVIDIA measurement was published, and our indexer is scalar | port behind `STRATA_DS4_INDEX_TC`, gate with the score set on NVIDIA |
+| `8896cac`, `387f824` | `HC_FUSE` / `ROUTE_FUSE` (small launches fused) and `DECODE_TRIM` (four more exact trims), checked at load | exact but hot: each needs its load-time shape check, the device suite, and a per-kernel test; no gain measured on our cards yet | one commit each: fuse, then check shapes at load, then `ds4_gguf_test` and a dump comparison |
+| `42a4178`, `204299e` | prompt chunk from the share of experts on the CPU lane; 16384 with borrowed buffers | touches the prompt path's planning and the borrow rules; measured on 2 V100 with a RAM store | take after LENT_RAM or its measurement |
+| `e0c6d59` | the Engram `mlock` error names the memlock limit and the `limits.d` fix | a message only; our Engram mlock path is not touched by this branch | one small commit when the Engram lock is next changed |
+| `68ef483` | the packer takes a BF16 head, INT4 Engram tables, type-ordered shards | a packing tool, not the engine | take in `tools/dsv41` when a pack needs it |
+| `6227775` | PDL (dependent launch) for the hot kernels | no NVIDIA measurement, and it changes the launch sequence everywhere | measure the launch gap first; likely never worth it on our cards |
+| `450827f`, `41a630c` | lane parity (the PCIe lane's kernels judged over whole steps) | correctness/tooling for a lane we keep opt-in; no answer moved in the runs we have | take with the next lane change |
+
+#### 4.2 Not for Strata
 
 | Maya | Why |
 |---|---|
 | Multi-PC pool (`f422779`, `62a07e9`, `272b645`, `38e5d9a`, `dbf982e`, `398b2f0`, `6fe4422`, `fecc381`, and `ds4_part_net`) | a different deployment model (two PCs); not our release surface |
 | AMD + NVIDIA helper (`e259267`, `0ff7fcb`, `695070a`, `ee61f9a`, `21e57fb`, `dcaa04a`, `f80a1be`) | DeepStrata does not support mixing card makes; experimental and large |
-| AMD-only: gfx11 index default (`7a4a96f`), router BF16 (`3ab0908`), prompt F16 on RDNA 2 (`1244438`), expert MMQ (`468d055`), EXL3 lend/in-place (`99d912a`, `80c1a29`), gfx906/MI50 (`2a620cd`), ppc64le (`da3fafa`), wave64 (`2b2522d`) | no AMD engine in the release; source-build only |
+| AMD-only: gfx11 index default (`7a4a96f`), router BF16 (`3ab0908`), prompt F16 on RDNA 2 (`1244438`), expert MMQ (`468d055`), EXL3 lend/in-place (`99d912a`, `80c1a29`), gfx906/MI50 (`2a620cd`), ppc64le (`da3fafa`), wave64 (`2b2522d`) | no AMD engine in the release; source-build only. `INDEX_TC`'s gfx11 default is in 4.1 if an AMD build needs it |
 | `--ablate`, `--suffix-draft`, `--ppl`, `--profile-out`, `--marks-check` | tools and niche; not user-facing speed |
-| Engine watchdog (`MAYA_DS4_WATCHDOG_S`) | our server already watches a silent engine; revisit with TP hangs |
-| `PDL` (`dependent launch`, `6227775`) | touches the hot kernels; no NVIDIA measurement; high risk |
-| lane parity (`450827f`, `41a630c`) | correctness/tooling; take only with a task that needs them |
-| logprobs engine side (`50a3313`) | our engine has no `logprobs` at all yet (the server's LP path exists for the Qwen engine); a port is a feature of its own, not a sync fix |
+| Engine watchdog (`MAYA_DS4_WATCHDOG_S`) | our server already watches a silent engine |
+| `afcbcad` | LF line endings (no content change) |
+| `206f800` | Windows build of the two-GPU helper | no helper here |
 
-## Tests and measurements a port runs
+## How to test this branch on real hardware
 
-- `cmake --build build-mixed --target strata-dsv41` (CUDA), and the HIP build where the files change.
-- `tests/dsv41/ds4_gguf_test` for kernels and paths (device), `tests/dsv41/*_test.cpp` for rules
-  (`marks_test`, `slot_test`, `experts_rule_test`, `pick_rule_test`, `path_policy_test`, ...).
-- `python -m pytest tests/serve` for the server side.
-- A quality gate for a bits-changing port: `--score` KL and ids against the scalar path, the same way
-  `DS4_FAST_ATTN` was gated.
-- A speed A/B on the hardware named in the commit: one card (RTX 3060 12 GB / 5070), two cards for TP,
-  and the R9700 box for HIP. Say what was not run.
+Nothing in this branch was run on a GPU here (no NVIDIA driver). The commands below are the path a
+machine with a card and a DeepSeek pack takes; run them on the target card, not on a CPU-only box.
+
+`PACK` is the model pack's folder (the one with `tokenizer/` and the GGUF/EXL3 files); `EXE` is the
+engine you build. `IDS` is a comma-separated token-id list (the engine's `--ids`; a 2,000-token prompt
+is enough for the prompt path, and a short one for a smoke test).
+
+### 1. Build
+
+```sh
+cmake -S . -B build-dsv41 -DCMAKE_BUILD_TYPE=Release \
+      -DSTRATA_BUILD_DSV41=ON -DSTRATA_ENABLE_CUDA=ON \
+      -DCMAKE_CUDA_ARCHITECTURES="89;120"
+cmake --build build-dsv41 --target strata-dsv41 -j
+```
+
+For AMD: `ROCM_ROOT=/opt/rocm tools/dsv41/build_hip_linux.sh` (it builds `strata-dsv41` and the kernel
+tests). Our new kernels are CUDA-only guards; the HIP build should be green, but that is the check to run.
+
+### 2. Cheap gates, in order
+
+```sh
+EXE=$PWD/build-dsv41/strata-dsv41
+$EXE --pack-info --pack "$PACK"                    # every file present, the pack's description
+python tools/dsv41/smoke.py --exe "$EXE" --pack "$PACK" --gpus 0        # 16 tokens, the text must name Paris
+./build-dsv41/ds4_gguf_test                        # the device suite (all cards; --mixed-cpu for the CPU lane)
+./build-dsv41/ds4_gguf_test --rows                 # --parallel's multi rows, bit for bit
+python tests/dsv41/short_prompt_check.py "$EXE" "$PACK" ids.txt --gpus 0   # the windows path, 3 runs
+python -m pytest tests/serve tests/tools           # the server and setup tests (no GPU needed)
+```
+
+`tests/dsv41/*_test.cpp` (marks, slots, experts rule, pick rule, path policy, ...) are host tests too;
+build them with their own scripts or the CMake test targets. `tests/dsv41/build_dq_test.sh` builds the
+dequant/GEMM kernel tests by hand for CUDA or HIP.
+
+### 3. The exactness gate for a "same bits" feature
+
+The opt-in features that claim the same numbers (`STRATA_DS4_Q8MV_TC`, `STRATA_DS4_AI_RUN`,
+`STRATA_DS4_LOAD_*`, `STRATA_DS4_RAM_MARGIN_GB`, `logit_bias`) are checked with the score tool: the same
+segments through the engine with and without the switch, then `compare`. Top-1 agreement and a KL of 0
+are the pass condition.
+
+```sh
+python tools/quant_quality.py ids --tokenizer "$PACK/tokenizer" \
+    --set data/quant_quality/v1 --seg-tokens 512 --out /tmp/dsv41.ids.json
+$EXE --pack "$PACK" --gpus 0 --max-context 16384 --score /tmp/dsv41.ids.json --score-out /tmp/base.tsv
+STRATA_DS4_AI_RUN=1 $EXE --pack "$PACK" --gpus 0 --max-context 16384 \
+    --score /tmp/dsv41.ids.json --score-out /tmp/ai_run.tsv
+python tools/quant_quality.py compare /tmp/base.tsv /tmp/ai_run.tsv
+```
+
+For a quick prompt-only check, `--dump-logits` writes every prompt position's logits (F32, the
+vocabulary per row); the two files must be `cmp`-identical for a feature that claims the same bits:
+
+```sh
+$EXE --pack "$PACK" --gpus 0 --max-context 16384 --ids "$IDS" --n 0 --dump-logits /tmp/base.f32
+STRATA_DS4_AI_RUN=1 $EXE --pack "$PACK" --gpus 0 --max-context 16384 --ids "$IDS" --n 0 --dump-logits /tmp/ai.f32
+cmp /tmp/base.f32 /tmp/ai.f32
+```
+
+Two caveats: `--dump-logits` covers the prompt, not the decode rows; and the Q8_0 tensor-core path
+(`STRATA_DS4_Q8MV_TC=1`) only runs for 3 to 16 columns, which one-token decode never reaches. Exercise it
+with `STRATA_DS4_Q8MV_TC=1 ./build-dsv41/ds4_gguf_test --rows` and with `--parallel` (two or more
+conversations in a step), and compare with the scalar run.
+
+### 4. Quality gate for a feature that moves the last bits
+
+`STRATA_DS4_ATTN_MMA=1` uses BF16 products: within rounding of the scalar kernels, not the same bits
+(the header of the kernel says so). Run the score set with and without it and read top-1, KL and
+perplexity; do not require a byte-identical dump. The same applies to any change that alters arithmetic.
+
+```sh
+$EXE --pack "$PACK" --gpus 0 --max-context 16384 --score /tmp/dsv41.ids.json --score-out /tmp/scalar.tsv
+STRATA_DS4_ATTN_MMA=1 $EXE --pack "$PACK" --gpus 0 --max-context 16384 \
+    --score /tmp/dsv41.ids.json --score-out /tmp/mma.tsv
+python tools/quant_quality.py compare /tmp/scalar.tsv /tmp/mma.tsv
+```
+
+Record the numbers with the card, the pack and the context. A text check on a coding-agent prompt is
+worth adding: the answer must stay coherent, and the first tokens should not drift.
+
+### 5. Server features: `ignore_eos`, `logit_bias`, `--parallel`
+
+```sh
+# the engine alone: the request must run to max_tokens instead of stopping at the first EOS
+{ printf 'GEN 8 logit_bias=1:-100\n'; printf '%s\n' "$IDS"; } | \
+    $EXE --serve --pack "$PACK" --gpus 0 --max-context 16384
+# the HTTP path (the engine under the server): max_tokens 8 with ignore_eos true must give 8 tokens
+curl -s http://127.0.0.1:PORT/v1/chat/completions -H 'Content-Type: application/json' \
+  -d '{"model":"deepseek-v4.1-flash","messages":[{"role":"user","content":"Count: one, two,"}],"max_tokens":8,"ignore_eos":true}'
+```
+
+`tests/serve/test_logit_bias.py` covers the validation (`ignore_eos` without a cap, an engine that does
+not report `logit_bias=1`, the ban of the end ids). On a server, `--parallel 4` with four requests at
+once, and the same prompts one at a time, must give the same text (greedy); `--multi-check` does that
+inside the engine for `--parallel`'s rows.
+
+### 6. Speed A/B
+
+Use the same pack, context, card and settings for both runs; medians of three or more. The engine's own
+`decode:` and `prompt:` lines are enough for a first look:
+
+```sh
+$EXE --pack "$PACK" --gpus 0 --max-context 16384 --ids "$IDS" --n 128
+STRATA_DS4_ATTN_MMA=1 $EXE --pack "$PACK" --gpus 0 --max-context 16384 --ids "$IDS" --n 128
+# read "prompt: ... tok/s" and "decode: ... tok/s" from stderr
+```
+
+For the server path, `python tools/strata_bench.py --runs 3` (or `--url` for a running server; the
+launch's `--set STRATA_DS4_ATTN_MMA=1` puts the switch into its config). Do not compare a `--parallel`
+run with a single-request one, and do not mix packs: the pack's last path part is in the report.
+
+For two cards, `--tp 2 --gpus 0,1` runs the tensor-parallel path; `strata_control/dsv41_fit.py` writes
+that split for two or more cards. The TP rework is not in this branch (4.1), so a TP A/B here measures
+the old path only.
+
+### 7. What to report
+
+Say what passed, what failed and what was not run, kept apart; name the card, the driver, the pack, the
+context and the engine build; and state that numbers from Maya's commits are his, not yours. A result
+from a card we do not have is welcome in the issue with the commands above.
 
 ## Port log in this branch
 

@@ -59,7 +59,7 @@ Status: **done** in this branch, **planned** next, **later** (worth taking, not 
 
 | Maya | What | Measured by Maya | Status |
 |---|---|---|---|
-| `e9b5df4` (#369) | prompt sparse attention on tensor cores, sm_80+ (`sparse_attn_mma_kernel`), on by default | twin of the gfx12 WMMA path (our R9700 measurement: +14.7% prompt) | planned |
+| `e9b5df4` (#369) | prompt sparse attention on tensor cores, sm_80+ (`sparse_attn_mma_kernel`); opt-in here (`STRATA_DS4_ATTN_MMA=1`), on by default in Maya | twin of the gfx12 WMMA path (our R9700 measurement: +14.7% prompt) | done |
 | `50a3313` (#639) | TP2 prompt all-reduces in one launch (`MAYA_DS4_AR2`), exact; default on NVIDIA since v1.1.55 | +1.5% at 8K, +3% at 32K (3x V100, `--tp 2`) | planned |
 | `edd7aee` (#762) | all-reduce buffers in the first GPU's VRAM (`DS4_AR_P2P`), opt-in, needs ReBAR >= 1 GiB | 12K: 1041 -> 1290 tok/s, 24K: 1116 -> 1399, decode 96 -> 103 (6x RTX 3090, TP2) | planned |
 | `1b05d50` (#773) | exact peer-VRAM all-reduce over NVLink (`MAYA_DS4_HIP_PEER_AR`, CUDA built with `DS4_CUDA_PEER_AR`; `auto` probes) | ~1.3x long prompts on 8x RTX 3090 | planned |
@@ -131,3 +131,4 @@ multi-GPU path, not a hypothetical one.
 |---|---|---|
 | (this page) | the map above | read against Maya `6651b5b` |
 | `q8_mv` tensor cores | `STRATA_DS4_Q8MV_TC` (off): 3..16 columns, same bits, sm_80+ | `strata-dsv41` builds (CUDA); no GPU here, so no A/B yet |
+| prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | `strata-dsv41` builds (CUDA); the GPU test and quality gate still to run |

@@ -6184,6 +6184,62 @@
    "retired_in": ""
   },
   {
+   "name": "STRATA_DS4_AI_RUN",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [],
+   "parse": "int",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/roadmap/maya-sync.md"
+   ],
+   "first_commit": "c5ec245bcc",
+   "first_date": "2026-11-15",
+   "since": "",
+   "last_commit": "c5ec245bcc",
+   "last_date": "2026-11-15",
+   "status": "opt-in",
+   "owner": "dsv41",
+   "note": "Indexer slabs sized from this run's keys, not --max-context (off; less VRAM for a short prompt). Port of Maya b4f78bb.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
+   "name": "STRATA_DS4_ATTN_MMA",
+   "backends": [
+    "cuda"
+   ],
+   "reads": [],
+   "parse": "int",
+   "default_state": null,
+   "code_default": 0,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/roadmap/maya-sync.md"
+   ],
+   "first_commit": "bca2f770",
+   "first_date": "2026-11-15",
+   "since": "",
+   "last_commit": "bca2f770",
+   "last_date": "2026-11-15",
+   "status": "opt-in",
+   "owner": "dsv41",
+   "note": "Prompt sparse attention on NVIDIA tensor cores, sm_80+ (off; the gfx12 WMMA path's twin). Port of Maya e9b5df4.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
    "name": "STRATA_DS4_A_MB",
    "backends": [
     "cuda-hip"
@@ -6561,6 +6617,90 @@
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 2 (src/dsv41/ds4_model.cu:6833)",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
+   "name": "STRATA_DS4_LOAD_DROP_CACHE",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [],
+   "parse": "int",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/roadmap/maya-sync.md"
+   ],
+   "first_commit": "e4beddac",
+   "first_date": "2026-11-15",
+   "since": "",
+   "last_commit": "e4beddac",
+   "last_date": "2026-11-15",
+   "status": "rollback",
+   "owner": "dsv41",
+   "note": "Drop a shard's pages after its experts are copied (on; 0 = keep them in the page cache). Port of Maya 1523a07.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
+   "name": "STRATA_DS4_LOAD_INTERLEAVE",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [],
+   "parse": "int",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/roadmap/maya-sync.md"
+   ],
+   "first_commit": "e4beddac",
+   "first_date": "2026-11-15",
+   "since": "",
+   "last_commit": "e4beddac",
+   "last_date": "2026-11-15",
+   "status": "rollback",
+   "owner": "dsv41",
+   "note": "Read the model's shards round-robin at load (on; 0 = shard by shard as before). Port of Maya 1523a07.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
+   "name": "STRATA_DS4_LOAD_THREADS",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [],
+   "parse": "int",
+   "default_state": null,
+   "code_default": 12,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/roadmap/maya-sync.md"
+   ],
+   "first_commit": "e4beddac",
+   "first_date": "2026-11-15",
+   "since": "",
+   "last_commit": "e4beddac",
+   "last_date": "2026-11-15",
+   "status": "default",
+   "owner": "dsv41",
+   "note": "The load's reader threads (12). Port of Maya 1523a07.",
    "retire_after": "",
    "retired_in": ""
   },
@@ -6947,6 +7087,62 @@
    "retired_in": ""
   },
   {
+   "name": "STRATA_DS4_Q8MV_TC",
+   "backends": [
+    "cuda"
+   ],
+   "reads": [],
+   "parse": "int",
+   "default_state": null,
+   "code_default": 0,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/roadmap/maya-sync.md"
+   ],
+   "first_commit": "7360bf64",
+   "first_date": "2026-11-15",
+   "since": "",
+   "last_commit": "7360bf64",
+   "last_date": "2026-11-15",
+   "status": "opt-in",
+   "owner": "dsv41",
+   "note": "Q8_0 GEMVs for 3 to 16 columns on the tensor cores (0 off; same bits). Port of Maya 18ada27.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
+   "name": "STRATA_DS4_RAM_MARGIN_GB",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [],
+   "parse": "int",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/roadmap/maya-sync.md"
+   ],
+   "first_commit": "21f47db5",
+   "first_date": "2026-11-15",
+   "since": "",
+   "last_commit": "21f47db5",
+   "last_date": "2026-11-15",
+   "status": "default",
+   "owner": "dsv41",
+   "note": "System RAM left to everything else by the memory planning (8 GiB). Port of Maya c1e95b2.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
    "name": "STRATA_DS4_RAM_SKIP_W",
    "backends": [
     "cuda-hip"
@@ -7015,6 +7211,34 @@
    "status": "research",
    "owner": "dsv41",
    "note": "[reviewed] RAM tier was slower than page cache on a V100/64 GB; hardware-specific, no explicit not-shipped verdict. [src/dsv41/ds4_model.cu:1360]",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
+   "name": "STRATA_DS4_READ_ORDER",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [],
+   "parse": "flag",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/roadmap/maya-sync.md"
+   ],
+   "first_commit": "29582d2d",
+   "first_date": "2026-11-15",
+   "since": "",
+   "last_commit": "29582d2d",
+   "last_date": "2026-11-15",
+   "status": "opt-in",
+   "owner": "dsv41",
+   "note": "\"arrival\": a prompt keeps its place in line and is read beside a running answer (off: in order, whole). Port of Maya 7f431b6.",
    "retire_after": "",
    "retired_in": ""
   },

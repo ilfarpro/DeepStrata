@@ -189,6 +189,10 @@ condition. Two things make a run comparable with the next one, and the first har
   switch that lives in the chunked prompt path (AI_RUN's slabs, ATTN_MMA) is not reached at all there.
   `--window 128` takes the chunked path for every run of a comparison. Different windows are not
   comparable with each other either (the prompt chunk size changes the last bits, as the Intel notes say).
+- **Turn the expert cache off.** With the cache on, the expert that computes a token can move between the
+  GPU and the CPU lane from one run to the next, and the two paths round differently: two identical runs
+  of this build came out 99.33% top-1, KL 4e-4 apart. `--no-expert-cache` keeps the profile's VRAM set
+  fixed and is the only mode where `cmp` means anything here.
 
 AI_RUN needs a context long enough for its shorter slab to differ: on this pack `--max-context 16384`
 already gives the 128-row slab, so the switch is a no-op. At `--max-context 131072` the context-wide slab
@@ -199,7 +203,7 @@ python tools/quant_quality.py ids --tokenizer "$PACK/tokenizer" \
     --set data/quant_quality/v1 --seg-tokens 512 --out /tmp/dsv41.ids.json
 cp "$PACK/expert-profile.bin" /tmp/profile.fixed
 COMMON=(--pack "$PACK" --gpus 0,1 --tp 2 --max-context 131072 --window 128 \
-        --expert-profile /tmp/profile.fixed --profile-readonly --reserve-mib 200)
+        --expert-profile /tmp/profile.fixed --profile-readonly --reserve-mib 200 --no-expert-cache)
 
 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/base.tsv
 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/base2.tsv
@@ -287,10 +291,10 @@ from a card we do not have is welcome in the issue with the commands above.
 |---|---|---|
 | (this page) | the map above | read against Maya `6651b5b` and `7e68a30` |
 | `q8_mv` tensor cores | `STRATA_DS4_Q8MV_TC` (off): 3..16 columns, same bits, sm_80+ | device suite and `--rows` pass with 0, 1, 2 on sm_89 (RTX 4080 SUPER); the sm_120 card passes the suite too |
-| prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | prompt 37.03 -> 37.58 tok/s and decode unchanged (3 pairs, 512-token prompt, TP2); the score A/B needs the corrected `--window` recipe below |
+| prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | prompt 37.03 -> 37.58 tok/s and decode unchanged (3 pairs, 512-token prompt, TP2); on the chunked path top-1 94.99%, KL 0.0191 (BF16 rounding, as the kernel says), so it needs the quality gate, not `cmp` |
 | prompt read order | `STRATA_DS4_READ_ORDER=arrival` (off): a prompt keeps its place in line; pieces beside a running answer | `strata-dsv41` builds; server-side A/B with `--parallel` still to run |
-| indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt, same answers | the first score A/B was void (see `Hardware run` below); a rerun with a pinned profile and `--window 128` is needed |
-| faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | loads ran on both cards (copy into RAM 103-146 s); a timed load A/B is still to run |
+| indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt | at 128K the switch is **not** the same bits on this hardware: top-1 95.26%, KL 0.0176 against a run-to-run noise of <=0.0009. Needs either the GEMM's M kept at the old value or a quality gate of its own; a `--no-expert-cache` run is next |
+| faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | loads ran on both cards (copy into RAM 103-146 s); the first A/B moved logits at 4x the noise (top-1 97.57%, KL 0.00368), so a `--no-expert-cache` run decides whether that is placement or the load order |
 | `ignore_eos` and `logit_bias` | engine reports `INFO logit_bias=1`; the server turns `ignore_eos: true` into a ban of the end tokens | `tests/serve/test_logit_bias.py`: 16 pass, including the HTTP path |
 | RAM margin | `STRATA_DS4_RAM_MARGIN_GB` (8): planning headroom, read once | `strata-dsv41` builds |
 | EXL3 F16 dense | an F16 matrix loads as BF16 at model load | `strata-dsv41` builds; a pack with an F16 `engram.wkv` still to be run |
@@ -322,5 +326,28 @@ recipe above pins the profile, holds the window at 128, and puts AI_RUN in a con
 differs; the rerun is the gate.
 
 The logit_bias probe written in the first message was also wrong: the engine takes `GEN <max_new>
-[keys] <ids>` on one line, so the ids line was answered with `ERR unsupported command`. The engine's
-`INFO logit_bias=1` and the server-side test stand; the protocol probe needs the one-line form.
+[keys] <ids>` on one line, so the ids line was answered with `ERR unsupported command`. The corrected
+form works: with token 223 banned the first token was 28 and the request ran its 8 tokens; the engine's
+`INFO logit_bias=1` and the server-side test stand.
+
+Second run (pinned profile, `--profile-readonly`, `--window 128`, `--max-context 131072`, TP2):
+
+| Run | top-1 vs det1 | KL | KL p99 |
+|---|---|---|---|
+| det1 vs det2 (same settings) | 99.33% | 0.00040 | 0.0047 |
+| det1 vs writable profile (same settings) | 99.10% | 0.00085 | 0.0117 |
+| det1 vs load rollback | 97.57% | 0.00368 | 0.0406 |
+| det1 vs `AI_RUN=1` | 95.26% | 0.01762 | 0.1700 |
+| det1 vs `ATTN_MMA=1` | 94.99% | 0.01911 | 0.1732 |
+
+The two identical-settings pairs differ, so **this TP2 configuration is not bit-reproducible** with the
+expert cache on: the first divergence moved in each run (line 385, line 257), and the gap is small but
+real (99.1-99.3% top-1). `--score` does not write the profile: both copies keep their hash. Against that
+noise, `AI_RUN=1` and `ATTN_MMA=1` move the logits by 20-40x the noise; the load rollback sits at 4x and
+is the one result that must be repeated before it is called. The next run switches the expert cache off
+(`--no-expert-cache`) so the CPU/GPU placement cannot move, and repeats det1, det2, AI_RUN, the load
+rollback and ATTN_MMA; that run decides whether `cmp` can be the gate at all.
+
+So far: the Q8MV_TC row check is the only exactness claim this hardware confirms. AI_RUN's "same
+answers" does not hold for logits at 128K as ported (the GEMM's M changes 96 -> 128), and ATTN_MMA moves
+them, as its kernel says it may. Both are opt-in; neither is a default.

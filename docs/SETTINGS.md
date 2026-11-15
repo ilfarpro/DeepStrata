@@ -56,6 +56,7 @@ Off unless you set them. The last column says where each one is described.
 | `STRATA_DS4_LOAD_INTERLEAVE` | on / off | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
 | `STRATA_DS4_LOAD_THREADS` | number | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
 | `STRATA_DS4_Q8MV_TC` | number | NVIDIA | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
+| `STRATA_DS4_RAM_MARGIN_GB` | number | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
 | `STRATA_DS4_READ_ORDER` | text | NVIDIA and AMD | [roadmap/maya-sync.md](roadmap/maya-sync.md) |
 | `STRATA_DS4_READ_PIECES` | number | NVIDIA and AMD | - |
 | `STRATA_DS4_SLOT_GB` | number | NVIDIA and AMD | [DEEPSEEK41.md](DEEPSEEK41.md) |

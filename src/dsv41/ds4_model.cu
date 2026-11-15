@@ -1252,7 +1252,24 @@ struct Model::Impl {
     bool file_experts = false;
     bool views = true;   // false: the shards' views are dropped after the load (DS4_NO_VIEW=1)
     uint64_t warm_bytes = 0;
-    static constexpr uint64_t kRamMargin = 8ull << 30;   // RAM left to the rest (the system, the page cache's churn)
+    // RAM left to the rest (the system, the page cache's churn): 8 GiB, or STRATA_DS4_RAM_MARGIN_GB=<GiB> (0 to 4096;
+    // read once, logged once; an unreadable value keeps the 8).  Project Maya c1e95b2.
+    static uint64_t ram_margin() {
+        static const uint64_t m = [] {
+            double gib = 8.0;
+            const char* v = std::getenv("STRATA_DS4_RAM_MARGIN_GB");
+            if (v == nullptr) v = std::getenv("DS4_RAM_MARGIN_GB");
+            if (v != nullptr) {
+                char* end = nullptr;
+                const double x = std::strtod(v, &end);
+                if (end != v && x >= 0.0 && x <= 4096.0) gib = x;
+                else std::fprintf(stderr, "ds4: RAM margin %s is not a number from 0 to 4096: keeping 8 GiB\n", v);
+                if (gib != 8.0) std::fprintf(stderr, "ds4: RAM margin %.1f GiB (STRATA_DS4_RAM_MARGIN_GB)\n", gib);
+            }
+            return (uint64_t) (gib * 1073741824.0);
+        }();
+        return m;
+    }
     uint8_t* file_part(const Layer& l, int e) const {
         return pk.maps[(size_t) l.region_file[(size_t) e]].first + l.region_off[(size_t) e];
     }
@@ -2782,7 +2799,7 @@ struct Model::Impl {
             }
         // whether the CPU lane's experts are read in place (--mmap-experts; auto: the pack's expert bytes beyond what the
         // GPUs can take - their free memory less the other weights and the prompt path's buffers - do not fit the RAM
-        // this process can get beside kRamMargin), decided here because it sets the prompt chunk's default: in place
+        // this process can get beside the RAM margin), decided here because it sets the prompt chunk's default: in place
         // every chunk streams every expert VRAM does not hold from the files, so the larger the chunk the fewer times
         if (pk.gguf) file_experts = true;   // (a GGUF's: the files stay their source - copy_experts copies them into RAM
                                             // after VRAM's are in, by --mmap-experts)
@@ -2800,7 +2817,7 @@ struct Model::Impl {
                 room += std::max(0.0, (double) d.free0 - (double) ((size_t) o.reserve_mib << 20) -
                                           (prompt_par ? 1.5 : 0.4) * (1 << 30)) *
                         o.vram_experts;
-            file_experts = exp_b - std::max(0.0, room - other_b) + (double) kRamMargin > (double) ram_avail();
+            file_experts = exp_b - std::max(0.0, room - other_b) + (double) ram_margin() > (double) ram_avail();
         }
         // The default prompt chunk, one rule (ds4_experts_rule.hpp: prefill_chunk_default).  Measured: the chunked pass streams the experts the GPUs
         // do not hold once per chunk, so where they hold less than half of them a larger chunk is fewer passes (1 x R9700 + 251 GB, 8K prompt:
@@ -3619,7 +3636,7 @@ struct Model::Impl {
             for (const Layer& l : L) all += (double) l.blob * l.n_exp;
             const double need = std::max(0.0, all - room);
             const uint64_t avail = ram_avail();
-            warm_bytes = avail > kRamMargin ? std::min<uint64_t>(avail - kRamMargin, (uint64_t) need) : 0;
+            warm_bytes = avail > ram_margin() ? std::min<uint64_t>(avail - ram_margin(), (uint64_t) need) : 0;
             if (avail == ~uint64_t{0}) warm_bytes = (uint64_t) need;
             if (store_gb() > 0) warm_bytes = 0;   // (the store is the RAM tier: nothing to warm in the OS cache)
             std::fprintf(stderr,
@@ -5808,11 +5825,11 @@ struct Model::Impl {
                                           [&](const Warm& w) { return L[(size_t) w.layer].ram[(size_t) w.e] >= 0; }),
                            warm.end());
                 const uint64_t av = ram_avail();
-                if (av != ~uint64_t{0}) warm_bytes = av > kRamMargin ? std::min<uint64_t>(warm_bytes, av - kRamMargin) : 0;
+                if (av != ~uint64_t{0}) warm_bytes = av > ram_margin() ? std::min<uint64_t>(warm_bytes, av - ram_margin()) : 0;
             }
         }
         if (ram_tier && warm_bytes > 0 && !warm.empty()) {
-            // chunks of 32 slots up to warm_bytes (all the RAM the rest leaves, kRamMargin kept), one slot kept free for
+            // chunks of 32 slots up to warm_bytes (all the RAM the rest leaves, the RAM margin kept), one slot kept free for
             // a move in; the hottest experts read in, their pages then dropped from the page cache.  Plain memory, not
             // pinned: only the CPU reads it (what goes to a GPU passes the pinned staging), and pinned memory is capped on
             // Windows - the engine's own pinned buffers come after this
@@ -5875,7 +5892,7 @@ struct Model::Impl {
 
     // a GGUF's CPU-lane experts copied into RAM (copy_mode), decided once VRAM's are in - on a unified-memory APU the GPU
     // has taken its share of the RAM by then, so the copies only get what it leaves.  `hot`: the CPU lane's experts, the
-    // most-routed first.  --mmap-experts off: all that fit beside kRamMargin (a warning if not all do); on and auto:
+    // most-routed first.  --mmap-experts off: all that fit beside the RAM margin (a warning if not all do); on and auto:
     // none - read in place: the page cache follows a conversation's experts where a static set (the profile's
     // hottest) does not (the RAM tier's lesson), and copies that all fit were no faster; DS4_COPY_GB=<n>: the
     // hottest n GB (the static hybrid, for tests).  Each copy in NH parts on the NUMA nodes (DS4_COPY_NUMA=1: one), read from the files in file
@@ -5906,7 +5923,7 @@ struct Model::Impl {
                                  "(DS4_COPY_HUGETLB=0 keeps the ordinary arena)\n", (double) pool_free / 1e9, all / 1e9);
         bool arena_all_huge = huge_arena;   // (every chunk really from the pool: the pin below needs that)
         const double pool = huge_arena ? (double) pool_free : 0.0;
-        const double can = std::min(avail == ~uint64_t{0} ? 1e300 : std::max(0.0, (double) avail - (double) kRamMargin) + pool,
+        const double can = std::min(avail == ~uint64_t{0} ? 1e300 : std::max(0.0, (double) avail - (double) ram_margin()) + pool,
                                     commit_room());
         // (auto: none - copies that all fit were measured no faster than the page cache: the CPU lane's rows are
         // compute-bound, ~46 GB/s from either on 2 Xeon sockets, NUMA parts included; a part copied cost decode speed
@@ -5915,19 +5932,19 @@ struct Model::Impl {
         if (const char* v = std::getenv("DS4_COPY_GB")) budget = std::atof(v) * 1e9;
         if (o.mmap_experts < 0 && auto_copy_all && all > can)
             std::fprintf(stderr, "ds4: the CPU lane's experts (%.1f GB) do not all fit the RAM this process can get now (%.1f GB beside %.0f GB for "
-                                 "the rest): read in place from the model's files (--mmap-experts off copies what fits)\n", all / 1e9, can / 1e9, kRamMargin / 1e9);
+                                 "the rest): read in place from the model's files (--mmap-experts off copies what fits)\n", all / 1e9, can / 1e9, ram_margin() / 1e9);
         if (o.mmap_experts == 0 && all > can)
             std::fprintf(stderr, "ds4: --mmap-experts off: the CPU lane's experts (%.1f GB) do not all fit the RAM this "
                                  "process can get (%.1f GB beside %.0f GB for the rest) - the most-routed copied, the "
-                                 "others read in place\n", all / 1e9, can / 1e9, kRamMargin / 1e9);
+                                 "others read in place\n", all / 1e9, can / 1e9, ram_margin() / 1e9);
         if (auto_copy_all && budget > 0)
             std::fprintf(stderr, "ds4: --mmap-experts auto: the CPU lane's experts (%.1f GB) fit the RAM this process can get (%.1f GB beside %.0f GB for "
-                                 "the rest): copied in at load, no demand store (--mmap-experts on keeps them in place)\n", all / 1e9, can / 1e9, kRamMargin / 1e9);
+                                 "the rest): copied in at load, no demand store (--mmap-experts on keeps them in place)\n", all / 1e9, can / 1e9, ram_margin() / 1e9);
         if (budget <= 0) {
             if (o.verbose)
                 std::fprintf(stderr, "ds4: the CPU lane's experts (%.1f GB) stay in place: the RAM this process can get "
                                      "(%.1f GB beside %.0f GB for the rest) does not hold them all\n",
-                             all / 1e9, can / 1e9, kRamMargin / 1e9);
+                             all / 1e9, can / 1e9, ram_margin() / 1e9);
             return true;
         }
         // NUMA parts: whole rows of each matrix, so any row count the nodes divide
@@ -6546,7 +6563,7 @@ struct Model::Impl {
     // 115 GB of CPU-lane experts, 1 card, 2.00 set: 12.6 -> 21.4 tokens/s with the whole set resident, misses 15.4 -> 1.5 a token)
     // gets every one; the RAM that the room below leaves (free - 12 GB) is what bounds it elsewhere.
     // Whether the experts the GPUs will not hold (the CPU lane's: the pack's less the GPUs' share) all fit the RAM this process can get beside
-    // kRamMargin, so that --mmap-experts auto copies them in (a copied expert is the CPU lane's own memory: no page cache to lose to the
+    // the RAM margin, so that --mmap-experts auto copies them in (a copied expert is the CPU lane's own memory: no page cache to lose to the
     // Engram tables and the files' churn, no store indirection or miss path).  Measured, 1 x R9700 + 251 GB, 2.00 pack, warm: decode +10-15%.
     // --mmap-experts on/off and --ssd-cache N stand as given.
     bool cpu_lane_fits_ram() const {
@@ -6564,7 +6581,7 @@ struct Model::Impl {
         const double share = gpu_expert_share(&exp_b, &room, &other_b);
         if (exp_b <= 0) return false;
         const double lane = exp_b * (1.0 - std::min(1.0, share));
-        return copy_all_fits(lane, avail, (double) kRamMargin, commit_room());   // (Windows: the commit room too, not only the free RAM)
+        return copy_all_fits(lane, avail, (double) ram_margin(), commit_room());   // (Windows: the commit room too, not only the free RAM)
     }
     mutable bool auto_copy_all = false;   // (set by store_gb(): the auto size is the CPU lane's experts copied in, no demand store)
     double store_cap_gb() const {
@@ -6579,7 +6596,7 @@ struct Model::Impl {
         double gb = o.ssd_cache_gb;
         if (const char* v = std::getenv("DS4_STORE_GB")) gb = std::atof(v);
         if (!pk.gguf) gb = 0.0;
-        else if (gb < 0.0 && cpu_lane_fits_ram()) {   // auto, and the RAM holds every CPU-lane expert beside kRamMargin: they are copied in at load
+        else if (gb < 0.0 && cpu_lane_fits_ram()) {   // auto, and the RAM holds every CPU-lane expert beside the RAM margin: they are copied in at load
             auto_copy_all = true;                       // (copy_experts), the demand store would only be a second, smaller copy of them
             gb = 0.0;
         } else if (gb < 0.0) {   // auto: the RAM free now less 12 GB for the system and the owner's programs, all the experts at most
@@ -12758,7 +12775,7 @@ struct Model::Impl {
     // a run layer-major? - one device holding every layer on the flow, several chunks, and what the chunks after the
     // first would read from the files again more than the chunks' states moved to host memory and back at every layer
     // (DS4_LAYER_MAJOR=0: never); then its host memory: the chunks' states (pinned, else pageable) and the layer cache,
-    // the largest layer's experts read from the files if RAM allows (ram_avail() less kRamMargin; DS4_LAYER_CACHE_MB
+    // the largest layer's experts read from the files if RAM allows (ram_avail() less the RAM margin; DS4_LAYER_CACHE_MB
     // sets it) - at least one expert, or not layer-major
     bool lm_begin(const Run& run) {
         static const char* env = std::getenv("DS4_LAYER_MAJOR");
@@ -12788,7 +12805,7 @@ struct Model::Impl {
         else {
             const uint64_t avail = ram_avail();
             if (avail != ~uint64_t{0})
-                lc_bytes = std::min<uint64_t>(need, avail > kRamMargin + state_b ? avail - kRamMargin - state_b : 0);
+                lc_bytes = std::min<uint64_t>(need, avail > ram_margin() + state_b ? avail - ram_margin() - state_b : 0);
         }
         if (lc_bytes < blob_max) return false;
         void* st_p = nullptr;
@@ -13000,7 +13017,7 @@ struct Model::Impl {
         if (!file_experts || n < wmin || L.empty() || L[0].lay.fmt != gg::kFmtMXFP4) return;
         if (devs.size() > 1 && std::getenv("DS4_WARM_GB") == nullptr) return;   // (one GPU's, by default)
         const uint64_t avail = ram_avail();
-        double gb = avail == ~uint64_t{0} ? 8.0 : std::min(32.0, std::max(0.0, ((double) avail - (double) kRamMargin) / 2e9));
+        double gb = avail == ~uint64_t{0} ? 8.0 : std::min(32.0, std::max(0.0, ((double) avail - (double) ram_margin()) / 2e9));
         if (const char* v = std::getenv("DS4_WARM_GB")) gb = std::atof(v);
         if (gb <= 0) return;
         std::vector<std::pair<int, int>> w;   // (layer, expert), the order they are read in

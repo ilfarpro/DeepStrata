@@ -74,7 +74,7 @@ multi-GPU path, not a hypothetical one.
 
 | Maya | What | Measurement | Status |
 |---|---|---|---|
-| `18ada27`, `6b1119f`, `f692477` | `q8_mv` (Q8_0 GEMV) on the tensor cores for 3 to 16 columns (`DS4_Q8MV_TC`), same bits, sm_80+ CUDA | opt-in; no default speed claim | planned |
+| `18ada27`, `6b1119f`, `f692477` | `q8_mv` (Q8_0 GEMV) on the tensor cores for 3 to 16 columns (`STRATA_DS4_Q8MV_TC`), same bits, sm_80+ CUDA | opt-in; no default speed claim | done |
 | `b4f78bb` | indexer slab rows from this prompt's keys, not `--max-context` (`DS4_AI_RUN`), same answers | VRAM only (128 rows) | planned |
 | `335f4f1`, `027992c` | load reads the shards round-robin (`MAYA_DS4_LOAD_INTERLEAVE`), same bytes, on | EXL3 2.9: 109 -> 75 s load | planned |
 | `50a3313` (#639) | one-launch attention for a step of several requests (`MAYA_DS4_MULTI_ATTN`), same bits, on | 43.9 -> 49.3 tok/s aggregate (8 GPUs, `--parallel 2`) | planned |
@@ -130,3 +130,4 @@ multi-GPU path, not a hypothetical one.
 | Commit | What | Validation |
 |---|---|---|
 | (this page) | the map above | read against Maya `6651b5b` |
+| `q8_mv` tensor cores | `STRATA_DS4_Q8MV_TC` (off): 3..16 columns, same bits, sm_80+ | `strata-dsv41` builds (CUDA); no GPU here, so no A/B yet |

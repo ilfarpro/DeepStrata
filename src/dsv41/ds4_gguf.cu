@@ -499,6 +499,220 @@ __global__ void __launch_bounds__(kThreads) q8_mv_kernel(const BfJobs J) {
         }
 }
 
+// ---- Project Maya v1.1.63: q8_mv on the tensor cores (18ada27, 6b1119f, f692477, MIT) --------------------
+// Strata addition: the same kernel, opt-in STRATA_DS4_Q8MV_TC (0 off, 1: 3..16 columns, 2: also 2).  CUDA only;
+// the HIP and Metal builds keep q8_mv_kernel.  The sums are the same bits (see the comment below).
+#if !defined(STRATA_USE_HIP) && !defined(STRATA_METAL)
+// DS4_Q8MV_TC=1 (default off): q8_mv on the tensor cores (sm_80+ mma m16n8k32 s8): a CTA 16 MT rows of a job, 8 warps.  A block's int32 sums are
+// the mma's (exact, the dp4a chain's); the float part is q8_mv_kernel's: class L = kb mod 32 (q8_mv's lane) its blocks in
+// order, fmaf(dw * xd, (float) sum, acc), then warp_sum's tree (pairs L, L^16 first, then ^8, ^4, ^2, ^1).  A warp
+// takes 4 classes: bitrev5(4 w + i), the tree's leaves 4w..4w+3, so a warp's partial is the subtree (L, L^16, L^8,
+// L^24) and the 8 warps' partials meet as ^4, ^2, ^1 - the same bits as q8_mv_kernel.  Rows nb % 8 == 0 (16-byte
+// chunks), the row base 16-byte aligned.
+// staged bytes a row: CH blocks + 16 (no bank conflicts on the A loads); CH 16: a chunk holds half the classes, a warp
+// two of its four
+template <int CH>
+__host__ __device__ constexpr int tc_str() { return CH == 32 ? 1104 : 560; }
+// (cp.async and mma.sync's int8 m16n8k32: sm_80+, CUDA; elsewhere the kernel is empty and never launched - q8_tc_dev)
+__device__ __forceinline__ void tc_cp16(void* s, const void* g) {
+#if !defined(STRATA_USE_HIP) && (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 800)
+    const unsigned sa = (unsigned) __cvta_generic_to_shared(s);
+    asm volatile("cp.async.cg.shared.global [%0], [%1], 16;\n" ::"r"(sa), "l"(g));
+#endif
+}
+__device__ __forceinline__ void tc_commit() {
+#if !defined(STRATA_USE_HIP) && (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 800)
+    asm volatile("cp.async.commit_group;\n" ::);
+#endif
+}
+template <int N>
+__device__ __forceinline__ void tc_wait() {
+#if !defined(STRATA_USE_HIP) && (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 800)
+    asm volatile("cp.async.wait_group %0;\n" ::"n"(N));
+#endif
+}
+// 4 bytes at a 2-byte aligned shared offset (ODD: the offset 4-byte aligned)
+template <bool AL>
+__device__ __forceinline__ uint32_t tc_ld32(const uint8_t* p) {
+    if (AL) return *(const uint32_t*) p;
+    const uint32_t lo = *(const uint32_t*) (p - 2), hi = *(const uint32_t*) (p + 2);
+    return __byte_perm(lo, hi, 0x5432);
+}
+template <int NC, int MT, int STG, int CH>
+__global__ void __launch_bounds__(256) q8_mv_tc_kernel(const BfJobs J) {
+#if !defined(STRATA_USE_HIP) && (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 800)
+    extern __shared__ __align__(16) uint8_t tc_sm[];
+    constexpr int R = 16 * MT, NT = NC > 8 ? 2 : 1;   // (NT: 8-column tiles, 9..16 columns two)
+    const BfJob& b = J.j[blockIdx.y];
+    const int row0 = blockIdx.x * R;
+    if (row0 >= b.n) return;
+    constexpr int kTcStr = tc_str<CH>();
+    const int nb = b.k / 32, nch = (nb + CH - 1) / CH, nr = min(R, b.n - row0), ncol = b.ncol;
+    const int tid = threadIdx.x, warp = tid >> 5, lane = tid & 31, g = lane >> 2, t = lane & 3;
+    const uint8_t* W0 = (const uint8_t*) b.w + (size_t) row0 * b.ld;
+    auto issue = [&](int ch) {
+        if (ch < nch) {
+            const int nbk = min(CH, nb - ch * CH), pieces = nbk * 34 / 16;
+            uint8_t* dst = tc_sm + (ch % STG) * R * kTcStr;
+            const uint8_t* src = W0 + (size_t) ch * (CH * 34);
+            for (int i = tid; i < nr * pieces; i += 256) {
+                const int r = i / pieces, p = i - r * pieces;
+                tc_cp16(dst + r * kTcStr + p * 16, src + (size_t) r * b.ld + p * 16);
+            }
+        }
+        tc_commit();
+    };
+#pragma unroll
+    for (int s = 0; s < STG - 1; ++s) issue(s);
+    int cls[4];
+#pragma unroll
+    for (int i = 0; i < 4; ++i) cls[i] = (int) (__brev((unsigned) (4 * warp + i)) >> 27);
+    const bool al = (cls[0] & 1) != 0;   // (the classes of a warp share their parity)
+    float acc[4][MT][NT][4];
+#pragma unroll
+    for (int i = 0; i < 4; ++i)
+#pragma unroll
+        for (int m = 0; m < MT; ++m)
+#pragma unroll
+            for (int n = 0; n < NT; ++n)
+#pragma unroll
+                for (int e = 0; e < 4; ++e) acc[i][m][n][e] = 0.0f;
+    const uint32_t* xq = (const uint32_t*) (b.xq + (size_t) g * b.k) + t;   // (tile n: + 8 n k bytes)
+    // a class's place in chunk ch (-1: none) - CH 32 every class, CH 16 the half (c >> 4) == (ch & 1)
+    auto where = [&](int ch, int c) {
+        const int nbk = min(CH, nb - ch * CH);
+        if (CH == 16 && (c >> 4) != (ch & 1)) return -1;
+        const int j = c & (CH - 1);
+        return j < nbk ? j : -1;
+    };
+    // the activations of a chunk's classes, a chunk ahead (registers)
+    uint32_t B0[4][NT], B1[4][NT];
+    float X0[4][NT], X1[4][NT];
+    auto ldB = [&](int ch) {
+#pragma unroll
+        for (int i = 0; i < 4; ++i) {
+            const int j = ch < nch ? where(ch, cls[i]) : -1;
+#pragma unroll
+            for (int n = 0; n < NT; ++n) {
+                B0[i][n] = B1[i][n] = 0u;
+                X0[i][n] = X1[i][n] = 0.0f;
+                if (j < 0) continue;
+                const int kb = ch * CH + j, c0 = 8 * n;
+                if (c0 + g < ncol) {
+                    B0[i][n] = xq[(size_t) c0 * (b.k / 4) + kb * 8];
+                    B1[i][n] = xq[(size_t) c0 * (b.k / 4) + kb * 8 + 4];
+                }
+                if (c0 + 2 * t < ncol) X0[i][n] = b.xd[(size_t) (c0 + 2 * t) * nb + kb];
+                if (c0 + 2 * t + 1 < ncol) X1[i][n] = b.xd[(size_t) (c0 + 2 * t + 1) * nb + kb];
+            }
+        }
+    };
+    ldB(0);
+    for (int ch = 0; ch < nch; ++ch) {
+        issue(ch + STG - 1);
+        uint32_t b0r[4][NT], b1r[4][NT];
+        float x0r[4][NT], x1r[4][NT];
+#pragma unroll
+        for (int i = 0; i < 4; ++i)
+#pragma unroll
+            for (int n = 0; n < NT; ++n) b0r[i][n] = B0[i][n], b1r[i][n] = B1[i][n], x0r[i][n] = X0[i][n], x1r[i][n] = X1[i][n];
+        ldB(ch + 1);
+        tc_wait<STG - 1>();
+        __syncthreads();
+        const uint8_t* st = tc_sm + (ch % STG) * R * kTcStr;
+#pragma unroll
+        for (int i = 0; i < 4; ++i) {
+            const int c = where(ch, cls[i]);
+            if (c < 0) continue;   // (warp-uniform)
+#pragma unroll
+            for (int m = 0; m < MT; ++m) {
+                const uint8_t* ra = st + (m * 16 + g) * kTcStr + c * 34;
+                const uint8_t* rb = ra + 8 * kTcStr;
+                uint32_t a0, a1, a2, a3;
+                if (al) {
+                    a0 = tc_ld32<true>(ra + 2 + 4 * t); a1 = tc_ld32<true>(rb + 2 + 4 * t);
+                    a2 = tc_ld32<true>(ra + 18 + 4 * t); a3 = tc_ld32<true>(rb + 18 + 4 * t);
+                } else {
+                    a0 = tc_ld32<false>(ra + 2 + 4 * t); a1 = tc_ld32<false>(rb + 2 + 4 * t);
+                    a2 = tc_ld32<false>(ra + 18 + 4 * t); a3 = tc_ld32<false>(rb + 18 + 4 * t);
+                }
+                const float dw0 = __half2float(*(const __half*) ra), dw1 = __half2float(*(const __half*) rb);
+#pragma unroll
+                for (int n = 0; n < NT; ++n) {
+                    int d0, d1, d2, d3;
+                    asm volatile(
+                        "mma.sync.aligned.m16n8k32.row.col.s32.s8.s8.s32 {%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, "
+                        "{%10,%10,%10,%10};\n"
+                        : "=r"(d0), "=r"(d1), "=r"(d2), "=r"(d3)
+                        : "r"(a0), "r"(a1), "r"(a2), "r"(a3), "r"(b0r[i][n]), "r"(b1r[i][n]), "r"(0));
+                    const float xs0 = x0r[i][n], xs1 = x1r[i][n];
+                    acc[i][m][n][0] = fmaf(dw0 * xs0, (float) d0, acc[i][m][n][0]);
+                    acc[i][m][n][1] = fmaf(dw0 * xs1, (float) d1, acc[i][m][n][1]);
+                    acc[i][m][n][2] = fmaf(dw1 * xs0, (float) d2, acc[i][m][n][2]);
+                    acc[i][m][n][3] = fmaf(dw1 * xs1, (float) d3, acc[i][m][n][3]);
+                }
+            }
+        }
+        __syncthreads();
+    }
+    tc_wait<0>();
+    __syncthreads();
+    constexpr int CW = 8 * NT;
+    float* red = (float*) tc_sm;   // [warp][row][CW columns]
+#pragma unroll
+    for (int m = 0; m < MT; ++m)
+#pragma unroll
+        for (int n = 0; n < NT; ++n)
+#pragma unroll
+            for (int e = 0; e < 4; ++e) {
+                const int row = m * 16 + g + (e >= 2 ? 8 : 0), col = 8 * n + 2 * t + (e & 1);
+                red[(warp * R + row) * CW + col] =
+                    (acc[0][m][n][e] + acc[1][m][n][e]) + (acc[2][m][n][e] + acc[3][m][n][e]);
+            }
+    __syncthreads();
+    for (int i = tid; i < R * CW; i += 256) {
+        const int row = i / CW, col = i % CW;
+        if (row >= nr || col >= ncol) continue;
+        float p[8];
+#pragma unroll
+        for (int w = 0; w < 8; ++w) p[w] = red[(w * R + row) * CW + col];
+        const float v = ((p[0] + p[1]) + (p[2] + p[3])) + ((p[4] + p[5]) + (p[6] + p[7]));
+        b.y[col * b.ycs + row0 + row] = b.alpha * v + (b.bias != nullptr ? b.bias[row0 + row] : 0.0f);
+    }
+#endif
+}
+template <int MT, int STG, int CH>
+constexpr int q8_tc_smem() { return STG * 16 * MT * tc_str<CH>() > 8 * 16 * MT * 16 * 4 ? STG * 16 * MT * tc_str<CH>() : 8 * 16 * MT * 16 * 4; }
+
+// activations and scales, at most 16 columns
+bool q8_tc_ok(const BfJobs& J, int nj) {
+    for (int i = 0; i < nj; ++i) {
+        const BfJob& b = J.j[i];
+        if (b.k % 256 != 0 || b.ld % 16 != 0 || ((uintptr_t) b.w & 15) != 0 || ((uintptr_t) b.xq & 3) != 0 ||
+            ((uintptr_t) b.xd & 3) != 0 || b.ncol > 16)
+            return false;
+    }
+    return true;
+}
+// the tensor-core q8_mv's device: compute capability 8.0+ (cp.async, mma.sync's int8 m16n8k32), CUDA; asked once a device
+bool q8_tc_dev() {
+#if !defined(STRATA_USE_HIP)
+    static std::atomic<int> known[64];   // 0: not asked yet, 1: no, 2: yes
+    int dev = 0;
+    if (cudaGetDevice(&dev) != cudaSuccess || dev < 0 || dev >= 64) return false;
+    int v = known[dev].load(std::memory_order_relaxed);
+    if (v == 0) {
+        int major = 0;
+        v = cudaDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor, dev) == cudaSuccess && major >= 8 ? 2 : 1;
+        known[dev].store(v, std::memory_order_relaxed);
+    }
+    return v == 2;
+#else
+    return false;
+#endif
+}
+#endif
+
 // grid (max rows / 8, jobs): bf16_mv_kernel for MXFP4 (Q8 false) or Q8_0 (Q8 true) matrices - a lane a 32-value block
 // a step, dequantised once for the job's activations
 template <int NC, bool VEC, bool Q8>
@@ -1231,6 +1445,24 @@ void mv_launch(int f, const BfJobs& J, int nj, int max_n, bool vec, cudaStream_t
 #if defined(STRATA_METAL)
         if (max_n > 0 && nj > 0 &&
             ::strata::dsv41::metal_host::mx_mv((const void*) &J, nj, max_n, sizeof(BfJob), 2)) return;
+#endif
+#if !defined(STRATA_USE_HIP) && !defined(STRATA_METAL)
+        // the tensor-core kernel for 3..16 columns (2: also 2), the same bits; 32 rows a CTA in 16-block chunks when
+        // that still gives 128+ CTAs, else 16 a CTA in 32-block chunks - the microbench's best (Project Maya 18ada27,
+        // 6b1119f, f692477; off by default until measured on our cards)
+        static const int tc = [] {
+            const char* v = std::getenv("STRATA_DS4_Q8MV_TC");
+            if (v == nullptr) v = std::getenv("DS4_Q8MV_TC");
+            return v != nullptr ? std::atoi(v) : 0;
+        }();
+        if (vec && tc > 0 && (NC >= 4 || (tc >= 2 && NC == 2)) && q8_tc_ok(J, nj) && q8_tc_dev()) {
+            if ((max_n + 31) / 32 * nj >= 128)
+                strata_ds4_launch(q8_mv_tc_kernel<NC, 2, 2, 16>, dim3((unsigned) ((max_n + 31) / 32), (unsigned) nj), 256,
+                                  (size_t) q8_tc_smem<2, 2, 16>(), s, J);
+            else
+                strata_ds4_launch(q8_mv_tc_kernel<NC, 1, 2, 32>, dim3((unsigned) ((max_n + 15) / 16), (unsigned) nj), 256,
+                                  (size_t) q8_tc_smem<1, 2, 32>(), s, J);
+        } else
 #endif
         if (vec) strata_ds4_launch(q8_mv_kernel<NC, true>, grid, kThreads, 0, s, J);
         else strata_ds4_launch(q8_mv_kernel<NC, false>, grid, kThreads, 0, s, J);

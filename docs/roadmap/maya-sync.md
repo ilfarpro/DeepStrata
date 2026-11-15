@@ -179,24 +179,43 @@ dequant/GEMM kernel tests by hand for CUDA or HIP.
 
 The opt-in features that claim the same numbers (`STRATA_DS4_Q8MV_TC`, `STRATA_DS4_AI_RUN`,
 `STRATA_DS4_LOAD_*`, `STRATA_DS4_RAM_MARGIN_GB`, `logit_bias`) are checked with the score tool: the same
-segments through the engine with and without the switch, then `compare`. Top-1 agreement and a KL of 0
-are the pass condition.
+segments through the engine with and without the switch. Top-1 agreement and a KL of 0 are the pass
+condition. Two things make a run comparable with the next one, and the first hardware run missed both:
+
+- **Pin the expert profile.** The pack's `expert-profile.bin` decides which experts sit in VRAM and which
+  on the CPU lane, and the file is shared with the live server. Copy it once and pass
+  `--expert-profile COPY --profile-readonly` to every run, so the placement cannot move between them.
+- **Keep the window the same.** `--score` feeds 16-token windows by default: the old windows path. A
+  switch that lives in the chunked prompt path (AI_RUN's slabs, ATTN_MMA) is not reached at all there.
+  `--window 128` takes the chunked path for every run of a comparison. Different windows are not
+  comparable with each other either (the prompt chunk size changes the last bits, as the Intel notes say).
+
+AI_RUN needs a context long enough for its shorter slab to differ: on this pack `--max-context 16384`
+already gives the 128-row slab, so the switch is a no-op. At `--max-context 131072` the context-wide slab
+is 96 rows and AI_RUN's 128 rows are the change being tested.
 
 ```sh
 python tools/quant_quality.py ids --tokenizer "$PACK/tokenizer" \
     --set data/quant_quality/v1 --seg-tokens 512 --out /tmp/dsv41.ids.json
-$EXE --pack "$PACK" --gpus 0 --max-context 16384 --score /tmp/dsv41.ids.json --score-out /tmp/base.tsv
-STRATA_DS4_AI_RUN=1 $EXE --pack "$PACK" --gpus 0 --max-context 16384 \
-    --score /tmp/dsv41.ids.json --score-out /tmp/ai_run.tsv
-python tools/quant_quality.py compare /tmp/base.tsv /tmp/ai_run.tsv
+cp "$PACK/expert-profile.bin" /tmp/profile.fixed
+COMMON=(--pack "$PACK" --gpus 0,1 --tp 2 --max-context 131072 --window 128 \
+        --expert-profile /tmp/profile.fixed --profile-readonly --reserve-mib 200)
+
+$EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/base.tsv
+$EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/base2.tsv
+cmp /tmp/base.tsv /tmp/base2.tsv && echo "deterministic"
+STRATA_DS4_AI_RUN=1 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/ai_run.tsv
+cmp /tmp/base.tsv /tmp/ai_run.tsv && echo "AI_RUN: identical"
 ```
+
+The first pair is not ceremony: if two runs of the same build differ, nothing below them means anything.
 
 For a quick prompt-only check, `--dump-logits` writes every prompt position's logits (F32, the
 vocabulary per row); the two files must be `cmp`-identical for a feature that claims the same bits:
 
 ```sh
-$EXE --pack "$PACK" --gpus 0 --max-context 16384 --ids "$IDS" --n 0 --dump-logits /tmp/base.f32
-STRATA_DS4_AI_RUN=1 $EXE --pack "$PACK" --gpus 0 --max-context 16384 --ids "$IDS" --n 0 --dump-logits /tmp/ai.f32
+$EXE "${COMMON[@]}" --ids "$IDS" --n 0 --dump-logits /tmp/base.f32
+STRATA_DS4_AI_RUN=1 $EXE "${COMMON[@]}" --ids "$IDS" --n 0 --dump-logits /tmp/ai.f32
 cmp /tmp/base.f32 /tmp/ai.f32
 ```
 
@@ -208,14 +227,14 @@ conversations in a step), and compare with the scalar run.
 ### 4. Quality gate for a feature that moves the last bits
 
 `STRATA_DS4_ATTN_MMA=1` uses BF16 products: within rounding of the scalar kernels, not the same bits
-(the header of the kernel says so). Run the score set with and without it and read top-1, KL and
-perplexity; do not require a byte-identical dump. The same applies to any change that alters arithmetic.
+(the header of the kernel says so). It is selected only for a **chunked** prompt (`gen > 0`) of 16 rows or
+more: `--window 128` in the commands above is what reaches it, and the "prompt attention on the tensor
+cores" line at load only says the card is eligible, not that a kernel ran. Run the score set with and
+without it and read top-1, KL and perplexity; do not require a byte-identical dump.
 
 ```sh
-$EXE --pack "$PACK" --gpus 0 --max-context 16384 --score /tmp/dsv41.ids.json --score-out /tmp/scalar.tsv
-STRATA_DS4_ATTN_MMA=1 $EXE --pack "$PACK" --gpus 0 --max-context 16384 \
-    --score /tmp/dsv41.ids.json --score-out /tmp/mma.tsv
-python tools/quant_quality.py compare /tmp/scalar.tsv /tmp/mma.tsv
+STRATA_DS4_ATTN_MMA=1 $EXE "${COMMON[@]}" --score /tmp/dsv41.ids.json --score-out /tmp/mma.tsv
+python tools/quant_quality.py compare /tmp/base.tsv /tmp/mma.tsv
 ```
 
 Record the numbers with the card, the pack and the context. A text check on a coding-agent prompt is
@@ -224,8 +243,8 @@ worth adding: the answer must stay coherent, and the first tokens should not dri
 ### 5. Server features: `ignore_eos`, `logit_bias`, `--parallel`
 
 ```sh
-# the engine alone: the request must run to max_tokens instead of stopping at the first EOS
-{ printf 'GEN 8 logit_bias=1:-100\n'; printf '%s\n' "$IDS"; } | \
+# the engine alone: GEN carries the ids on its own line, the keys before them
+{ printf 'GEN 8 logit_bias=1:-100 %s\nQUIT\n' "$IDS"; } | \
     $EXE --serve --pack "$PACK" --gpus 0 --max-context 16384
 # the HTTP path (the engine under the server): max_tokens 8 with ignore_eos true must give 8 tokens
 curl -s http://127.0.0.1:PORT/v1/chat/completions -H 'Content-Type: application/json' \
@@ -267,11 +286,11 @@ from a card we do not have is welcome in the issue with the commands above.
 | Commit | What | Validation |
 |---|---|---|
 | (this page) | the map above | read against Maya `6651b5b` and `7e68a30` |
-| `q8_mv` tensor cores | `STRATA_DS4_Q8MV_TC` (off): 3..16 columns, same bits, sm_80+ | `strata-dsv41` builds (CUDA); no GPU here, so no A/B yet |
-| prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | `strata-dsv41` builds (CUDA); the GPU test and quality gate still to run |
+| `q8_mv` tensor cores | `STRATA_DS4_Q8MV_TC` (off): 3..16 columns, same bits, sm_80+ | device suite and `--rows` pass with 0, 1, 2 on sm_89 (RTX 4080 SUPER); the sm_120 card passes the suite too |
+| prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | prompt 37.03 -> 37.58 tok/s and decode unchanged (3 pairs, 512-token prompt, TP2); the score A/B needs the corrected `--window` recipe below |
 | prompt read order | `STRATA_DS4_READ_ORDER=arrival` (off): a prompt keeps its place in line; pieces beside a running answer | `strata-dsv41` builds; server-side A/B with `--parallel` still to run |
-| indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt, same answers | `strata-dsv41` builds; no GPU to measure |
-| faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | `strata-dsv41` builds; load A/B still to run |
+| indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt, same answers | the first score A/B was void (see `Hardware run` below); a rerun with a pinned profile and `--window 128` is needed |
+| faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | loads ran on both cards (copy into RAM 103-146 s); a timed load A/B is still to run |
 | `ignore_eos` and `logit_bias` | engine reports `INFO logit_bias=1`; the server turns `ignore_eos: true` into a ban of the end tokens | `tests/serve/test_logit_bias.py`: 16 pass, including the HTTP path |
 | RAM margin | `STRATA_DS4_RAM_MARGIN_GB` (8): planning headroom, read once | `strata-dsv41` builds |
 | EXL3 F16 dense | an F16 matrix loads as BF16 at model load | `strata-dsv41` builds; a pack with an F16 `engram.wkv` still to be run |
@@ -280,6 +299,28 @@ from a card we do not have is welcome in the issue with the commands above.
 
 The host-only side ran here: `python -m pytest tests/serve` (1437 passed, 12 skipped; the five picture
 tests need Pillow, installed for a second run where they pass), `tests/tools` (1718 passed, 6 skipped),
-and `tests/serve/test_logit_bias.py` (16 passed). Ruff was not installed in this environment. No GPU was
-available, so no model was loaded, no speed was measured, and the CUDA kernels above were compiled but
-not run.
+and `tests/serve/test_logit_bias.py` (17 passed, the HTTP path included). Ruff was not installed in this
+environment.
+
+#### Hardware run, 2026-11-15
+
+RTX 4080 SUPER (sm_89) + RTX 5060 Ti (sm_120), driver 615.71.09, pack
+`deepseek-v4.1-flash-ud-q2_k_xl`, TP2, `--max-context 16384`, engine build from this branch.
+
+Passed: `--pack-info` on the real pack; `ds4_gguf_test` `ALL OK (0 failed)` on both cards; `--rows` with
+`STRATA_DS4_Q8MV_TC=0/1/2` on sm_89; `short_prompt_check.py` (`ok`, 3 requests, 16 tokens each);
+`INFO logit_bias=1` from the engine; the build's `--serve` protocol. ATTN_MMA's speed pair: prompt
+37.03, 37.08, 37.03 -> 37.61, 37.58, 37.55 tok/s (+1.5%), decode inside the run-to-run noise.
+
+Not valid: the first score comparison. The default run (`base.tsv`) differed from the next three, while
+`STRATA_DS4_AI_RUN=1`, the load rollback and `STRATA_DS4_ATTN_MMA=1` came out **byte-identical to each
+other**. That is the signature of the three later runs all taking the same path (the score's 16-token
+windows do not reach ATTN_MMA, and AI_RUN's slab change is a no-op at 16K), with the first run different
+for a reason the run did not isolate (the pack's shared `expert-profile.bin` and a cold first load are the
+candidates). The comparisons are therefore void, not evidence for or against the switches. The corrected
+recipe above pins the profile, holds the window at 128, and puts AI_RUN in a context where its slab
+differs; the rerun is the gate.
+
+The logit_bias probe written in the first message was also wrong: the engine takes `GEN <max_new>
+[keys] <ids>` on one line, so the ids line was answered with `ERR unsupported command`. The engine's
+`INFO logit_bias=1` and the server-side test stand; the protocol probe needs the one-line form.

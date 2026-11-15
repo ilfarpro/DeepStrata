@@ -93,7 +93,7 @@ multi-GPU path, not a hypothetical one.
 | `c968b94` (v1.1.45) | recent-slot fills drained before a prompt borrows the tail (long prompt, one GPU) | done (`c60833cc`) |
 | `8c34c00` | a request that leaves a GPU in a fault prints `END`, and the next request starts a fresh engine | planned |
 | `78228a0` | every parallel conversation is set aside when the engine ends, not only the bound one | planned |
-| `1b262d5`, `d08cbd8` | failed allocation / zeroing names its KiB size, the driver's reason and the free VRAM | planned |
+| `1b262d5`, `d08cbd8` | failed allocation / zeroing names its KiB size, the driver's reason and the free VRAM | done |
 | `eab2eea` | a start says when another program holds a GPU's memory; the expert arena retries | done |
 | `c1e95b2` | `STRATA_DS4_RAM_MARGIN_GB` for the memory planning (default 8 GiB) | done |
 | `e0c6d59` | the Engram `mlock` error names the memlock limit and the `limits.d` fix | planned |

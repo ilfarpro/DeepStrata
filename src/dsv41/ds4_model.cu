@@ -2012,15 +2012,32 @@ struct Model::Impl {
         void* v = nullptr;
         cudaSetDevice(d.id);
         const size_t b = align256(n * sizeof(T));
-        if (cudaMalloc(&v, b) != cudaSuccess) {
-            err = "cudaMalloc " + std::to_string(b >> 20) + " MiB on CUDA" + std::to_string(d.id) + " failed";
+        if (const cudaError_t me = cudaMalloc(&v, b); me != cudaSuccess) {
+            // (the size in MiB read "0 MiB" for any buffer under 1 MiB, which hid that the GPU was simply full: the
+            // size in KiB under 1 MiB, the driver's reason, and what the GPU still had free - Project Maya 1b262d5)
+            size_t fr = 0, tot = 0;
+            (void) cudaGetLastError();
+            const bool have_free = mem_info(&fr, &tot) == cudaSuccess;
+            (void) cudaGetLastError();
+            err = "cudaMalloc " + (b < (1u << 20) ? std::to_string(b >> 10) + " KiB" : std::to_string(b >> 20) + " MiB") +
+                  " on CUDA" + std::to_string(d.id) + " failed (" + cudaGetErrorString(me) +
+                  (have_free ? "; " + std::to_string(fr >> 20) + " MiB of " + std::to_string(tot >> 20) +
+                                   " MiB free - this GPU is full: raise --reserve-mib or leave it out of the GPU list"
+                             : "") +
+                  ")";
             return false;
         }
         // zeroed before anything lands in it: the loads copy in on the default stream, which the non-blocking d.st
         // does not order against - a zeroing still queued there could wipe the weights just copied
-        if (cudaMemsetAsync(v, 0, b, d.st) != cudaSuccess || cudaStreamSynchronize(d.st) != cudaSuccess) {
+        cudaError_t ze = cudaMemsetAsync(v, 0, b, d.st);
+        if (ze == cudaSuccess) ze = cudaStreamSynchronize(d.st);
+        if (ze != cudaSuccess) {
+            // (the driver's reason too: a small zeroing that fails is an earlier error surfacing on this stream's wait,
+            //  not this buffer - Project Maya d08cbd8)
+            (void) cudaGetLastError();
             cudaFree(v);
-            err = "zeroing " + std::to_string(b >> 20) + " MiB on CUDA" + std::to_string(d.id) + " failed";
+            err = "zeroing " + (b < (1u << 20) ? std::to_string(b >> 10) + " KiB" : std::to_string(b >> 20) + " MiB") +
+                  " on CUDA" + std::to_string(d.id) + " failed (" + cudaGetErrorString(ze) + ")";
             return false;
         }
         d.allocs.push_back(v);

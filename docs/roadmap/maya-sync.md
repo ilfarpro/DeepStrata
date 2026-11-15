@@ -75,7 +75,7 @@ multi-GPU path, not a hypothetical one.
 | Maya | What | Measurement | Status |
 |---|---|---|---|
 | `18ada27`, `6b1119f`, `f692477` | `q8_mv` (Q8_0 GEMV) on the tensor cores for 3 to 16 columns (`STRATA_DS4_Q8MV_TC`), same bits, sm_80+ CUDA | opt-in; no default speed claim | done |
-| `b4f78bb` | indexer slab rows from this prompt's keys, not `--max-context` (`STRATA_DS4_AI_RUN`), same answers | VRAM only (128 rows) | done |
+| `b4f78bb` | indexer slab rows from this prompt's keys, not `--max-context` (`STRATA_DS4_AI_RUN`); Maya says the same answers | VRAM only (128 rows) | done, opt-in; our 128K run moves the logits (see `Hardware run`), so it is quality-gated until the no-cache run says otherwise |
 | `335f4f1`, `027992c` | load reads the shards round-robin (`STRATA_DS4_LOAD_INTERLEAVE`, on), `STRATA_DS4_LOAD_THREADS`, `STRATA_DS4_LOAD_DROP_CACHE` | EXL3 2.9: 109 -> 75 s load | done |
 | `50a3313` (#639) | one-launch attention for a step of several requests (`MAYA_DS4_MULTI_ATTN`), same bits, on | 43.9 -> 49.3 tok/s aggregate (8 GPUs, `--parallel 2`) | planned |
 | `7f431b6` | `STRATA_DS4_READ_ORDER=arrival`: prompts read in arrival order, answers write between pieces | agent p95 first token 13.5 s against 29.1 s (3 GPUs) | done |
@@ -177,8 +177,9 @@ dequant/GEMM kernel tests by hand for CUDA or HIP.
 
 ### 3. The exactness gate for a "same bits" feature
 
-The opt-in features that claim the same numbers (`STRATA_DS4_Q8MV_TC`, `STRATA_DS4_AI_RUN`,
-`STRATA_DS4_LOAD_*`, `STRATA_DS4_RAM_MARGIN_GB`, `logit_bias`) are checked with the score tool: the same
+The opt-in features that claim the same numbers (`STRATA_DS4_Q8MV_TC`, `STRATA_DS4_LOAD_*`,
+`STRATA_DS4_RAM_MARGIN_GB`, `logit_bias`; `AI_RUN` is under the quality gate until the no-cache run
+below says otherwise) are checked with the score tool: the same
 segments through the engine with and without the switch. Top-1 agreement and a KL of 0 are the pass
 condition. Two things make a run comparable with the next one, and the first hardware run missed both:
 

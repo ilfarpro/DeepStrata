@@ -63,3 +63,18 @@ MAYA-PAR (2026-10-31, branch f-041-maya-par), DeepSeek `--parallel`:
 MAYA-PORT2 (2026-10-31, branch f-041-maya-port2), DeepSeek `--parallel` scheduling:
 - #587 (mrsirg97-rgb, a73bdbc): the serve loop on an event queue (`ds4_evt.hpp`, `tests/dsv41/evt_test.cpp`), a prompt read in three steps (begin, piece, end), `Model::set_yield` / `fed` / `prompt_chunk` / `pipeline_stages` (a read alone ends at a chunk every stage reaches once a request waits). Prompts take turns a piece each with the answers' tokens between only with `STRATA_DS4_READ_PIECES=1`; off by default.
 - #611 (needmorevram e3de4aa; mw00 1434096, 4b2378b, 0d0f261): the DSpark drafter in the steps of several requests (`Model::step_multi_spec`, `verify_multi`, `can_draft_multi` / `draft_multi`, per-conversation compressor snapshots, `--multi-check` passes with the drafter). The multi step's rows always on the async path; each run's replicated rows at its own place of the pinned stage. The prompt lookup, think budget and DS4_DECODE_TRIM parts of Maya's diff are not in this tree and were left out.
+
+MAYA-SYNC (2026-11-15, branch f-maya-sync): the port of Project Maya v1.1.43 to v1.1.63 (upstream `7e68a30`, MIT, the
+same copyright and permission notice as above), mapped in `docs/roadmap/maya-sync.md`:
+- v1.1.63 Q8_0 GEMVs on the tensor cores (`q8_mv_tc_kernel`, `STRATA_DS4_Q8MV_TC`, opt-in; #755/#769, needmorevram).
+- v1.1.63 prompt attention on NVIDIA tensor cores (`sparse_attn_mma_kernel`, `STRATA_DS4_ATTN_MMA`, opt-in; #746, mw00).
+- the indexer slab rows taken from this run's keys (`Chunk::AIM`, `STRATA_DS4_AI_RUN`, opt-in; #768, needmorevram).
+- faster expert loads: interleaved shard order, more threads, dropping the pages after the upload
+  (`STRATA_DS4_LOAD_INTERLEAVE` / `_THREADS` / `_DROP_CACHE`; #734/#735, Ross-Yang-94 and mw00).
+- `STRATA_DS4_READ_ORDER=arrival` for an agent's prompts (#733, mw00); the end of a parallel engine setting each
+  conversation aside (#779, mw00).
+- `logit_bias` on the engine's every pick and the server's `ignore_eos` (#772, mw00); `STRATA_DS4_RAM_MARGIN_GB`
+  (#739, mw00); an EXL3 pack's F16 dense matrix as BF16 (#802, mw00); the GPU-busy and allocation/zeroing diagnostics
+  (#700, #794, #805, mw00).
+Not ported here, still listed in the roadmap: the tensor-parallel all-reduce rework (AR2, AR_P2P, peer AR, host-free TP,
+uneven parts), MULTI_ATTN, `logprobs`, the END protocol, and the Maya-specific configuration names.

@@ -172,3 +172,35 @@ class IgnoreEos(unittest.TestCase):
         engine = SimpleNamespace(info={"logit_bias": 1})
         self.assertFalse(ignore_eos({}, engine, 100, {1}))
         self.assertFalse(ignore_eos({"ignore_eos": False}, engine, 100, {1}))
+
+
+class IgnoreEosOverHttp(unittest.TestCase):
+    """The OpenAI route turns `ignore_eos` into a bias before the request reaches the engine (no GPU: the scripted
+    DeepSeek tokenizer and a mock engine that keeps the sampling it was given)."""
+
+    def test_the_route_bans_the_end_tokens(self):
+        import json
+        import urllib.request
+        import serve.server as server
+        from serve import frontend
+        from serve.frontend import ChatTemplate
+        from test_dsv41 import TEMPLATE, DsEngine, mini_tokenizer
+
+        tok = mini_tokenizer()
+        engine = DsEngine(tok, "ok")
+        engine.info = {"logit_bias": 1}                       # (the engine's INFO logit_bias=1)
+        svc = server.Service(engine, tok, ChatTemplate(TEMPLATE),
+                             model_name=server.default_model_name({"arch": "deepseek41"}))
+        svc.model_arch = "deepseek41"
+        svc.set_family("deepseek41")
+        httpd = server.serve(svc, port=0)
+        self.addCleanup(httpd.server_close)
+        self.addCleanup(httpd.shutdown)
+        self.addCleanup(frontend.use_family, None)
+        body = {"messages": [{"role": "user", "content": "hi"}], "max_tokens": 8, "ignore_eos": True}
+        req = urllib.request.Request(f"http://127.0.0.1:{httpd.server_address[1]}/v1/chat/completions",
+                                     data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            self.assertEqual(r.status, 200)
+            r.read()
+        self.assertEqual(engine.last_sampling["logit_bias"], {1: -100.0})   # (the mock's end token and its vocabulary)

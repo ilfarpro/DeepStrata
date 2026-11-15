@@ -13,8 +13,8 @@ sync, and update it in the same commit that lands a port.
 | Imported | Maya **v1.1.17** (`8d9a9b5d`), 2026-10-20 |
 | Ported since | v1.1.18 to v1.1.42 (staged merges: PCIe lane, one-GPU stream, restore points, `--parallel`, prompt path rules, thread-pool fence and the small fixes; see NOTICE.md) |
 | Last one-off port | the v1.1.45 fix for a long prompt on one GPU (`c60833cc`, from Maya `c968b94`) |
-| Upstream now | **v1.1.63** (`6651b5b`, 2026-11-14) |
-| Delta | **98 commits** touching `src/ds4` after `v1.1.42` |
+| Upstream now | **v1.1.63** (`6651b5b`, 2026-11-14), and `main` after it (`7e68a30`, 2026-11-15) |
+| Delta | **98 commits** touching `src/ds4` from `v1.1.42` to the v1.1.63 tag; the later main commits this page names are taken one by one |
 
 The trees have diverged a lot on purpose. `src/dsv41` is 33.8k lines and `src/ds4` 51.2k; the core
 files differ almost everywhere (`ds4_model.cu` 15.1k against 23.6k lines, `ds4_main.cpp` 2.9k against
@@ -92,7 +92,7 @@ multi-GPU path, not a hypothetical one.
 |---|---|---|
 | `c968b94` (v1.1.45) | recent-slot fills drained before a prompt borrows the tail (long prompt, one GPU) | done (`c60833cc`) |
 | `8c34c00` | a request that leaves a GPU in a fault prints `END`, and the next request starts a fresh engine | planned |
-| `78228a0` | every parallel conversation is set aside when the engine ends, not only the bound one | planned |
+| `78228a0` | every parallel conversation is set aside when the engine ends, not only the bound one | done |
 | `1b262d5`, `d08cbd8` | failed allocation / zeroing names its KiB size, the driver's reason and the free VRAM | done |
 | `eab2eea` | a start says when another program holds a GPU's memory; the expert arena retries | done |
 | `c1e95b2` | `STRATA_DS4_RAM_MARGIN_GB` for the memory planning (default 8 GiB) | done |
@@ -113,7 +113,8 @@ multi-GPU path, not a hypothetical one.
 | `--ablate`, `--suffix-draft`, `--ppl`, `--profile-out`, `--marks-check` | tools and niche; not user-facing speed |
 | Engine watchdog (`MAYA_DS4_WATCHDOG_S`) | our server already watches a silent engine; revisit with TP hangs |
 | `PDL` (`dependent launch`, `6227775`) | touches the hot kernels; no NVIDIA measurement; high risk |
-| lane parity (`450827f`, `41a630c`), logprobs engine side (`50a3313`) | correctness/tooling; take only with a task that needs them |
+| lane parity (`450827f`, `41a630c`) | correctness/tooling; take only with a task that needs them |
+| logprobs engine side (`50a3313`) | our engine has no `logprobs` at all yet (the server's LP path exists for the Qwen engine); a port is a feature of its own, not a sync fix |
 
 ## Tests and measurements a port runs
 
@@ -130,12 +131,20 @@ multi-GPU path, not a hypothetical one.
 
 | Commit | What | Validation |
 |---|---|---|
-| (this page) | the map above | read against Maya `6651b5b` |
+| (this page) | the map above | read against Maya `6651b5b` and `7e68a30` |
 | `q8_mv` tensor cores | `STRATA_DS4_Q8MV_TC` (off): 3..16 columns, same bits, sm_80+ | `strata-dsv41` builds (CUDA); no GPU here, so no A/B yet |
 | prompt attention on tensor cores | `STRATA_DS4_ATTN_MMA` (off): sm_80+, the gfx12 path's twin | `strata-dsv41` builds (CUDA); the GPU test and quality gate still to run |
 | prompt read order | `STRATA_DS4_READ_ORDER=arrival` (off): a prompt keeps its place in line; pieces beside a running answer | `strata-dsv41` builds; server-side A/B with `--parallel` still to run |
 | indexer slabs by run keys | `STRATA_DS4_AI_RUN` (off): fewer slabs for a short prompt, same answers | `strata-dsv41` builds; no GPU to measure |
 | faster loads | `STRATA_DS4_LOAD_INTERLEAVE` (on), `STRATA_DS4_LOAD_THREADS` (12), `STRATA_DS4_LOAD_DROP_CACHE` (on) | `strata-dsv41` builds; load A/B still to run |
-| `ignore_eos` and `logit_bias` | engine reports `INFO logit_bias=1`; the server turns `ignore_eos: true` into a ban of the end tokens | `pytest tests/serve/test_logit_bias.py` (15 pass, 1 pre-existing environment failure) |
+| `ignore_eos` and `logit_bias` | engine reports `INFO logit_bias=1`; the server turns `ignore_eos: true` into a ban of the end tokens | `tests/serve/test_logit_bias.py`: 16 pass, including the HTTP path |
 | RAM margin | `STRATA_DS4_RAM_MARGIN_GB` (8): planning headroom, read once | `strata-dsv41` builds |
 | EXL3 F16 dense | an F16 matrix loads as BF16 at model load | `strata-dsv41` builds; a pack with an F16 `engram.wkv` still to be run |
+| end of a parallel engine | every conversation is set aside, not only the bound one | `strata-dsv41` builds; a `--parallel` run still to check |
+| diagnostics | a full GPU at start, a failed allocation or zeroing, an arena that retries | `strata-dsv41` builds; messages read through, no GPU here to trigger them |
+
+The host-only side ran here: `python -m pytest tests/serve` (1437 passed, 12 skipped; the five picture
+tests need Pillow, installed for a second run where they pass), `tests/tools` (1718 passed, 6 skipped),
+and `tests/serve/test_logit_bias.py` (16 passed). Ruff was not installed in this environment. No GPU was
+available, so no model was loaded, no speed was measured, and the CUDA kernels above were compiled but
+not run.

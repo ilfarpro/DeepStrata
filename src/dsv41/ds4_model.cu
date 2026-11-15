@@ -2753,6 +2753,13 @@ struct Model::Impl {
             }
             CK(cudaMemGetInfo(&d.free0, &d.total));
             d.free0 = uma_free(d.id, d.free0);
+            // what other programs hold on it (this process: its context only, so far) - the plan below works around it,
+            // so the experts it would have held go to the CPU lane: said loudly, not only in the placement lines
+            // (Project Maya eab2eea)
+            if (d.total > d.free0 + ((size_t) 1 << 30))
+                std::fprintf(stderr, "ds4: WARNING - CUDA%d: %.1f of its %.1f GB already in use as the engine starts "
+                                     "(other programs: nvidia-smi lists them) - what they hold is not planned for "
+                                     "experts\n", d.id, (d.total - d.free0) / 1e9, d.total / 1e9);
         }
         // the groups' width: o.tp, less while the experts' blocks do not split in it (a member takes n_ff / tp of each
         // expert: the down's inputs in whole blocks - a GGUF's 256-value types split n_ff 2304 in 1, 3 or 9 parts)
@@ -5442,6 +5449,30 @@ struct Model::Impl {
         if (m == 0) std::memcpy(blob + l.lay.svh[2], src + x.hlay.svh[2], (size_t) g.dim * 2);
     }
 
+    // an expert arena on device d, sized by the plan from what d had free at the start: when another program took
+    // memory since, tried again a few times (it may give it back) - never a smaller arena (the plan stands; fewer experts
+    // in VRAM would only hide it), and at the end an error that says the device, the bytes, and what is free now
+    // (Project Maya eab2eea)
+    bool arena_alloc(Dev& d, void*& v, size_t bytes, const std::string& what, std::string& err) {
+        for (int t = 0;; ++t) {
+            if (cudaMalloc(&v, bytes) == cudaSuccess) return true;
+            (void) cudaGetLastError();
+            size_t fr = 0, tot = 0;
+            (void) mem_info(&fr, &tot);
+            char b[320];
+            std::snprintf(b, sizeof b, "cudaMalloc of %s on CUDA%d failed: %.0f MiB asked, %.0f MiB free now, %.0f MiB "
+                                       "when the engine started - another program took this GPU's memory meanwhile "
+                                       "(nvidia-smi lists it)", what.c_str(), d.id, bytes / 1048576.0, fr / 1048576.0,
+                          d.free0 / 1048576.0);
+            if (t == 4) {
+                err = b;
+                return false;
+            }
+            std::fprintf(stderr, "ds4: WARNING - %s; trying again in 3 s\n", b);
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+        }
+    }
+
     bool place_experts(std::string& err) {
         // a lending device (Chunk::borrow) whose experts' room would hardly hold the prompt path's (a GPU with little
         // left for experts, --vram-experts near 0): its own room after all, taken before the experts' as before
@@ -5644,11 +5675,10 @@ struct Model::Impl {
                 Dev& d = devs[(size_t) x.dev];
                 cudaSetDevice(d.id);
                 void* v = nullptr;
-                if (cudaMalloc(&v, (size_t) l.n_main * unit(x)) != cudaSuccess) {
-                    err = "cudaMalloc of layer " + std::to_string(l.il) + "'s " + std::to_string(l.n_main) +
-                          " experts on CUDA" + std::to_string(d.id) + " failed";
+                if (!arena_alloc(d, v, (size_t) l.n_main * unit(x),
+                                 "layer " + std::to_string(l.il) + "'s " + std::to_string(l.n_main) + " experts",
+                                 err))
                     return false;
-                }
                 d.allocs.push_back(v);
                 d.experts += (size_t) l.n_main * unit(x);
                 x.vram_base = (uint8_t*) v;

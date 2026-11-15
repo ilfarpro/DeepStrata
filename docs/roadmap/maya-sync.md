@@ -94,7 +94,7 @@ multi-GPU path, not a hypothetical one.
 | `8c34c00` | a request that leaves a GPU in a fault prints `END`, and the next request starts a fresh engine | planned |
 | `78228a0` | every parallel conversation is set aside when the engine ends, not only the bound one | planned |
 | `1b262d5`, `d08cbd8` | failed allocation / zeroing names its KiB size, the driver's reason and the free VRAM | planned |
-| `eab2eea` | a start says when another program holds a GPU's memory | planned |
+| `eab2eea` | a start says when another program holds a GPU's memory; the expert arena retries | done |
 | `c1e95b2` | `STRATA_DS4_RAM_MARGIN_GB` for the memory planning (default 8 GiB) | done |
 | `e0c6d59` | the Engram `mlock` error names the memlock limit and the `limits.d` fix | planned |
 | `772f483` | EXL3 packs: an F16 dense matrix loads as BF16 | done (model load maps F16 to BF16; such a pack still to be run) |

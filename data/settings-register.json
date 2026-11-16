@@ -6207,7 +6207,7 @@
    "last_date": "2026-11-15",
    "status": "opt-in",
    "owner": "dsv41",
-   "note": "Indexer slabs sized from this run's keys, not --max-context (off; less VRAM for a short prompt). Port of Maya b4f78bb.",
+   "note": "Indexer slabs sized from this run's keys, not --max-context (off; less VRAM for a short prompt). Port of Maya b4f78bb. Measured on RTX 4080 SUPER + RTX 5060 Ti at 128K: the switch moves the logits (top-1 94.21%, KL 0.0181 against byte-identical controls), because its GEMM M changes 96 -> 128. Kept off; quality-gated, not same-bits.",
    "retire_after": "",
    "retired_in": ""
   },
@@ -6235,7 +6235,7 @@
    "last_date": "2026-11-15",
    "status": "opt-in",
    "owner": "dsv41",
-   "note": "Prompt sparse attention on NVIDIA tensor cores, sm_80+ (off; the gfx12 WMMA path's twin). Port of Maya e9b5df4.",
+   "note": "Prompt sparse attention on NVIDIA tensor cores, sm_80+ (off; the gfx12 WMMA path's twin). Port of Maya e9b5df4. Measured on the same cards: prompt 37.03 -> 37.58 tok/s (+1.5%), top-1 94.48%, KL 0.0236 (BF16 rounding). Kept off; quality-gated.",
    "retire_after": "",
    "retired_in": ""
   },

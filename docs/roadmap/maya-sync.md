@@ -75,7 +75,7 @@ multi-GPU path, not a hypothetical one.
 | Maya | What | Measurement | Status |
 |---|---|---|---|
 | `18ada27`, `6b1119f`, `f692477` | `q8_mv` (Q8_0 GEMV) on the tensor cores for 3 to 16 columns (`STRATA_DS4_Q8MV_TC`), same bits, sm_80+ CUDA | opt-in; no default speed claim | done |
-| `b4f78bb` | indexer slab rows from this prompt's keys, not `--max-context` (`STRATA_DS4_AI_RUN`); Maya says the same answers | VRAM only (128 rows) | done, opt-in; our 128K run moves the logits (see `Hardware run`), so it is quality-gated until the no-cache run says otherwise |
+| `b4f78bb` | indexer slab rows from this prompt's keys, not `--max-context` (`STRATA_DS4_AI_RUN`); Maya says the same answers | VRAM only (128 rows) | done, opt-in, kept off; our 128K run moves the logits (see `Hardware run`), so it is quality-gated, not same-bits |
 | `335f4f1`, `027992c` | load reads the shards round-robin (`STRATA_DS4_LOAD_INTERLEAVE`, on), `STRATA_DS4_LOAD_THREADS`, `STRATA_DS4_LOAD_DROP_CACHE` | EXL3 2.9: 109 -> 75 s load | done |
 | `50a3313` (#639) | one-launch attention for a step of several requests (`MAYA_DS4_MULTI_ATTN`), same bits, on | 43.9 -> 49.3 tok/s aggregate (8 GPUs, `--parallel 2`) | planned |
 | `7f431b6` | `STRATA_DS4_READ_ORDER=arrival`: prompts read in arrival order, answers write between pieces | agent p95 first token 13.5 s against 29.1 s (3 GPUs) | done |
@@ -371,3 +371,7 @@ switches are exact. AI_RUN's "same answers" does not hold for logits at 128K as 
 changes 96 -> 128), and ATTN_MMA moves them, as its kernel says it may. Both stay opt-in and off; neither
 is a default. The run-to-run noise with the cache on is a property of the TP2 expert split, not of these
 switches, and it is worth knowing before anyone reads a `cmp` on a live configuration.
+
+Decision (2026-11-16): `STRATA_DS4_AI_RUN` and `STRATA_DS4_ATTN_MMA` stay **opt-in and off by default**.
+Each is documented as a quality trade, not as the same bits; the normal path is unchanged. No further
+work on either unless a use for them shows up on hardware with VRAM to spare.

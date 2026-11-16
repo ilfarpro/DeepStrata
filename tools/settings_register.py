@@ -547,7 +547,7 @@ def render_page(entries):
         "turn them on, and switches that take a newer default back to the earlier behaviour. The other settings are for measuring and",
         "debugging and are kept in `data/settings-register.json`.",
         "",
-        "A number or a word is set like any environment variable, for example `STRATA_KVA=1`. In the Terminal, `strata launch --set NAME=value`",
+        "A number or a word is set like any environment variable, for example `STRATA_KVA=1`. In the Terminal, `deepstrata launch --set NAME=value`",
         "puts it in the model's run configuration.",
         "",
         f"## Switches you can turn on ({len(optin)})",

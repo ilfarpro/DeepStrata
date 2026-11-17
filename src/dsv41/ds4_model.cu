@@ -798,6 +798,12 @@ struct Chunk {
     double wait_ms = 0;                      // the compute waiting for a read
     long wait_n = 0;                         // (issue #3: how many such waits, and the longest of them)
     double wait_max = 0;
+    double wait_read_ms = 0, wait_stage_ms = 0;   // (issue #3: a wait for a file read, or for a staging slot's DMA)
+    // (issue #3: how often the pump could not advance, by what it waits for - a staging slot's DMA (stage), a ring
+    // slot's last use (ring), a layer-cache item's earlier reader (keep), a read landing (read), compute consuming
+    // the ring (compute): the staging-buffer and ring-slot reuse contention)
+    long stall_stage = 0, stall_ring = 0, stall_keep = 0, stall_read = 0, stall_comp = 0;
+    long stall_at = -1, stall_at_d = -1;     // (the item each loop last stuck on: a spin re-finding it is not a new event)
     // (DS4_PROF: where copy_ahead's time goes - the host staging copy, the DMA issues, the waits for a slot)
     double dbg_stage_ms = 0, dbg_dma_ms = 0, dbg_evt_ms = 0;
     // (issue #3, DS4_PROF / DS4_FLOW_STATS: where the host's time goes on the flow - flow_pump issuing the reads and
@@ -4964,6 +4970,20 @@ struct Model::Impl {
                 if (on) c.dbg_pump_ms += now_ms() - t0;
             }
         } pt{c, dbg, dbg ? now_ms() : 0.0};
+        // (issue #3: stall events, counted once per the item a loop sticks on - the pump runs in a spin loop, and a
+        //  spin re-finding the same stuck item is not a new contention)
+        auto stall_r = [&](long& n) {
+            if (dbg && c.stall_at != (long) c.n_read) {
+                ++n;
+                c.stall_at = (long) c.n_read;
+            }
+        };
+        auto stall_d = [&](long& n) {
+            if (dbg && c.stall_at_d != (long) c.n_dma) {
+                ++n;
+                c.stall_at_d = (long) c.n_dma;
+            }
+        };
         const size_t end = c.base + c.items.size();
         IoQueue::Job jobs[6];
         while (c.n_read < end) {
@@ -4979,12 +4999,18 @@ struct Model::Impl {
                         ++c.lc_chk;
                     wait = c.lc_chk <= (size_t) it.after;
                 }
-                if (wait) break;
+                if (wait) {
+                    stall_r(c.stall_keep);   // (issue #3: the slot is still held by its earlier reader)
+                    break;
+                }
             }
             if (it.direct) {
                 const size_t R = (size_t) c.ring_n, r = c.n_read % R;
                 if (c.n_read >= R) {   // the slot's last use has to be computed - and finished: the CPU writes it
-                    if (c.n_comp <= c.n_read - R) break;
+                    if (c.n_comp <= c.n_read - R) {
+                        stall_r(c.stall_ring);   // (issue #3: the ring slot is still in use)
+                        break;
+                    }
                     CK(cudaEventSynchronize(c.ring_free[r]));
                 }
                 const Layer& l = L[(size_t) it.il];
@@ -5015,9 +5041,15 @@ struct Model::Impl {
             } else if (it.stage >= 0) {
                 const int64_t prev = c.stage_item[(size_t) it.stage];
                 if (prev >= 0) {
-                    if ((size_t) prev >= c.n_dma) break;
+                    if ((size_t) prev >= c.n_dma) {
+                        stall_r(c.stall_stage);   // (issue #3: the staging slot's last DMA is not out yet)
+                        break;
+                    }
                     const cudaError_t q = cudaEventQuery(c.stage_ev[(size_t) it.stage]);
-                    if (q == cudaErrorNotReady) break;
+                    if (q == cudaErrorNotReady) {
+                        stall_r(c.stall_stage);   // (issue #3: the staging slot's last DMA is still in flight)
+                        break;
+                    }
                     CK(q);
                 }
                 c.stage_item[(size_t) it.stage] = (int64_t) c.n_read;
@@ -5068,7 +5100,10 @@ struct Model::Impl {
         } kq{c.cs, c.n_dma, dma0};
         while (c.n_dma < c.n_read && c.n_dma < c.n_comp + R) {
             Chunk::Item& it = fit(c, c.n_dma);
-            if (it.left.load(std::memory_order_acquire) != 0) break;
+            if (it.left.load(std::memory_order_acquire) != 0) {
+                stall_d(c.stall_read);   // (issue #3: the read has not landed)
+                break;
+            }
             if (it.bad.load(std::memory_order_acquire)) {
                 err = "reading layer " + std::to_string(it.il) + " expert " + std::to_string(it.e) +
                       " from the model's files failed";
@@ -5099,6 +5134,8 @@ struct Model::Impl {
             c.stream_bytes += (double) unit(l);
             ++c.n_dma;
         }
+        if (dbg && c.n_dma < c.n_read && c.n_dma >= c.n_comp + R)
+            stall_d(c.stall_comp);   // (issue #3: no DMA can go out: compute has not freed a ring slot)
         return true;
     }
     // layer L0 of chunk k routed (bounds b, the device's copy d_bounds): its streamed experts as they land, the VRAM
@@ -5125,13 +5162,16 @@ struct Model::Impl {
             if (c.n_dma < i1) {   // not all of the batch landed: wait for a read, or for a staging slot's copy
                 const double tw = now_ms();
                 kick(s);
-                if (c.n_read > c.n_dma) c.io->wait_any(500);
+                const bool for_read = c.n_read > c.n_dma;   // (issue #3: which of the two the wait is for)
+                if (for_read) c.io->wait_any(500);
                 else {
                     const Chunk::Item& it = fit(c, c.n_read);
                     if (it.stage >= 0) CK(cudaEventSynchronize(c.stage_ev[(size_t) it.stage]));
                 }
                 const double wd = now_ms() - tw;   // (issue #3: how often the compute waits, and how long at worst)
                 c.wait_ms += wd;
+                if (for_read) c.wait_read_ms += wd;
+                else c.wait_stage_ms += wd;
                 ++c.wait_n;
                 if (wd > c.wait_max) c.wait_max = wd;
                 continue;
@@ -12486,6 +12526,10 @@ struct Model::Impl {
             c.wait_ms = 0;
             c.wait_n = 0;
             c.wait_max = 0;
+            c.wait_read_ms = 0;
+            c.wait_stage_ms = 0;
+            c.stall_stage = c.stall_ring = c.stall_keep = c.stall_read = c.stall_comp = 0;
+            c.stall_at = c.stall_at_d = -1;
             c.it_file = c.it_ram = c.it_spec = c.it_spec_unused = c.it_lc = 0;
             c.lc_il = -1;
             c.lc_used = 0;
@@ -13622,21 +13666,29 @@ struct Model::Impl {
                     std::fprintf(stderr, "\n");
                 }
                 {   // the host side of the same pipelines, summed over the run's chunks (wall time, all devices)
-                    double pump = 0, sync = 0, hw = 0, wait = 0, wmax = 0;
-                    long wn = 0;
+                    double pump = 0, sync = 0, hw = 0, wait = 0, wread = 0, wstage = 0, wmax = 0;
+                    long wn = 0, ss = 0, sr = 0, sk = 0, srd = 0, sc = 0;
                     for (const std::unique_ptr<Chunk>& cp : chunks)
                         if (cp != nullptr && cp->flow) {
                             pump += cp->dbg_pump_ms - cp->dbg_pump0;
                             sync += cp->dbg_sync_ms - cp->dbg_sync0;
                             hw += cp->dbg_hw_ms - cp->dbg_hw0;
                             wait += cp->wait_ms;
+                            wread += cp->wait_read_ms;
+                            wstage += cp->wait_stage_ms;
                             wn += cp->wait_n;
                             wmax = std::max(wmax, cp->wait_max);
+                            ss += cp->stall_stage; sr += cp->stall_ring; sk += cp->stall_keep;
+                            srd += cp->stall_read; sc += cp->stall_comp;
                         }
                     std::fprintf(stderr,
                                  "ds4 prof  host: flow pump %.0f ms, bounds sync %.0f ms, hand-off blocks %.0f ms, "
-                                 "waits for reads %.0f ms (%ld, longest %.0f ms)\n",
-                                 pump, sync, hw, wait, wn, wmax);
+                                 "waits: reads %.0f ms, staging %.0f ms (%ld, longest %.0f ms)\n",
+                                 pump, sync, hw, wread, wstage, wn, wmax);
+                    std::fprintf(stderr,
+                                 "ds4 prof  pump stalls: staging reuse %ld, ring reuse %ld, layer cache %ld, "
+                                 "reads landing %ld, compute behind %ld\n",
+                                 ss, sr, sk, srd, sc);
                 }
             }
             for (double& v : cprof_ms) v = 0;
@@ -13662,11 +13714,14 @@ struct Model::Impl {
                     std::snprintf(dbgs, sizeof dbgs,   // copy_ahead ones now count this run only, not from engine start)
                                   "; io threads busy %.0f ms, copy_ahead staging %.0f ms, DMA issues %.0f ms, slot waits "
                                   "%.0f ms; flow pump %.0f ms, bounds sync %.0f ms, hand-off blocks %.0f ms, read waits "
-                                  "%ld longest %.0f ms",
+                                  "%ld longest %.0f ms (waits: reads %.0f ms, staging %.0f ms); pump stalls: staging "
+                                  "%ld, ring %ld, layer cache %ld, reads %ld, compute %ld",
                                   c.io->busy_ms() - c.io_busy0, c.dbg_stage_ms - c.dbg_stage0,
                                   c.dbg_dma_ms - c.dbg_dma0, c.dbg_evt_ms - c.dbg_evt0,
                                   c.dbg_pump_ms - c.dbg_pump0, c.dbg_sync_ms - c.dbg_sync0,
-                                  c.dbg_hw_ms - c.dbg_hw0, c.wait_n, c.wait_max);
+                                  c.dbg_hw_ms - c.dbg_hw0, c.wait_n, c.wait_max,
+                                  c.wait_read_ms, c.wait_stage_ms,
+                                  c.stall_stage, c.stall_ring, c.stall_keep, c.stall_read, c.stall_comp);
                 std::fprintf(stderr,
                              "ds4 prompt stream, CUDA%d: %d tokens in %.0f ms; %llu experts streamed: %llu from the files "
                              "(%.1f GB, %.2f GB/s: %.1f GB from the disk unbuffered, %.1f GB through the page cache), %llu "

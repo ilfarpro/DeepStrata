@@ -1827,7 +1827,10 @@ struct Model::Impl {
         std::lock_guard<std::mutex> lk(prof_mu);
         const bool chunk_sample = prof_chunk;
         bool sample_ok = !prof_failed;
-        double sample_ms[6] = {};
+        // The prompt's marks go up to stage 10 (kPf* in the chunk walk), the decode's up to 5: the buffer must hold the
+        // larger of the two.  A 6-long array here was written past its end by the prompt's stages 6..10 and the stack
+        // canary aborted the engine ("*** stack smashing detected ***") with DS4_PROF on.
+        double sample_ms[16] = {};
         std::vector<std::pair<int, cudaEvent_t>> last;
         int current_dev = -1;
         if (sample_ok) {
@@ -1857,7 +1860,7 @@ struct Model::Impl {
                         sample_ok = false;
                         break;
                     }
-                    sample_ms[m.stage] += ms;
+                    if (m.stage >= 0 && m.stage < (int) (sizeof sample_ms / sizeof sample_ms[0])) sample_ms[m.stage] += ms;
                     it->second = m.ev;
                 } else {
                     last.push_back({m.dev, m.ev});
@@ -1866,7 +1869,7 @@ struct Model::Impl {
         }
         if (sample_ok) {
             double* total = chunk_sample ? cprof_ms : st.prof_ms;
-            const int stages = chunk_sample ? 4 : 6;
+            const int stages = chunk_sample ? 11 : 6;   // cprof_ms: kPfMarkCount incl. the finer chunk stages 4..10
             for (int i = 0; i < stages; ++i) total[i] += sample_ms[i];
             for (const ProfMark& m : prof_marks) prof_pool[(size_t) m.dev].push_back(m.ev);
             prof_marks.clear();

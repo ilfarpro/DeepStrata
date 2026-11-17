@@ -811,8 +811,12 @@ struct Chunk {
     // of the counters above, which tick from engine start)
     double dbg_pump_ms = 0, dbg_sync_ms = 0, dbg_hw_ms = 0;
     double dbg_stage0 = 0, dbg_dma0 = 0, dbg_evt0 = 0, dbg_pump0 = 0, dbg_sync0 = 0, dbg_hw0 = 0;
-    uint64_t it_file = 0, it_ram = 0, it_spec = 0, it_spec_unused = 0;
+    uint64_t it_file = 0, it_ram = 0, it_inplace = 0, it_spec = 0, it_spec_unused = 0;
     uint64_t io_d0 = 0, io_b0 = 0;           // io's unbuffered / buffered bytes when the run started
+    // (issue #3: the staging copies that feed the flow - their jobs, bytes, copy time and queue wait at the run's
+    // start, so the report shows this run's ones; an in-place DMA (a pinned copy) has none, it_inplace counts them)
+    uint64_t io_cp_n0 = 0, io_cp_b0 = 0;
+    double io_cp_ms0 = 0, io_cp_q0 = 0;
     double io_busy0 = 0;                     // io's busy time when the run started (DS4_PROF)
     bool buffered = false;                   // the run's reads all through the page cache (a short run: run_dev_chunks)
     // layer-major (a run of several chunks, every layer on this device): the layers one after another, each through
@@ -4804,6 +4808,7 @@ struct Model::Impl {
             for (int r = 0; r < 3; ++r)
                 it.src[r] = p + (copy_mode ? cp_lay[(size_t) l.il][(size_t) r] : l.lay.trellis[r]) + mx_read_off(l, mi, r);
             ++c.it_ram;
+            ++c.it_inplace;   // (issue #3: DMA'd from where it lies, no staging copy for it)
             return;
         }
         if (in_ram)   // (copied into staging by io, then DMA'd; copy_mode: from its NH parts, flow_pump)
@@ -12530,12 +12535,16 @@ struct Model::Impl {
             c.wait_stage_ms = 0;
             c.stall_stage = c.stall_ring = c.stall_keep = c.stall_read = c.stall_comp = 0;
             c.stall_at = c.stall_at_d = -1;
-            c.it_file = c.it_ram = c.it_spec = c.it_spec_unused = c.it_lc = 0;
+            c.it_file = c.it_ram = c.it_inplace = c.it_spec = c.it_spec_unused = c.it_lc = 0;
             c.lc_il = -1;
             c.lc_used = 0;
             c.lc_first = c.lc_chk = 0;
             c.io_d0 = c.io->direct_bytes();
             c.io_b0 = c.io->buffered_bytes();
+            c.io_cp_n0 = c.io->copy_jobs();
+            c.io_cp_b0 = c.io->copy_bytes();
+            c.io_cp_ms0 = c.io->copy_ms();
+            c.io_cp_q0 = c.io->copy_queue_ms();
             c.io_busy0 = c.io->busy_ms();
             // (a short prompt's reads through the page cache, which keeps them for the decode after it - as the CPU
             // lane's reads in windows did: one V100, Maya-S from an NVMe, decode after 17 tokens 12.7 tokens/s read
@@ -13709,27 +13718,35 @@ struct Model::Impl {
                 if (c.lm)
                     std::snprintf(lcs, sizeof lcs, ", %llu again from the layer cache (layer-major, %d chunks, %.1f GB "
                                   "of RAM)", (unsigned long long) c.it_lc, (int) run.T.size(), (double) c.lc_bytes / 1e9);
-                char dbgs[400] = "";
+                char dbgs[560] = "";
                 if (pm.on || flow_stats || prof_run)   // (issue #3: the pipeline counters join DS4_FLOW_STATS; the
                     std::snprintf(dbgs, sizeof dbgs,   // copy_ahead ones now count this run only, not from engine start)
                                   "; io threads busy %.0f ms, copy_ahead staging %.0f ms, DMA issues %.0f ms, slot waits "
                                   "%.0f ms; flow pump %.0f ms, bounds sync %.0f ms, hand-off blocks %.0f ms, read waits "
                                   "%ld longest %.0f ms (waits: reads %.0f ms, staging %.0f ms); pump stalls: staging "
-                                  "%ld, ring %ld, layer cache %ld, reads %ld, compute %ld",
+                                  "%ld, ring %ld, layer cache %ld, reads %ld, compute %ld; staging copies %llu in "
+                                  "%.0f ms (%.1f MB each, queue %.0f ms)",
                                   c.io->busy_ms() - c.io_busy0, c.dbg_stage_ms - c.dbg_stage0,
                                   c.dbg_dma_ms - c.dbg_dma0, c.dbg_evt_ms - c.dbg_evt0,
                                   c.dbg_pump_ms - c.dbg_pump0, c.dbg_sync_ms - c.dbg_sync0,
                                   c.dbg_hw_ms - c.dbg_hw0, c.wait_n, c.wait_max,
                                   c.wait_read_ms, c.wait_stage_ms,
-                                  c.stall_stage, c.stall_ring, c.stall_keep, c.stall_read, c.stall_comp);
+                                  c.stall_stage, c.stall_ring, c.stall_keep, c.stall_read, c.stall_comp,
+                                  (unsigned long long) (c.io->copy_jobs() - c.io_cp_n0), c.io->copy_ms() - c.io_cp_ms0,
+                                  c.io->copy_jobs() > c.io_cp_n0
+                                      ? (double) (c.io->copy_bytes() - c.io_cp_b0) / 1e6 /
+                                            (double) (c.io->copy_jobs() - c.io_cp_n0) : 0.0,
+                                  c.io->copy_queue_ms() - c.io_cp_q0);
                 std::fprintf(stderr,
                              "ds4 prompt stream, CUDA%d: %d tokens in %.0f ms; %llu experts streamed: %llu from the files "
                              "(%.1f GB, %.2f GB/s: %.1f GB from the disk unbuffered, %.1f GB through the page cache), %llu "
-                             "from RAM (%.1f GB)%s; %llu likely ones queued early, %llu of them unpicked; the compute waited "
+                             "from RAM (%.1f GB), %llu of them DMA'd in place (a pinned copy: no staging copy)%s; %llu likely "
+                             "ones queued early, %llu of them unpicked; the compute waited "
                              "%.0f ms for reads%s\n",
                              devs[di].id, n, ms, (unsigned long long) (c.it_file + c.it_ram + c.it_lc),
                              (unsigned long long) c.it_file, fb, fb / std::max(1e-3, ms / 1000.0), db, bb,
-                             (unsigned long long) c.it_ram, rb, lcs, (unsigned long long) c.it_spec,
+                             (unsigned long long) c.it_ram, rb, (unsigned long long) c.it_inplace, lcs,
+                             (unsigned long long) c.it_spec,
                              (unsigned long long) c.it_spec_unused, c.wait_ms, dbgs);
             }
         }

@@ -188,6 +188,12 @@ public:
     double busy_ms() const { return busy_us_.load(std::memory_order_relaxed) / 1000.0; }
     uint64_t direct_bytes() const { return direct_.load(std::memory_order_relaxed); }
     uint64_t buffered_bytes() const { return buffered_.load(std::memory_order_relaxed); }
+    // (issue #3: the staging copies - a job with `mem` set - the flow's RAM-to-staging ones; counted when they run, so
+    // the report can tell a copy that lags the DMA (a queue wait) from one whose bytes take the time)
+    uint64_t copy_jobs() const { return cp_n_.load(std::memory_order_relaxed); }
+    uint64_t copy_bytes() const { return cp_b_.load(std::memory_order_relaxed); }
+    double copy_ms() const { return cp_us_.load(std::memory_order_relaxed) / 1000.0; }
+    double copy_queue_ms() const { return cp_qus_.load(std::memory_order_relaxed) / 1000.0; }
 
 private:
     void loop() {
@@ -220,6 +226,16 @@ private:
             if (j.mem != nullptr) {
                 std::memcpy(j.dst, j.mem, (size_t) j.len);
                 ok = true;
+                {   // (issue #3: the staging copy's queue wait and its own time, for the flow's report)
+                    const auto t1 = std::chrono::steady_clock::now();
+                    using us = std::chrono::microseconds;
+                    cp_n_.fetch_add(1, std::memory_order_relaxed);
+                    cp_b_.fetch_add(j.len, std::memory_order_relaxed);
+                    cp_qus_.fetch_add((uint64_t) std::chrono::duration_cast<us>(t0 - j.pushed).count(),
+                                      std::memory_order_relaxed);
+                    cp_us_.fetch_add((uint64_t) std::chrono::duration_cast<us>(t1 - t0).count(),
+                                     std::memory_order_relaxed);
+                }
             } else if (j.exact) {
                 // unbuffered through a bounce buffer (the disk reads aligned spans), then the bytes to where they belong
                 thread_local std::vector<uint8_t> bounce;
@@ -277,6 +293,7 @@ private:
     bool quit_ = false;
     std::atomic<uint64_t> busy_us_{0}, direct_{0}, buffered_{0};
     std::atomic<uint64_t> st_n_{0}, st_q_{0}, st_r_{0}, st_m_{0}, st_b_{0};   // DS4_IO_STATS: jobs, queue wait / read / copy us, bytes
+    std::atomic<uint64_t> cp_n_{0}, cp_b_{0}, cp_qus_{0}, cp_us_{0};          // (issue #3: the staging copies - jobs, bytes, queue wait, copy time)
 };
 
 }  // namespace strata::ds4

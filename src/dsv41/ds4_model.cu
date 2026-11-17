@@ -796,8 +796,21 @@ struct Chunk {
     int *bc_pin = nullptr, *bc_dev = nullptr;
     uint64_t n_batch = 0;
     double wait_ms = 0;                      // the compute waiting for a read
+    long wait_n = 0;                         // (issue #3: how many such waits, and the longest of them)
+    double wait_max = 0;
+    double wait_read_ms = 0, wait_stage_ms = 0;   // (issue #3: a wait for a file read, or for a staging slot's DMA)
+    // (issue #3: how often the pump could not advance, by what it waits for - a staging slot's DMA (stage), a ring
+    // slot's last use (ring), a layer-cache item's earlier reader (keep), a read landing (read), compute consuming
+    // the ring (compute): the staging-buffer and ring-slot reuse contention)
+    long stall_stage = 0, stall_ring = 0, stall_keep = 0, stall_read = 0, stall_comp = 0;
+    long stall_at = -1, stall_at_d = -1;     // (the item each loop last stuck on: a spin re-finding it is not a new event)
     // (DS4_PROF: where copy_ahead's time goes - the host staging copy, the DMA issues, the waits for a slot)
     double dbg_stage_ms = 0, dbg_dma_ms = 0, dbg_evt_ms = 0;
+    // (issue #3, DS4_PROF / DS4_FLOW_STATS: where the host's time goes on the flow - flow_pump issuing the reads and
+    // the DMAs, the sync on the sort's bounds, the blocking waits for a hand-off flag; and the runs' starting values
+    // of the counters above, which tick from engine start)
+    double dbg_pump_ms = 0, dbg_sync_ms = 0, dbg_hw_ms = 0;
+    double dbg_stage0 = 0, dbg_dma0 = 0, dbg_evt0 = 0, dbg_pump0 = 0, dbg_sync0 = 0, dbg_hw0 = 0;
     uint64_t it_file = 0, it_ram = 0, it_spec = 0, it_spec_unused = 0;
     uint64_t io_d0 = 0, io_b0 = 0;           // io's unbuffered / buffered bytes when the run started
     double io_busy0 = 0;                     // io's busy time when the run started (DS4_PROF)
@@ -1730,6 +1743,8 @@ struct Model::Impl {
     // hc_post), 2 router-side tail (shared expert), 3 experts (+ waits), 4 Engram, 5 attn mHC (mix, split, norm), 6 attention
     // projections (wq_a, wkv, compressor), 7 compressor + indexer, 8 q_b + rope, 9 sparse attention, 10 ffn mHC + router + sort
     double cprof_ms[16] = {};
+    // (issue #3: the same stages per CUDA device - an aggregate hides a device that waits while the other works)
+    double cprof_dev[16][8] = {};
     // DS4_PROF: the experts' kernels alone, by type (events around the gate/up and down calls of run_set)
     struct EkMark {
         cudaEvent_t e0, e1, e2;
@@ -1750,6 +1765,67 @@ struct Model::Impl {
         cudaEventCreate(&e);
         return e;
     }
+    // (issue #3, DS4_PROF: the host pipeline counters tick when either of the two is on; both are read once)
+    static bool dbg_flow_on() {
+        static const bool on = std::getenv("DS4_PROF") != nullptr || std::getenv("DS4_FLOW_STATS") != nullptr;
+        return on;
+    }
+    // (issue #3, DS4_PROF: a GPU-side wait bracketed by two events - between them the compute stream sits idle
+    // waiting for a streamed expert's DMA to land, or for the other device's hand-off.  The pair's elapsed time is
+    // that idle stretch: the part of the experts' stage and of between-layers that is no kernel at all.
+    //  kind: 0 a ring / filled slot's DMA, 1 xfer_get, 2 xfer_put, 3 wait_flags)
+    struct WfMark {
+        cudaEvent_t a, b;
+        int dev, kind;
+    };
+    std::vector<WfMark> wf_marks;
+    std::map<int, std::vector<cudaEvent_t>> wf_pool;   // CUDA events belong to the device that created them
+    cudaEvent_t wf_ev() {
+        int cur = 0;
+        cudaGetDevice(&cur);
+        std::vector<cudaEvent_t>& pl = wf_pool[cur];
+        if (!pl.empty()) {
+            cudaEvent_t e = pl.back();
+            pl.pop_back();
+            return e;
+        }
+        cudaEvent_t e = nullptr;
+        cudaEventCreate(&e);
+        return e;
+    }
+    struct WfB {   // (a scope holding one such wait; its events return to the pool when the run's marks are read)
+        Impl* p;
+        cudaStream_t s;
+        cudaEvent_t a = nullptr, b = nullptr;
+        int dev, kind;
+        bool on = false;
+        WfB(Impl* p_, int dev_, int kind_, cudaStream_t s_) : p(p_), s(s_), dev(dev_), kind(kind_) {
+            if (!p->prof_chunk || dev_ < 0) return;
+            std::lock_guard<std::mutex> lk(p->prof_mu);
+            a = p->wf_ev();
+            if (a == nullptr || cudaEventRecord(a, s) != cudaSuccess) {
+                if (a != nullptr) p->wf_pool[dev_].push_back(a);
+                a = nullptr;
+                return;
+            }
+            on = true;
+        }
+        ~WfB() {
+            if (!on) return;
+            {
+                std::lock_guard<std::mutex> lk(p->prof_mu);
+                b = p->wf_ev();
+            }
+            if (b == nullptr || cudaEventRecord(b, s) != cudaSuccess) {
+                std::lock_guard<std::mutex> lk(p->prof_mu);
+                p->wf_pool[dev].push_back(a);
+                if (b != nullptr) p->wf_pool[dev].push_back(b);
+                return;
+            }
+            std::lock_guard<std::mutex> lk(p->prof_mu);
+            p->wf_marks.push_back({a, b, dev, kind});
+        }
+    };
     void prof_mark(const Dev& d, int stage) {
         if (ds4_dbg("DS4_TLOG")) {   // the host's own phase times (what the GPU meters do not see)
             static double t_last = 0, acc[5] = {0, 0, 0, 0, 0}; static long n = 0; static bool reg = false;
@@ -1827,7 +1903,11 @@ struct Model::Impl {
         std::lock_guard<std::mutex> lk(prof_mu);
         const bool chunk_sample = prof_chunk;
         bool sample_ok = !prof_failed;
-        double sample_ms[6] = {};
+        // The prompt's marks go up to stage 10 (kPf* in the chunk walk), the decode's up to 5: the buffer must hold the
+        // larger of the two.  A 6-long array here was written past its end by the prompt's stages 6..10 and the stack
+        // canary aborted the engine ("*** stack smashing detected ***") with DS4_PROF on.
+        double sample_ms[16] = {};
+        double sample_dev[16][8] = {};   // (issue #3: the same per device, for the per-device table)
         std::vector<std::pair<int, cudaEvent_t>> last;
         int current_dev = -1;
         if (sample_ok) {
@@ -1857,7 +1937,11 @@ struct Model::Impl {
                         sample_ok = false;
                         break;
                     }
-                    sample_ms[m.stage] += ms;
+                    if (m.stage >= 0 && m.stage < (int) (sizeof sample_ms / sizeof sample_ms[0])) {
+                        sample_ms[m.stage] += ms;
+                        if (m.dev >= 0 && m.dev < (int) (sizeof sample_dev[0] / sizeof sample_dev[0][0]))
+                            sample_dev[m.stage][m.dev] += ms;
+                    }
                     it->second = m.ev;
                 } else {
                     last.push_back({m.dev, m.ev});
@@ -1866,8 +1950,12 @@ struct Model::Impl {
         }
         if (sample_ok) {
             double* total = chunk_sample ? cprof_ms : st.prof_ms;
-            const int stages = chunk_sample ? 4 : 6;
+            const int stages = chunk_sample ? 11 : 6;   // cprof_ms: kPfMarkCount incl. the finer chunk stages 4..10
             for (int i = 0; i < stages; ++i) total[i] += sample_ms[i];
+            if (chunk_sample)
+                for (int i = 0; i < stages; ++i)
+                    for (int v = 0; v < (int) (sizeof cprof_dev[0] / sizeof cprof_dev[0][0]); ++v)
+                        cprof_dev[i][v] += sample_dev[i][v];
             for (const ProfMark& m : prof_marks) prof_pool[(size_t) m.dev].push_back(m.ev);
             prof_marks.clear();
             if (!chunk_sample) ++st.prof_tokens;
@@ -1987,6 +2075,26 @@ struct Model::Impl {
         for (const ProfMark& m : prof_marks) {
             if (m.dev < 0 || (size_t) m.dev >= prof_pool.size()) continue;
             if (cudaSetDevice(m.dev) == cudaSuccess) (void) cudaEventDestroy(m.ev);
+        }
+        // (issue #3: the same for the expert-kernel and wait-pair events, held in their own per-device pools)
+        for (auto& kv : ek_pool) {
+            if (cudaSetDevice(kv.first) != cudaSuccess) continue;
+            for (cudaEvent_t e : kv.second) (void) cudaEventDestroy(e);
+        }
+        for (const EkMark& m : ek_marks) {
+            if (cudaSetDevice(m.dev) != cudaSuccess) continue;
+            (void) cudaEventDestroy(m.e0);
+            (void) cudaEventDestroy(m.e1);
+            (void) cudaEventDestroy(m.e2);
+        }
+        for (auto& kv : wf_pool) {
+            if (cudaSetDevice(kv.first) != cudaSuccess) continue;
+            for (cudaEvent_t e : kv.second) (void) cudaEventDestroy(e);
+        }
+        for (const WfMark& m : wf_marks) {
+            if (cudaSetDevice(m.dev) != cudaSuccess) continue;
+            (void) cudaEventDestroy(m.a);
+            (void) cudaEventDestroy(m.b);
         }
         for (Dev& d : devs) {
             cudaSetDevice(d.id);
@@ -4852,6 +4960,30 @@ struct Model::Impl {
     // the reads (in order, each into its staging slot once that slot's last DMA is done) and the DMAs (in order, each
     // into its ring slot once that slot's last use is queued: the copy stream waits for it) as far as they can go now
     bool flow_pump(Chunk& c, std::string& err) {
+        // (issue #3, DS4_PROF / DS4_FLOW_STATS: the host's time issuing reads and DMAs, every way out)
+        static const bool dbg = dbg_flow_on();
+        struct PumpT {
+            Chunk& c;
+            bool on;
+            double t0;
+            ~PumpT() {
+                if (on) c.dbg_pump_ms += now_ms() - t0;
+            }
+        } pt{c, dbg, dbg ? now_ms() : 0.0};
+        // (issue #3: stall events, counted once per the item a loop sticks on - the pump runs in a spin loop, and a
+        //  spin re-finding the same stuck item is not a new contention)
+        auto stall_r = [&](long& n) {
+            if (dbg && c.stall_at != (long) c.n_read) {
+                ++n;
+                c.stall_at = (long) c.n_read;
+            }
+        };
+        auto stall_d = [&](long& n) {
+            if (dbg && c.stall_at_d != (long) c.n_dma) {
+                ++n;
+                c.stall_at_d = (long) c.n_dma;
+            }
+        };
         const size_t end = c.base + c.items.size();
         IoQueue::Job jobs[6];
         while (c.n_read < end) {
@@ -4867,12 +4999,18 @@ struct Model::Impl {
                         ++c.lc_chk;
                     wait = c.lc_chk <= (size_t) it.after;
                 }
-                if (wait) break;
+                if (wait) {
+                    stall_r(c.stall_keep);   // (issue #3: the slot is still held by its earlier reader)
+                    break;
+                }
             }
             if (it.direct) {
                 const size_t R = (size_t) c.ring_n, r = c.n_read % R;
                 if (c.n_read >= R) {   // the slot's last use has to be computed - and finished: the CPU writes it
-                    if (c.n_comp <= c.n_read - R) break;
+                    if (c.n_comp <= c.n_read - R) {
+                        stall_r(c.stall_ring);   // (issue #3: the ring slot is still in use)
+                        break;
+                    }
                     CK(cudaEventSynchronize(c.ring_free[r]));
                 }
                 const Layer& l = L[(size_t) it.il];
@@ -4903,9 +5041,15 @@ struct Model::Impl {
             } else if (it.stage >= 0) {
                 const int64_t prev = c.stage_item[(size_t) it.stage];
                 if (prev >= 0) {
-                    if ((size_t) prev >= c.n_dma) break;
+                    if ((size_t) prev >= c.n_dma) {
+                        stall_r(c.stall_stage);   // (issue #3: the staging slot's last DMA is not out yet)
+                        break;
+                    }
                     const cudaError_t q = cudaEventQuery(c.stage_ev[(size_t) it.stage]);
-                    if (q == cudaErrorNotReady) break;
+                    if (q == cudaErrorNotReady) {
+                        stall_r(c.stall_stage);   // (issue #3: the staging slot's last DMA is still in flight)
+                        break;
+                    }
                     CK(q);
                 }
                 c.stage_item[(size_t) it.stage] = (int64_t) c.n_read;
@@ -4956,7 +5100,10 @@ struct Model::Impl {
         } kq{c.cs, c.n_dma, dma0};
         while (c.n_dma < c.n_read && c.n_dma < c.n_comp + R) {
             Chunk::Item& it = fit(c, c.n_dma);
-            if (it.left.load(std::memory_order_acquire) != 0) break;
+            if (it.left.load(std::memory_order_acquire) != 0) {
+                stall_d(c.stall_read);   // (issue #3: the read has not landed)
+                break;
+            }
             if (it.bad.load(std::memory_order_acquire)) {
                 err = "reading layer " + std::to_string(it.il) + " expert " + std::to_string(it.e) +
                       " from the model's files failed";
@@ -4987,6 +5134,8 @@ struct Model::Impl {
             c.stream_bytes += (double) unit(l);
             ++c.n_dma;
         }
+        if (dbg && c.n_dma < c.n_read && c.n_dma >= c.n_comp + R)
+            stall_d(c.stall_comp);   // (issue #3: no DMA can go out: compute has not freed a ring slot)
         return true;
     }
     // layer L0 of chunk k routed (bounds b, the device's copy d_bounds): its streamed experts as they land, the VRAM
@@ -5013,12 +5162,18 @@ struct Model::Impl {
             if (c.n_dma < i1) {   // not all of the batch landed: wait for a read, or for a staging slot's copy
                 const double tw = now_ms();
                 kick(s);
-                if (c.n_read > c.n_dma) c.io->wait_any(500);
+                const bool for_read = c.n_read > c.n_dma;   // (issue #3: which of the two the wait is for)
+                if (for_read) c.io->wait_any(500);
                 else {
                     const Chunk::Item& it = fit(c, c.n_read);
                     if (it.stage >= 0) CK(cudaEventSynchronize(c.stage_ev[(size_t) it.stage]));
                 }
-                c.wait_ms += now_ms() - tw;
+                const double wd = now_ms() - tw;   // (issue #3: how often the compute waits, and how long at worst)
+                c.wait_ms += wd;
+                if (for_read) c.wait_read_ms += wd;
+                else c.wait_stage_ms += wd;
+                ++c.wait_n;
+                if (wd > c.wait_max) c.wait_max = wd;
                 continue;
             }
             const int n = (int) (i1 - i0);
@@ -5029,7 +5184,10 @@ struct Model::Impl {
             for (int m = 0; m < n; ++m) bc[m] = b[(size_t) fit(c, i0 + (size_t) m).v];
             bc[n] = b[(size_t) fit(c, i1 - 1).v + 1];
             if (bc[n] > bc[0]) {
-                CK(cudaStreamWaitEvent(s, c.ring_fill[(i1 - 1) % R], 0));
+                {   // (issue #3, DS4_PROF: the stream's idle time until the batch's last DMA lands)
+                    WfB wb(this, d.id, 0, s);
+                    CK(cudaStreamWaitEvent(s, c.ring_fill[(i1 - 1) % R], 0));
+                }
                 CK(cudaMemcpyAsync(bcd, bc, (size_t) (n + 1) * 4, cudaMemcpyHostToDevice, s));
                 if (!run_set(d, c, L0, c.ring + (i0 % R) * c.ring_stride, 0, c.ring_stride, bcd, bc, 0, n, T, err))
                     return false;
@@ -11984,7 +12142,12 @@ struct Model::Impl {
                 if (!flow_pump(c, err)) return false;
                 std::this_thread::yield();
             }
-        CK(cudaStreamSynchronize(s));
+        {   // (issue #3, DS4_PROF / DS4_FLOW_STATS: the host's wait on the stream for the sort's bounds: a pipeline
+            //  bubble while it lasts - the reads keep pumping elsewhere, but nothing new is queued to the device)
+            const double tsync = dbg_flow_on() ? now_ms() : 0.0;
+            CK(cudaStreamSynchronize(s));
+            if (tsync > 0) c.dbg_sync_ms += now_ms() - tsync;
+        }
         std::vector<int> b(c.bounds_pin, c.bounds_pin + n_vs + 1);
         if (dump_r != nullptr && mi == 0) {
             const size_t nk = (size_t) T * l.k_exp, np = (size_t) T * kPicks;
@@ -12095,7 +12258,10 @@ struct Model::Impl {
         for (int bi = 0; bi < nb; ++bi) {
             const Batch& bt = S.b[S.kp];
             const int half = (int) (S.kp % P);
-            CK(cudaStreamWaitEvent(s, c.filled[half], 0));
+            {   // (issue #3, DS4_PROF: the stream's idle time until this batch's copies land)
+                WfB wb(this, d.id, 0, s);
+                CK(cudaStreamWaitEvent(s, c.filled[half], 0));
+            }
             const int v0 = L0.pv_n + bt.j0;
             if (!run_set(d, c, l, c.ring + (size_t) half * (c.ring_n / P) * c.ring_stride, v0, c.ring_stride, c.bounds,
                          b.data(), v0, v0 + bt.n, T, err))
@@ -12330,6 +12496,15 @@ struct Model::Impl {
         cudaSetDevice(d.id);
         cudaStream_t s = d.st;
         const int D = g.dim, H = g.hc, nk = (int) run.T.size();
+        // (issue #3, DS4_PROF / DS4_FLOW_STATS: the run's share of the host pipeline counters, which tick from engine
+        //  start; the printed values are differences against these)
+        c.dbg_stage0 = c.dbg_stage_ms;
+        c.dbg_dma0 = c.dbg_dma_ms;
+        c.dbg_evt0 = c.dbg_evt_ms;
+        c.dbg_pump0 = c.dbg_pump_ms;
+        c.dbg_sync0 = c.dbg_sync_ms;
+        c.dbg_hw0 = c.dbg_hw_ms;
+        static const bool dbg = dbg_flow_on();
         Streamer S;
         const int B = std::max(1, c.ring_n / Chunk::kParts);
         if (c.flow) {   // (the flow decides its streams as the layers route; nothing planned here)
@@ -12349,6 +12524,12 @@ struct Model::Impl {
             c.fl_cut_r = run.cut_r;
             c.spec_k = c.spec_il = -1;
             c.wait_ms = 0;
+            c.wait_n = 0;
+            c.wait_max = 0;
+            c.wait_read_ms = 0;
+            c.wait_stage_ms = 0;
+            c.stall_stage = c.stall_ring = c.stall_keep = c.stall_read = c.stall_comp = 0;
+            c.stall_at = c.stall_at_d = -1;
             c.it_file = c.it_ram = c.it_spec = c.it_spec_unused = c.it_lc = 0;
             c.lc_il = -1;
             c.lc_used = 0;
@@ -12470,8 +12651,13 @@ struct Model::Impl {
                         init_pre(c.pre, T, s);
                     } else {
                         Chunk& a = *chunks[(size_t) L[(size_t) il - 1].dev];
+                        const double thw = dbg ? now_ms() : 0.0;   // (issue #3: the block on the group before)
                         host_wait_at_least(a.hand_flag[slot], wp.win);
-                        xfer_get(chunk_xfer(a.hand[slot], c, T, false), a.hand_flag[slot], wp.win, s);
+                        if (thw > 0) c.dbg_hw_ms += now_ms() - thw;
+                        {   // (issue #3, DS4_PROF: the stream's wait for the previous group's rows: peer wait + copy)
+                            WfB wb(this, d.id, 1, s);
+                            xfer_get(chunk_xfer(a.hand[slot], c, T, false), a.hand_flag[slot], wp.win, s);
+                        }
                         set_flag(a.hand_ack + ((size_t) slot * 8 + mi) * 32, wp.win, s);
                     }
                 }
@@ -12494,8 +12680,13 @@ struct Model::Impl {
                         x.bytes[x.n++] = (size_t) ng * ik_rb();
                     }
                     if (x.n > 0) {
+                        const double thw = dbg ? now_ms() : 0.0;   // (issue #3: the block on the source layer's device)
                         host_wait_at_least(sr.flag(slot), wp.win);
-                        xfer_get(x, sr.flag(slot), wp.win, s);
+                        if (thw > 0) c.dbg_hw_ms += now_ms() - thw;
+                        {   // (issue #3, DS4_PROF: the stream's wait for the compressed rows: peer wait + copy)
+                            WfB wb(this, d.id, 1, s);
+                            xfer_get(x, sr.flag(slot), wp.win, s);
+                        }
                     }
                     set_flag(sr.x_ack + ((size_t) slot * devs.size() + di) * 32, wp.win, s);   // (taken, or none)
                 }
@@ -12516,11 +12707,19 @@ struct Model::Impl {
                 if (last && mi == 0 && il + 1 < g.nl) {   // the hand-off, once the next group took the chunk before last
                     const int nnext = L[(size_t) il + 1].nm;
                     if (k >= 2) {
+                        const double thw = dbg ? now_ms() : 0.0;   // (issue #3: the block on the group after)
                         for (int m = 0; m < nnext; ++m)
                             host_wait_at_least(c.hand_ack + ((size_t) slot * 8 + m) * 32, wp.win - 2);
-                        wait_flags(c.hand_ack + (size_t) slot * 8 * 32, nnext, 32, wp.win - 2, s);
+                        if (thw > 0) c.dbg_hw_ms += now_ms() - thw;
+                        {   // (issue #3, DS4_PROF: the stream's wait for the group after to take the chunk before last)
+                            WfB wb(this, d.id, 3, s);
+                            wait_flags(c.hand_ack + (size_t) slot * 8 * 32, nnext, 32, wp.win - 2, s);
+                        }
                     }
-                    xfer_put(chunk_xfer(c.hand[slot], c, T, true), c.hand_flag[slot], wp.win, d.xcnt, s);
+                    {   // (issue #3, DS4_PROF: the send itself: the stream's time copying the chunk's rows over)
+                        WfB wb(this, d.id, 2, s);
+                        xfer_put(chunk_xfer(c.hand[slot], c, T, true), c.hand_flag[slot], wp.win, d.xcnt, s);
+                    }
                 }
             }
             if (di == head_dev && (size_t) k < chunk_done.size()) {
@@ -13362,6 +13561,7 @@ struct Model::Impl {
         const double th = now_ms();
         CK(cudaStreamSynchronize(d.st));
         st.head_ms += now_ms() - th;
+        const bool prof_run = prof_chunk;   // (this run profiled its chunks: the stream lines below join the profile)
         if (prof_chunk) {   // DS4_PROF: the run's GPU time by stage, every device's summed
             for (Dev& dv : devs) {
                 cudaSetDevice(dv.id);
@@ -13381,6 +13581,18 @@ struct Model::Impl {
                 for (double v : cprof_ms) sum += v;
                 for (int i = 0; i < 11; ++i)
                     std::fprintf(stderr, "ds4 prof  %-34s %9.1f ms %5.1f%%\n", nm_[i], cprof_ms[i], sum > 0 ? 100.0 * cprof_ms[i] / sum : 0.0);
+                {   // (issue #3: the same stages per device - the aggregate hides a device left waiting by the other)
+                    for (size_t v = 0; v < devs.size() && v < (sizeof cprof_dev[0] / sizeof cprof_dev[0][0]); ++v) {
+                        double dsum = 0;
+                        for (int i = 0; i < 11; ++i) dsum += cprof_dev[i][v];
+                        if (dsum <= 0) continue;
+                        std::fprintf(stderr, "ds4 prof  CUDA%d %9.1f ms:", devs[v].id, dsum);
+                        for (int i = 0; i < 11; ++i)
+                            if (cprof_dev[i][v] > 0.05)
+                                std::fprintf(stderr, " %s %.0f", nm_[i], cprof_dev[i][v]);
+                        std::fprintf(stderr, "\n");
+                    }
+                }
                 struct Agg {
                     double ms = 0, flops = 0;
                     long calls = 0, rows = 0, experts = 0;
@@ -13418,11 +13630,74 @@ struct Model::Impl {
                                  kv.second.experts > 0 ? (double) kv.second.rows / (double) kv.second.experts : 0.0,
                                  kv.second.ms > 0 ? kv.second.flops / kv.second.ms / 1e9 : 0.0);
                 std::fprintf(stderr, "ds4 prof  expert kernels total %.1f ms\n", tot);
+                std::fprintf(stderr, "ds4 prof  experts stage outside its kernels %.1f ms (waits, issue gaps: %.0f%% of the stage)\n",
+                             cprof_ms[3] - tot, cprof_ms[3] > 0 ? 100.0 * (cprof_ms[3] - tot) / cprof_ms[3] : 0.0);
+            }
+            {   // (issue #3, DS4_PROF: the GPU-side waits measured with event pairs - the stream's idle stretches
+                //  inside the experts' stage and of between-layers: what it waited for, per device)
+                double wf_ms[4][8] = {};
+                long wf_n[4] = {};
+                double wf_max[4] = {};
+                {
+                    std::lock_guard<std::mutex> lk(prof_mu);
+                    for (const WfMark& m : wf_marks) {
+                        float f = 0;
+                        cudaSetDevice(m.dev);
+                        if (m.kind >= 0 && m.kind < 4 && m.dev >= 0 && m.dev < 8 &&
+                            cudaEventElapsedTime(&f, m.a, m.b) == cudaSuccess) {
+                            wf_ms[m.kind][m.dev] += f;
+                            ++wf_n[m.kind];
+                            if (f > wf_max[m.kind]) wf_max[m.kind] = f;
+                        }
+                        wf_pool[m.dev].push_back(m.a);
+                        wf_pool[m.dev].push_back(m.b);
+                    }
+                    wf_marks.clear();
+                }
+                static const char* wk_[4] = {"weights ready (GPU stream wait)", "hand-off get (peer wait+copy)",
+                                             "hand-off put (copy out)", "hand-off ack wait"};
+                for (int q = 0; q < 4; ++q) {
+                    double s = 0;
+                    for (int v = 0; v < 8; ++v) s += wf_ms[q][v];
+                    std::fprintf(stderr, "ds4 prof  %-34s %9.1f ms  waits %6ld  longest %8.1f ms",
+                                 wk_[q], s, wf_n[q], wf_max[q]);
+                    for (int v = 0; v < 8; ++v)
+                        if (wf_ms[q][v] > 0) std::fprintf(stderr, "  CUDA%d %.0f", v, wf_ms[q][v]);
+                    std::fprintf(stderr, "\n");
+                }
+                {   // the host side of the same pipelines, summed over the run's chunks (wall time, all devices)
+                    double pump = 0, sync = 0, hw = 0, wait = 0, wread = 0, wstage = 0, wmax = 0;
+                    long wn = 0, ss = 0, sr = 0, sk = 0, srd = 0, sc = 0;
+                    for (const std::unique_ptr<Chunk>& cp : chunks)
+                        if (cp != nullptr && cp->flow) {
+                            pump += cp->dbg_pump_ms - cp->dbg_pump0;
+                            sync += cp->dbg_sync_ms - cp->dbg_sync0;
+                            hw += cp->dbg_hw_ms - cp->dbg_hw0;
+                            wait += cp->wait_ms;
+                            wread += cp->wait_read_ms;
+                            wstage += cp->wait_stage_ms;
+                            wn += cp->wait_n;
+                            wmax = std::max(wmax, cp->wait_max);
+                            ss += cp->stall_stage; sr += cp->stall_ring; sk += cp->stall_keep;
+                            srd += cp->stall_read; sc += cp->stall_comp;
+                        }
+                    std::fprintf(stderr,
+                                 "ds4 prof  host: flow pump %.0f ms, bounds sync %.0f ms, hand-off blocks %.0f ms, "
+                                 "waits: reads %.0f ms, staging %.0f ms (%ld, longest %.0f ms)\n",
+                                 pump, sync, hw, wread, wstage, wn, wmax);
+                    std::fprintf(stderr,
+                                 "ds4 prof  pump stalls: staging reuse %ld, ring reuse %ld, layer cache %ld, "
+                                 "reads landing %ld, compute behind %ld\n",
+                                 ss, sr, sk, srd, sc);
+                }
             }
             for (double& v : cprof_ms) v = 0;
+            for (auto& r : cprof_dev)
+                for (double& v : r) v = 0;
             prof_chunk = false;
         }
-        if (o.verbose || std::getenv("DS4_FLOW_STATS") != nullptr) {
+        const bool flow_stats = std::getenv("DS4_FLOW_STATS") != nullptr;
+        if (o.verbose || flow_stats || prof_run) {
             const double ms = now_ms() - tl;
             for (size_t di = 0; di < chunks.size(); ++di) {
                 const Chunk& c = *chunks[di];
@@ -13434,11 +13709,19 @@ struct Model::Impl {
                 if (c.lm)
                     std::snprintf(lcs, sizeof lcs, ", %llu again from the layer cache (layer-major, %d chunks, %.1f GB "
                                   "of RAM)", (unsigned long long) c.it_lc, (int) run.T.size(), (double) c.lc_bytes / 1e9);
-                char dbgs[200] = "";
-                if (pm.on)
-                    std::snprintf(dbgs, sizeof dbgs,
-                                  "; io threads busy %.0f ms, copy_ahead staging %.0f ms, DMA issues %.0f ms, slot waits %.0f ms",
-                                  c.io->busy_ms() - c.io_busy0, c.dbg_stage_ms, c.dbg_dma_ms, c.dbg_evt_ms);
+                char dbgs[400] = "";
+                if (pm.on || flow_stats || prof_run)   // (issue #3: the pipeline counters join DS4_FLOW_STATS; the
+                    std::snprintf(dbgs, sizeof dbgs,   // copy_ahead ones now count this run only, not from engine start)
+                                  "; io threads busy %.0f ms, copy_ahead staging %.0f ms, DMA issues %.0f ms, slot waits "
+                                  "%.0f ms; flow pump %.0f ms, bounds sync %.0f ms, hand-off blocks %.0f ms, read waits "
+                                  "%ld longest %.0f ms (waits: reads %.0f ms, staging %.0f ms); pump stalls: staging "
+                                  "%ld, ring %ld, layer cache %ld, reads %ld, compute %ld",
+                                  c.io->busy_ms() - c.io_busy0, c.dbg_stage_ms - c.dbg_stage0,
+                                  c.dbg_dma_ms - c.dbg_dma0, c.dbg_evt_ms - c.dbg_evt0,
+                                  c.dbg_pump_ms - c.dbg_pump0, c.dbg_sync_ms - c.dbg_sync0,
+                                  c.dbg_hw_ms - c.dbg_hw0, c.wait_n, c.wait_max,
+                                  c.wait_read_ms, c.wait_stage_ms,
+                                  c.stall_stage, c.stall_ring, c.stall_keep, c.stall_read, c.stall_comp);
                 std::fprintf(stderr,
                              "ds4 prompt stream, CUDA%d: %d tokens in %.0f ms; %llu experts streamed: %llu from the files "
                              "(%.1f GB, %.2f GB/s: %.1f GB from the disk unbuffered, %.1f GB through the page cache), %llu "

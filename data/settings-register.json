@@ -2373,8 +2373,8 @@
     "docs/BATCHING.md:92",
     "docs/BATCHING.md:456",
     "docs/BATCHING.md:458",
-    "docs/release-notes-0.2.1.md:43",
-    "docs/release-notes-0.2.7.md:21"
+    "docs/releases/release-notes-0.2.1.md:43",
+    "docs/releases/release-notes-0.2.7.md:21"
    ],
    "first_commit": "f680a80d88",
    "first_date": "2026-10-20",
@@ -3225,7 +3225,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/DETAILS.md:290",
-    "docs/release-notes-0.2.0.md:60"
+    "docs/releases/release-notes-0.2.0.md:60"
    ],
    "first_commit": "c85cc6dd19",
    "first_date": "2026-10-18",
@@ -4207,9 +4207,9 @@
     "docs/MMVQ_IL_TABLE.md:18",
     "docs/MMVQ_IL_TABLE.md:19",
     "docs/MULTI_GPU.md:233",
-    "docs/release-notes-0.2.7.md:20",
-    "docs/release-notes-0.2.7.md:21",
-    "docs/release-notes-0.2.7.md:33",
+    "docs/releases/release-notes-0.2.7.md:20",
+    "docs/releases/release-notes-0.2.7.md:21",
+    "docs/releases/release-notes-0.2.7.md:33",
     "docs/STRIX_HALO_WINDOWS.md:132"
    ],
    "first_commit": "a3ab37fc03",
@@ -4477,7 +4477,7 @@
     "docs/DETAILS.md:1625",
     "docs/OLDER_GPUS.md:137",
     "docs/OLDER_GPUS.md:261",
-    "docs/release-notes-0.2.7.md:23"
+    "docs/releases/release-notes-0.2.7.md:23"
    ],
    "first_commit": "9c5bbc36d0",
    "first_date": "2026-10-13",
@@ -6052,7 +6052,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/OLDER_GPUS.md:169",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "6a6d58ad03",
    "first_date": "2026-10-26",
@@ -8658,7 +8658,7 @@
     "docs/OLDER_GPUS.md:210",
     "docs/OLDER_GPUS.md:214",
     "docs/OLDER_GPUS.md:242",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "9067cc64d3",
    "first_date": "2026-10-26",
@@ -9271,7 +9271,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.1.md:49"
+    "docs/releases/release-notes-0.2.1.md:49"
    ],
    "first_commit": "484e06b961",
    "first_date": "2026-10-20",
@@ -11195,7 +11195,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.3.md:5",
+    "docs/releases/release-notes-0.2.3.md:5",
     "docs/STRIX_HALO.md:192",
     "docs/STRIX_HALO_WINDOWS.md:103"
    ],
@@ -13174,7 +13174,7 @@
     "docs/MAC.md:140",
     "docs/MAC.md:256",
     "docs/QUANTS.md:165",
-    "docs/release-notes-0.2.3.md:5",
+    "docs/releases/release-notes-0.2.3.md:5",
     "docs/STRIX_HALO.md:191",
     "docs/STRIX_HALO.md:192",
     "docs/STRIX_HALO.md:309",
@@ -13697,7 +13697,7 @@
    "doc_mentions": [
     "docs/AMD_HIP.md:91",
     "docs/AMD_HIP.md:92",
-    "docs/release-notes-0.2.1.md:42"
+    "docs/releases/release-notes-0.2.1.md:42"
    ],
    "first_commit": "c62d980112",
    "first_date": "2026-10-22",
@@ -13950,8 +13950,8 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/AMD_HIP.md:311",
-    "docs/release-notes-0.2.1.md:46",
-    "docs/release-notes-0.2.2.md:23"
+    "docs/releases/release-notes-0.2.1.md:46",
+    "docs/releases/release-notes-0.2.2.md:23"
    ],
    "first_commit": "3f1fa67f14",
    "first_date": "2026-10-20",
@@ -14193,7 +14193,7 @@
     "docs/AMD_HIP.md:454",
     "docs/RADEON_780M.md:84",
     "docs/RADEON_780M.md:99",
-    "docs/release-notes-0.2.0.md:56",
+    "docs/releases/release-notes-0.2.0.md:56",
     "docs/STRIX_HALO.md:207",
     "docs/STRIX_HALO.md:213",
     "docs/STRIX_HALO.md:218",
@@ -14596,7 +14596,7 @@
     "docs/AMD_HIP.md:460",
     "docs/RADEON_780M.md:85",
     "docs/RADEON_780M.md:86",
-    "docs/release-notes-0.2.1.md:41",
+    "docs/releases/release-notes-0.2.1.md:41",
     "docs/STRIX_HALO.md:214",
     "docs/STRIX_HALO.md:221",
     "docs/STRIX_HALO_WINDOWS.md:94"
@@ -14881,7 +14881,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/DETAILS.md:292",
-    "docs/release-notes-0.2.0.md:60"
+    "docs/releases/release-notes-0.2.0.md:60"
    ],
    "first_commit": "8b1139d026",
    "first_date": "2026-10-18",
@@ -15212,8 +15212,8 @@
     "docs/DETAILS.md:296",
     "docs/DETAILS.md:297",
     "docs/RADEON_780M.md:141",
-    "docs/release-notes-0.2.0.md:60",
-    "docs/release-notes-0.2.1.md:45"
+    "docs/releases/release-notes-0.2.0.md:60",
+    "docs/releases/release-notes-0.2.1.md:45"
    ],
    "first_commit": "9745567e5f",
    "first_date": "2026-10-07",
@@ -15789,8 +15789,8 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/GYRO.md:103",
-    "docs/release-notes-0.2.2.md:9",
-    "docs/release-notes-0.2.2.md:36"
+    "docs/releases/release-notes-0.2.2.md:9",
+    "docs/releases/release-notes-0.2.2.md:36"
    ],
    "first_commit": "200c35a8e9",
    "first_date": "2026-10-03",
@@ -16118,7 +16118,7 @@
     "docs/KVA.md:103",
     "docs/KVA.md:110",
     "docs/KVA.md:130",
-    "docs/release-notes-0.2.7.md:39"
+    "docs/releases/release-notes-0.2.7.md:39"
    ],
    "first_commit": "f4012d6369",
    "first_date": "2026-10-26",
@@ -20819,7 +20819,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/OLDER_GPUS.md:191",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "5dbd8774d8",
    "first_date": "2026-10-26",
@@ -21090,7 +21090,7 @@
    "doc_mentions": [
     "docs/DETAILS.md:1315",
     "docs/MMVQ_IL_TABLE.md:18",
-    "docs/release-notes-0.2.7.md:23"
+    "docs/releases/release-notes-0.2.7.md:23"
    ],
    "first_commit": "2299c8f70a",
    "first_date": "2026-10-26",
@@ -21234,7 +21234,7 @@
    "doc_mentions": [
     "docs/DETAILS.md:1625",
     "docs/MMVQ_IL_TABLE.md:19",
-    "docs/release-notes-0.2.7.md:23"
+    "docs/releases/release-notes-0.2.7.md:23"
    ],
    "first_commit": "91aebae636",
    "first_date": "2026-10-26",
@@ -22332,7 +22332,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "f213f78bae",
    "first_date": "2026-10-26",
@@ -23697,7 +23697,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/DETAILS.md:1213",
-    "docs/release-notes-0.2.2.md:11"
+    "docs/releases/release-notes-0.2.2.md:11"
    ],
    "first_commit": "e4d22e7ef1",
    "first_date": "2026-10-20",
@@ -23790,7 +23790,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/DETAILS.md:1213",
-    "docs/release-notes-0.2.2.md:11"
+    "docs/releases/release-notes-0.2.2.md:11"
    ],
    "first_commit": "709f8dc63d",
    "first_date": "2026-10-20",
@@ -24571,7 +24571,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/OLDER_GPUS.md:175",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "a338990186",
    "first_date": "2026-10-26",
@@ -25662,7 +25662,7 @@
     "docs/OLDER_GPUS.md:237",
     "docs/RADEON_780M.md:86",
     "docs/RADEON_780M.md:103",
-    "docs/release-notes-0.2.0.md:56",
+    "docs/releases/release-notes-0.2.0.md:56",
     "docs/STRIX_HALO.md:203",
     "docs/STRIX_HALO.md:215",
     "docs/STRIX_HALO.md:218",
@@ -25896,7 +25896,7 @@
     "docs/DETAILS.md:1159",
     "docs/DETAILS.md:1162",
     "docs/DETAILS.md:1166",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "c47c699486",
    "first_date": "2026-10-26",
@@ -26133,7 +26133,7 @@
     "docs/RADEON_780M.md:78",
     "docs/RADEON_780M.md:84",
     "docs/RADEON_780M.md:100",
-    "docs/release-notes-0.2.2.md:16",
+    "docs/releases/release-notes-0.2.2.md:16",
     "docs/STRIX_HALO.md:204",
     "docs/STRIX_HALO.md:213",
     "docs/STRIX_HALO.md:218",
@@ -26573,7 +26573,7 @@
     "docs/AMD_HIP.md:786",
     "docs/GDN_CONTRACT.md:42",
     "docs/RADEON_780M.md:78",
-    "docs/release-notes-0.2.2.md:16",
+    "docs/releases/release-notes-0.2.2.md:16",
     "docs/STRIX_HALO.md:184"
    ],
    "first_commit": "bedb808741",
@@ -27312,7 +27312,7 @@
     "docs/INTEL.md:259",
     "docs/INTEL.md:386",
     "docs/INTEL.md:501",
-    "docs/release-notes-0.2.0.md:57"
+    "docs/releases/release-notes-0.2.0.md:57"
    ],
    "first_commit": "ce60cc373f",
    "first_date": "2026-10-09",
@@ -27839,7 +27839,7 @@
     "docs/BATCHING.md:479",
     "docs/BATCHING.md:499",
     "docs/BATCHING.md:631",
-    "docs/release-notes-0.2.7.md:41"
+    "docs/releases/release-notes-0.2.7.md:41"
    ],
    "first_commit": "17878ac579",
    "first_date": "2026-10-27",
@@ -28547,7 +28547,7 @@
     "docs/BATCHING.md:403",
     "docs/BATCHING.md:412",
     "docs/BATCHING.md:638",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "a3bb38ec45",
    "first_date": "2026-10-26",
@@ -28811,7 +28811,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.7.md:52"
+    "docs/releases/release-notes-0.2.7.md:52"
    ],
    "first_commit": "8dd297d0f1",
    "first_date": "2026-10-27",
@@ -29049,7 +29049,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/DETAILS.md:1239",
-    "docs/release-notes-0.2.2.md:17"
+    "docs/releases/release-notes-0.2.2.md:17"
    ],
    "first_commit": "7a55995818",
    "first_date": "2026-10-20",
@@ -29929,7 +29929,7 @@
    "doc_mentions": [
     "docs/DETAILS.md:308",
     "docs/DETAILS.md:1052",
-    "docs/release-notes-0.2.0.md:61"
+    "docs/releases/release-notes-0.2.0.md:61"
    ],
    "first_commit": "e77f1dfc3f",
    "first_date": "2026-10-18",
@@ -30029,7 +30029,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.7.md:20"
+    "docs/releases/release-notes-0.2.7.md:20"
    ],
    "first_commit": "a6df0023a4",
    "first_date": "2026-10-26",
@@ -30309,7 +30309,7 @@
     "docs/OLDER_GPUS.md:237",
     "docs/ORCA_Q4_K_S.md:9",
     "docs/RADEON_780M.md:35",
-    "docs/release-notes-0.2.0.md:59",
+    "docs/releases/release-notes-0.2.0.md:59",
     "docs/STRIX_HALO.md:147",
     "docs/STRIX_HALO.md:155"
    ],
@@ -30801,7 +30801,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/AMD_HIP.md:310",
-    "docs/release-notes-0.2.1.md:48"
+    "docs/releases/release-notes-0.2.1.md:48"
    ],
    "first_commit": "f3be974359",
    "first_date": "2026-10-18",
@@ -32445,7 +32445,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/RADEON_780M.md:80",
-    "docs/release-notes-0.2.7.md:52",
+    "docs/releases/release-notes-0.2.7.md:52",
     "docs/STRIX_HALO.md:188"
    ],
    "first_commit": "22abb92dff",
@@ -33264,7 +33264,7 @@
     "docs/DETAILS.md:1306",
     "docs/DETAILS.md:1482",
     "docs/DETAILS.md:1483",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "d7298883b8",
    "first_date": "2026-10-14",
@@ -34299,8 +34299,8 @@
     "docs/DETAILS.md:1096",
     "docs/DETAILS.md:1330",
     "docs/DETAILS.md:1519",
-    "docs/release-notes-0.2.0.md:55",
-    "docs/release-notes-0.2.7.md:7"
+    "docs/releases/release-notes-0.2.0.md:55",
+    "docs/releases/release-notes-0.2.7.md:7"
    ],
    "first_commit": "2de9ae061f",
    "first_date": "2026-10-09",
@@ -35095,7 +35095,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/OLDER_GPUS.md:183",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "b434a8aa6e",
    "first_date": "2026-10-26",
@@ -36813,7 +36813,7 @@
     "docs/DETAILS.md:592",
     "docs/DETAILS.md:603",
     "docs/DETAILS.md:1538",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "33356f7289",
    "first_date": "2026-10-06",
@@ -37021,7 +37021,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.2.md:47"
+    "docs/releases/release-notes-0.2.2.md:47"
    ],
    "first_commit": "4c3edf4765",
    "first_date": "2026-10-21",
@@ -39899,7 +39899,7 @@
    "doc_mentions": [
     "docs/GYRO.md:105",
     "docs/GYRO.md:311",
-    "docs/release-notes-0.2.2.md:37"
+    "docs/releases/release-notes-0.2.2.md:37"
    ],
    "first_commit": "9f38ee338c",
    "first_date": "2026-10-20",
@@ -39934,7 +39934,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.2.md:36"
+    "docs/releases/release-notes-0.2.2.md:36"
    ],
    "first_commit": null,
    "first_date": null,
@@ -40303,7 +40303,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.2.md:16",
+    "docs/releases/release-notes-0.2.2.md:16",
     "docs/STRIX_HALO.md:240"
    ],
    "first_commit": "f801953992",
@@ -40921,7 +40921,7 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [
-    "docs/release-notes-0.2.2.md:47"
+    "docs/releases/release-notes-0.2.2.md:47"
    ],
    "first_commit": "86d10ed8f9",
    "first_date": "2026-10-21",
@@ -41490,7 +41490,7 @@
    "launch_reads": [],
    "doc_mentions": [
     "docs/DETAILS.md:1541",
-    "docs/release-notes-0.2.7.md:53"
+    "docs/releases/release-notes-0.2.7.md:53"
    ],
    "first_commit": "3100ca05ed",
    "first_date": "2026-10-26",

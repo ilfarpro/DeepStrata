@@ -65,6 +65,31 @@ class SettingsRegister(unittest.TestCase):
         bad = [e["name"] for e in self.entries if e.get("status") == "retired" and not e.get("retired_in")]
         self.assertEqual(bad, [], "retired entries need retired_in: " + ", ".join(bad))
 
+    def test_doc_mentions_name_files_that_exist(self):
+        bad = [f"{e['name']}: {m}" for e in self.entries for m in e.get("doc_mentions", [])
+               if not (sr.ROOT / m.rsplit(":", 1)[0]).exists()]
+        self.assertEqual(bad, [], "the register cites documentation files that are not there (re-run "
+                                  "python tools/settings_register.py): " + ", ".join(bad[:20]))
+
+    def test_rendered_page_links_resolve_and_name_the_fork_command(self):
+        import re
+        page = sr.render_page(self.entries)
+        bad = []
+        for m in re.finditer(r"\[[^\]]*\]\(([^)\s]+)\)", page):
+            link = m.group(1)
+            if link.startswith(("http", "#", "mailto:")):
+                continue
+            if not (sr.ROOT / "docs" / link.split("#")[0]).exists():
+                bad.append(link)
+        self.assertEqual(bad, [], "the settings page would link to files that are not there: " + ", ".join(bad))
+        self.assertIn("`deepstrata launch --set NAME=value`", page)
+        self.assertNotIn("`strata launch", page)
+
+    def test_page_is_the_register_rendered(self):
+        page = (sr.ROOT / sr.SETTINGS_PAGE).read_text(encoding="utf-8")
+        self.assertEqual(page, sr.render_page(self.entries),
+                         "docs/SETTINGS.md is stale: run python tools/settings_register.py --docs")
+
     def test_scan_sees_the_known_shapes(self):
         # guards the scanner itself: a plain getenv, a helper, and an off-switch
         self.assertIn("STRATA_HIPBLASLT_TUNING", self.engine)

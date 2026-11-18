@@ -219,6 +219,7 @@ If a sync merge reintroduces one, that test fails — resolve toward the module.
 | Releases / feed / issues / snapshots | `Niko1221/Strata` | `ilfarpro/DeepStrata` (same artifact names) |
 | `tests/snapshot` harness | its own `world.py` / `driver.py` (written after the fork's) | our own, older implementation; the snapshot suite runs on it, upstream's harness was never merged into it |
 | `tools/capability_table.py` version line | names DeepSeek engines among packages that stopped | DeepSeek is listed as supported wherever the fork ships a package; the fork's test covers that wording |
+| Upstream 0.2.15 DeepSeek retirement | drops DeepSeek from the build and docs: no `STRATA_BUILD_DSV41` / `strata-dsv41` targets in `cmake/`, no `tools/dsv41` in `tools/check`, the feed's `dsv41` member declared frozen | the fork keeps the DeepSeek family: the cmake targets and the BMI2 rule for its ggml-cpu are restored, `tools/check` runs the DS tests, the packaging docs describe `strata-dsv41` and the live `dsv41` feed member |
 | Feed key | upstream's | ours, regenerated; secrets live outside the repo (`~/.deepstrata-signing/`) |
 | Docker image labels | upstream | `DeepStrata`, our URLs |
 | Docker registry / container / volume | `ghcr.io/niko1221/strata`, container `strata`, volume `strata-data` | `ghcr.io/ilfarpro/deepstrata`, container `deepstrata`, volume `deepstrata-data`, in-container command `deepstrata` (the wrapper on PATH) |

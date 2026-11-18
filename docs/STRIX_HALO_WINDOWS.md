@@ -1,9 +1,8 @@
 # Strix Halo (Ryzen AI Max, gfx1151) on Windows: install, what you get, what to know
 
 This page is for a Windows PC with a Ryzen AI Max "Strix Halo" chip (Radeon 8060S / 8050S, `gfx1151`). It says what Strata does there out
-of the box, what speed to expect with Qwen3.8-Flash-Next IQ3_S and with DeepSeek V4.1-Flash, and the traps on this hardware. The Linux
-build, the toolchain and the opt-in switches are on [STRIX_HALO.md](STRIX_HALO.md); the DeepSeek details are in
-[DEEPSEEK41.md](DEEPSEEK41.md).
+of the box, what speed to expect with Qwen3.8-Flash-Next IQ3_S, and the traps on this hardware. The Linux
+build, the toolchain and the opt-in switches are on [STRIX_HALO.md](STRIX_HALO.md).
 
 The structure of this page comes from the first Windows guide for this PC, written by HaiYunChuang (pull request #3029). It measured
 engines 0.1.41 to 0.1.47 with a hand-made configuration (`--mmap-experts`, a list of switches, a batch file). Since then the app and
@@ -75,9 +74,6 @@ What `deepstrata launch` wrote for IQ3_S, with no switches of mine (these are th
 --max-context 131072 --kv int8 --vision --vram-reserve-mib 700   (backend hip, GPU picture reader)
 ```
 
-and for DeepSeek 2.00 bpw: `--max-context 8192 --dspark auto --dspark-conf 0.65 --prefill-chunk 16384`, with `DS4_ASYNC_T=4` in the
-environment and the package's `rocm/bin` folder on the library path.
-
 ## 4. What is on by default
 
 - On `gfx1151` the engine turns on exact speed switches by itself (19 on Linux, 18 on Windows, which leaves `STRATA_SH_STREAM` out, see below; the start line lists them; `STRATA_GFX1151_DEFAULTS=0` turns them all
@@ -129,8 +125,7 @@ token ids were identical in all four runs for every prompt.
 
 What 0.2.7 does: on Windows `gfx1151` the engine no longer turns the switch on by itself. To turn it back on, use `deepstrata launch ...
 --set STRATA_SH_STREAM=1` (or put `STRATA_SH_STREAM=1` in the environment of an engine you start by hand); a value you set is always kept.
-`STRATA_DEFAULTS=026` brings back everything 0.2.6 did, including the switch on. This is one model, one PC and short answers; DeepSeek was
-not tested with it, and Linux `gfx1151` has not been measured against it.
+`STRATA_DEFAULTS=026` brings back everything 0.2.6 did, including the switch on. This is one model, one PC and short answers; Linux `gfx1151` has not been measured against it.
 
 ## 5. Traps
 

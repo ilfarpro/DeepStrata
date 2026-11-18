@@ -230,6 +230,11 @@ ANSWER_RESERVE_MIN = 512     # #984: the tokens kept for the answer when a think
 # and no call, is continued once with the thinking closed (the same way the budget's wrap-up closes it)
 REASONING_CLOSE = "\n</think>\n\n"
 REASONING_WRAP_UP = "\n\nI have thought about this long enough; time to give my answer.\n</think>\n\n"
+# The budget's pass to an engine that says "hold" in READY carries GEN hold=N:ID (N: the reasoning tokens left, ID: the one
+# token of </think>): the engine stops there with its session at exactly the tokens it sent, so the next pass (+ the wrap-up)
+# continues from the live session.  Without it the engine ran a window or two past the cut, and the next pass read the
+# whole reasoning again from the checkpoint before it.  The server's own key in `sampling`, never a client's.
+HOLD_KEY = "_strata_hold"
 # #728: opt-in handling of reasoning that repeats whole passages (which the single-token guard above cannot see).
 # "reasoning_loop_recovery": "stop" ends the reply there; "recover" (or true) goes on from the same output with the
 # low-effort instruction in place of the xhigh one.  Both off by default.
@@ -1155,6 +1160,8 @@ class StrataEngine:
         self.ended, self.unloaded = True, True
         self.max_context = int(args[args.index("--max-context") + 1]) if "--max-context" in args else 4096
         self.can_stop = False            # the engine honours a STOP line mid-request (READY <ctx> stop)
+        self.can_hold = False            # the engine takes GEN hold=N:ID (READY <ctx> ... hold)
+        self.can_hold_batch = False      # ... and its --batch slots end at the hold too, BDONE hold (READY ... holdb)
         self.last = {}
         self.info = {}                   # INFO key=value facts (engine 0.1.8+): kv, expert slots, ... (Monitor tab)
         self.terminal_stages: list[dict] = []  # final layer ranges from this engine start's bounded stderr log
@@ -1239,6 +1246,8 @@ class StrataEngine:
                 self.max_context = int(f[1])
                 self.can_stop = "stop" in f[2:]
                 self.multi = next((int(x[6:]) for x in f[2:] if x.startswith("multi=") and x[6:].isdigit()), 0)
+                self.can_hold = "hold" in f[2:]
+                self.can_hold_batch = "holdb" in f[2:]
                 break
         loading.set()
         if self.max_context <= 0:
@@ -1697,6 +1706,11 @@ class StrataEngine:
             ac = tune.get("aux_cpus")
             if isinstance(ac, bool) or (isinstance(ac, (int, float)) and ac in (0, 1)):
                 keys += f" aux_cpus={int(ac)}"
+        # the thinking budget's hold (HOLD_KEY): set by the server for an engine that says "hold", never by a client
+        hold = sampling.get(HOLD_KEY)
+        if (isinstance(hold, tuple) and len(hold) == 2 and all(isinstance(x, int) and not isinstance(x, bool) for x in hold)
+                and hold[0] > 0 and hold[1] >= 0):
+            keys += f" hold={hold[0]}:{hold[1]}"
         # "strata_checkpoint": false - a one-shot call (a classification, a probe) whose turn no later request
         # extends: no conversation checkpoint for it (#830).  It still reuses a cached prefix.  Absent = as before.
         if sampling.get("strata_checkpoint") is False:
@@ -2237,7 +2251,8 @@ class StrataEngine:
             raise EngineDied("the engine is unavailable; this request was not sent")
         self.progress, self.progress_ms, self.reused = None, 0, 0
         born = self.gen                                 # the engine process this request is sent to
-        keys = self.sampling_keys(sampling or {})
+        hold = (sampling or {}).get(HOLD_KEY)           # the thinking budget's hold (P2b): the reasoning tokens left when this pass starts, and </think>'s id
+        keys0 = self.sampling_keys({k: v for k, v in (sampling or {}).items() if k != HOLD_KEY})   # (the hold's key goes on per leg: leg_keys below)
         # logprobs: only an admission's token can have an LP line here (the slot's "BT" lines carry none), so the
         # server refuses these requests unless max_tokens is 1.  The lines go to the request itself, through its
         # cancel Event: several requests read control lines at once, and the engine's lp_lines is one attribute.
@@ -2247,6 +2262,13 @@ class StrataEngine:
         out: list[int] = []
         pending: list[int] = []
         prompt, left = list(ids), int(max_new)
+
+        def leg_keys() -> str:
+            """The budget's hold counts what this pass still has: a leg that starts after `out` tokens of it holds the rest (at least one);
+            once </think> is in `out` the hold is over and no key goes."""
+            if isinstance(hold, tuple) and len(hold) == 2 and hold[0] > 0 and hold[1] >= 0 and hold[1] not in out:
+                return keys0 + f" hold={max(1, hold[0] - len(out))}:{hold[1]}"
+            return keys0
         orig_len = len(prompt)  # a leg that continues (prompt + what it generated) names where the reply began: pen_from, the penalty window's start
         reused0 = None      # the first read's reused tokens: a continued leg's count includes this request's own output
         carry = {}          # #1869: the figures of the legs that ended in a hand-back to the solo path (the final DONE adds to them)
@@ -2281,7 +2303,7 @@ class StrataEngine:
                     alone = not any(self.slot_busy) and self.waiting == 0
                 if alone and left > 1:
                     pf = self.pen_from_key(orig_len, len(prompt))
-                    head = f"GENI {left}{keys}{pf} {embeddings}" if embeddings else f"GEN {left}{keys}{pf}"
+                    head = f"GENI {left}{leg_keys()}{pf} {embeddings}" if embeddings else f"GEN {left}{leg_keys()}{pf}"
                     self._last_done = None                  # (#879: this request's DONE decides below)
                     deadline = getattr(cancel, "_strata_queue_deadline", None)
                     if deadline is not None and time.monotonic() >= deadline:
@@ -2338,8 +2360,8 @@ class StrataEngine:
                     if slot is None:
                         finish = (self.last or {}).get("finish") if isinstance(self.last, dict) else None
                         left = int(max_new) - len(out)
-                        if cancel.is_set() or left <= 0 or finish in ("stop", "length") or (out and out[-1] in EOS_IDS):
-                            return
+                        if cancel.is_set() or left <= 0 or finish in ("stop", "length", "hold") or (out and out[-1] in EOS_IDS):
+                            return                          # ("hold": the budget's cut: the caller wraps up or asks for more)
                         if reused0 is None:
                             reused0 = (self.last or {}).get("reused")
                         carry_leg(carry, self.last)         # #1869: the solo leg's figures; the slot's admission (a copy of
@@ -2415,7 +2437,7 @@ class StrataEngine:
                     while not sq[slot].empty():
                         sq[slot].get_nowait()
                     pf = self.pen_from_key(orig_len, len(prompt))
-                    head = f"BGENI {slot} {left}{keys}{pf} {embeddings}" if embeddings else f"BGEN {slot} {left}{keys}{pf}"
+                    head = f"BGENI {slot} {left}{leg_keys()}{pf} {embeddings}" if embeddings else f"BGEN {slot} {left}{leg_keys()}{pf}"
                     live = {"slot": slot, "request_id": getattr(cancel, "_strata_request_id", None),
                             "state": "reading", "prompt_tokens": len(prompt), "prompt_read": 0, "generated": 0,
                             "started": time.time(), "first_token": None}
@@ -3292,6 +3314,7 @@ class Vision:
         self.gpu_spawn, self.cpu_spawn = self.spawn, self.fallback   # an on-demand reader tries the GPU one again at every start
         self.on_cpu = False                             # the CPU reader is what runs (the GPU one did not start, or there was no room)
         self.cpu_note = None                            # why, in words for the person (strata_control/reader_room.py), when the card had no room
+        self.reader = None                              # "own" (Strata's) or "mtmd" (llama.cpp's) from the READY line; None for an older reader
         self.proc = None
         self.stopped = True
         self.lock = threading.Lock()
@@ -3301,7 +3324,7 @@ class Vision:
         # elastic_mib of VRAM free for it (Service._vision_up / _vision_idle_down)
         self.max_tokens = self.token_limit(cfg)
         self.elastic = cfg.get("elastic") is True
-        self.elastic_mib = int(cfg.get("elastic_mib") or 2048)
+        self.elastic_mib = self.elastic_ask_mib(cfg, self.max_tokens)
         self.elastic_idle_s = float(cfg.get("elastic_idle_s") or 120)
         if not lazy and not self.elastic:
             self._start()
@@ -3310,6 +3333,15 @@ class Vision:
     # config without vision.max_tokens left the reader unclamped, and #3690 saw one picture become 93,700 image tokens (I7).  A key that is
     # there is the person's: 0 means no limit, as before.
     DEFAULT_MAX_TOKENS = {"gpu": 1024, "cpu": 300}
+
+    @staticmethod
+    def elastic_ask_mib(cfg: dict, max_tokens: int) -> int:
+        """The VRAM the expert cache keeps free for an elastic reader: the config's elastic_mib when the person set one, else the reader's
+        need at its image limit (strata_control/reader_room.py; 0 = no limit counts as 16,384), never below 2,048.  At the default limit of
+        1,024 tokens that is 2,048; at 16,384 it is 3,674 (a 2,048 ask left the encoder out of memory for one large picture on an RTX A6000)."""
+        if cfg.get("elastic_mib"):
+            return int(cfg["elastic_mib"])
+        return max(2048, math.ceil(reader_room.reader_needs_mib(max_tokens)))
 
     @staticmethod
     def token_limit(cfg: dict) -> int:
@@ -3446,6 +3478,12 @@ class Vision:
             room = reader_room.find((line + chr(10) + chr(10).join(strays) + chr(10) + vision_log_tail(log, since=since)).splitlines())
             raise (VisionNoRoom(message, room) if room else RuntimeError(message))
         self.stopped = False
+        # "READY <n_embd> <reader> [fallback]": the reader that runs (own: Strata's, mtmd: llama.cpp's; an older strata-vision says only "READY <n_embd>"),
+        # and "fallback" when Strata's reader did not start and llama.cpp's took its place (strata-vision wrote the reason to the log)
+        words = line.split()
+        self.reader = words[2] if len(words) > 2 else None
+        if "fallback" in words[3:]:
+            print("[strata] Strata's picture reader did not start; pictures are read with llama.cpp's reader. Details are in the log.", flush=True)
 
     #: how long a reader that has already ended may still hold its output pipe open (a debugger attached to it, a child it started) before the start is
     #: judged: the pipe's end does not come, the process's end is what counts.
@@ -3980,8 +4018,12 @@ def engine_args(cfg: dict, exe: str | None = None, *, announce: bool = True) -> 
                                        vram_mib=drafting_vram_mib(cfg, backend, archs))
             if hint:
                 print(f"[strata] {hint}", flush=True)
+        elif decision.flags and drafting.slot_drafts_run(args, parallel_n, layer_split_of(cfg)):
+            print(f"[strata] {drafting.SLOT_DRAFTS_LINE}", flush=True)
         elif decision.flags:
             print(f"[strata] drafting: DFlash2 alone ({' '.join(decision.flags[:2])}, --draft-conf {args[args.index('--draft-conf') + 1] if '--draft-conf' in args else '-'})", flush=True)
+        if decision.vocab:                                   # log only (a support log shows which draft vocabulary was used and why)
+            print(f"[strata] drafting: {decision.vocab}", flush=True)
     # A card that is short of VRAM for this start (a single request on a small card, or "parallel" 2 or more, every request slot a session of its own) gets work moved off
     # the GPU, never a smaller context and never fewer requests (owner, 2026-11-02): a smaller KV window on CUDA, a smaller prompt chunk and reserve on Arc, and the
     # engine sizes the rest; one plain note says it is slower (strata_control/vram_fit.py fit_start).  The person's own values are kept.  Nothing changes without one
@@ -4031,7 +4073,7 @@ def engine_args(cfg: dict, exe: str | None = None, *, announce: bool = True) -> 
             args += ["--vram-segment-mib", str(seg)]
     args += parallel_args(cfg, args)
     args += pool_cores_args(cfg, args)
-    return learned_profile_args(cfg, args)
+    return draft_costs_args(cfg, learned_profile_args(cfg, args), exe or cfg.get("exe"))
 
 
 PARALLEL_MAX = 8      # without a layer split the engine's batch window holds at most 8 rows (kVerifyNarrowT); --batch-mtp waves more through it
@@ -4157,6 +4199,74 @@ def learned_profile_args(cfg: dict, args: list[str]) -> list[str]:
         if learned is not None and learned == base:
             args[i] = save
     return args
+
+
+DRAFT_COSTS_DEFAULT_PLATFORMS = ("darwin",)   # Metal: the taken-over table measured above live costs there (M5 Max: Q2_0 code +2.6 %, chat +2.4 %, JSON +0.2 %; IQ3_S +0.2 / +0.6 / +0.7 %)
+
+
+def draft_costs_default(platform: str | None = None) -> bool:
+    """Repeatable output (owner decision) is the default only where the table was measured at or above live costs: Metal.  On CUDA (RTX PRO 5000, IQ3_S: code
+    -1.5 %, chat -1.5 %, JSON +1.9 % against live costs) and HIP the engine keeps live costs, as an engine started without --draft-costs does.  `"draft_costs": true`
+    in a config turns the table on anywhere (tests and A/Bs), `"draft_costs": false` turns it off."""
+    return (platform or sys.platform) in DRAFT_COSTS_DEFAULT_PLATFORMS
+
+
+DRAFT_COSTS_DEFAULT = draft_costs_default()    # "draft_costs": true / false in a config overrides it
+_engine_texts: dict = {}
+
+
+def engine_has_text(exe: str, needle: bytes) -> bool | None:
+    """Does the engine program contain `needle` (an option it knows)?  None when it cannot be read.  Read once per path, size and time."""
+    import mmap
+    try:
+        st = os.stat(exe)
+    except (OSError, ValueError):
+        return None
+    key = (str(exe), st.st_size, st.st_mtime_ns, needle)
+    if key not in _engine_texts:
+        try:
+            with open(exe, "rb") as handle, mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as data:
+                _engine_texts[key] = data.find(needle) >= 0
+        except (OSError, ValueError):
+            _engine_texts[key] = None
+    return _engine_texts[key]
+
+
+def draft_costs_dir() -> Path:
+    """Where the learned draft cost tables live: beside the saved tunings (strata_control/presets.py), in the user's Strata settings folder
+    (%APPDATA%\\Strata\\draft-costs, ~/.config/strata/draft-costs), which the Windows uninstaller's "remove my data" deletes with them.
+    STRATA_DRAFT_COSTS_DIR: another folder (tests and test jobs, which never write into a real settings folder)."""
+    explicit = os.environ.get("STRATA_DRAFT_COSTS_DIR")
+    if explicit:
+        return Path(explicit).expanduser()
+    from strata_control import profiles
+    return profiles.profile_dir().parent / "draft-costs"
+
+
+def draft_costs_args(cfg: dict, args: list[str], exe: str | None = None) -> list[str]:
+    """Repeatable output: the engine (0.1.60+ with --draft-costs) fixes its draft window costs to a table it learned once on this computer, so
+    the same request gives the same answer on every start; until the table exists it learns it in the background with today's policy.
+    "draft_costs": true / false in the config overrides DRAFT_COSTS_DEFAULT.  The file name follows the model and every engine argument, so
+    another model or setting gets its own table; the engine itself checks the card, the driver and its own version inside the file and
+    learns again when they changed.  An engine that does not know the flag is not given it."""
+    explicit = "draft_costs" in cfg
+    want = cfg.get("draft_costs", DRAFT_COSTS_DEFAULT)
+    if want is not True or "--draft-costs" in args:
+        return args
+    knows = engine_has_text(exe, b"--draft-costs") if exe else None
+    # by default only an engine that is seen to have the option gets it; a config that asks for it by name gets it unless the engine is seen without it
+    if knows is False or (not explicit and knows is not True):
+        return args
+    name = re.sub(r"[^A-Za-z0-9._-]+", "-", str(cfg.get("model_name") or "model"))[:64]
+    digest = hashlib.sha256("\0".join(map(str, args)).encode("utf-8", "replace")).hexdigest()[:12]
+    out = args + ["--draft-costs", str(draft_costs_dir() / f"{name}-{digest}.costs")]
+    try:
+        size = os.path.getsize(exe) if exe else None
+    except OSError:
+        size = None
+    if size:
+        out += ["--draft-costs-key", f"engine file {size} bytes"]
+    return out
 
 
 def hip_visible(cfg: dict) -> list[int]:
@@ -6511,13 +6621,29 @@ class Service:
                     before = getattr(self.engine, "last", None)
                     last_print = time.time()
                     prompt, thought = ids, 0            # thought: the reasoning tokens so far (the budget's count)
+                    # the engine stops at the budget itself (HOLD_KEY), when it can and </think> is one token: a --batch engine
+                    # only when its slots say they hold too (READY holdb)
+                    hold_end = None
+                    if (budget and getattr(self.engine, "can_hold", False) is True
+                            and (not getattr(self.engine, "batch", 0) or getattr(self.engine, "can_hold_batch", False) is True)
+                            and getattr(self.engine, "split_engine", False) is not True):   # (the split engine's parser refuses the key: tests/split/test_split_gen_keys.py)
+                        te = self.tok.encode(THINK_END, parse_special=True)
+                        hold_end = te[0] if len(te) == 1 else None
                     for ev in opening:
                         yield "event", ev
                     while True:
                         segment_before = getattr(self.engine, "last", None)
                         segments_before = len(segments)     # (#879: a pass sent again leaves no segment)
-                        gen = self.engine.generate(prompt, max_new - n, sampling, cancel, embeddings=emb) if emb \
-                            else self.engine.generate(prompt, max_new - n, sampling, cancel)
+                        held = hold_end is not None and budget is not None
+                        if held:   # the reasoning tokens left before the budget (at least one: a cut not yet clean)
+                            pass_sampling = {k: v for k, v in (sampling or {}).items() if k != HOLD_KEY}   # (a copy: the hold is this pass's own)
+                            pass_sampling[HOLD_KEY] = (max(1, int(budget) - thought), int(hold_end))
+                        elif sampling and HOLD_KEY in sampling:   # (never a client's: strip it from a copy)
+                            pass_sampling = {k: v for k, v in sampling.items() if k != HOLD_KEY}
+                        else:
+                            pass_sampling = sampling   # no hold: the engine gets the caller's own sampler object, as before P2
+                        gen = self.engine.generate(prompt, max_new - n, pass_sampling, cancel, embeddings=emb) if emb \
+                            else self.engine.generate(prompt, max_new - n, pass_sampling, cancel)
                         recover_prompt = None
                         seg, wrap, leaving = [], False, False   # this pass's tokens; the budget is reached; closed
                         nonfinite = False               # #879: the engine ended this pass on non-finite logits
@@ -6698,6 +6824,13 @@ class Service:
                                 prompt = prompt + seg + extra
                                 finish = "length"
                                 continue
+                        if (held and not (wrap or opens) and not cancel.is_set() and finish != "stop" and not repeated
+                                and not looped and n < max_new and segments and segments[-1].get("finish") == "hold"
+                                and len(segments) > segments_before):
+                            # the engine stopped at the hold but the cut is not clean yet (a character split across
+                            # tokens, a tag held back) or the reasoning count is short: on from the live session
+                            prompt = prompt + seg
+                            continue
                         if not (wrap or opens) or cancel.is_set():
                             break
                         # #123: the thinking reached reasoning_budget_tokens.  Close it the way the model would (a
@@ -9824,6 +9957,10 @@ VISION_ON_DEMAND_BY_DEFAULT = True
 #: "elastic": true in the vision section asks for it.  Set True if the expert cache can give its room on HIP.
 VISION_ON_DEMAND_AMD_BY_DEFAULT = False
 VISION_RESERVE_MIB = 2048
+#: Owner 11-11: on NVIDIA the on-demand reader holds no room back before the first picture (apply_vision_defaults); the shrinking expert cache
+#: makes it.  In the resident RAM mode, where the cache cannot resize, the engine keeps the reader's room in its reserve itself
+#: (include/strata/core/reader_room.hpp).
+VISION_NO_RESERVE_BY_DEFAULT = True
 _ON_DEMAND_NOT_WITH = ("--kv-grow", "--batch", "--slots", "--peer-device", "--expert-cache-device1", "--expert-cache-device2",
                        "--expert-cache-device3")
 
@@ -9852,12 +9989,20 @@ def vision_on_demand_by_default(cfg: dict) -> bool:
 
 
 def apply_vision_defaults(cfg: dict) -> dict:
-    """cfg with the on-demand reader switched on (vision.elastic) where vision_on_demand_by_default says so; the same dict.  Its VRAM comes
-    from the reserve, so the reserve setup writes for a GPU reader that stays on the card (700 MiB, or none) becomes VISION_RESERVE_MIB;
-    a reserve the person or the app chose (any other number) is kept."""
+    """cfg with the on-demand reader switched on (vision.elastic) where vision_on_demand_by_default says so; the same dict.
+    NVIDIA (owner 11-11, "picture reader loaded on demand with no memory reserve": Ok): no room is held back for the reader before the first
+    picture.  The expert cache is started in segments ("vram_elastic": the engine's --vram-elastic) and makes the reader's room when a picture
+    arrives, then takes it back after vision.elastic_idle_s; the reserve setup wrote (700 MiB, or none) stays as it is.  Measured on an RTX A6000
+    (UD-Q4_K_XL partly streamed): 13,526 expert slots before any picture, as with the processor reader, against 13,077 with the room held back.
+    A config that says "vram_elastic" itself, and AMD (no shrinking expert cache on HIP), keep the room in the reserve as before: the reserve
+    setup writes for a GPU reader that stays on the card (700 MiB, or none) becomes VISION_RESERVE_MIB; a reserve the person or the app chose
+    (any other number) is kept."""
     if not vision_on_demand_by_default(cfg):
         return cfg
     cfg["vision"] = {**cfg["vision"], "elastic": True}
+    if VISION_NO_RESERVE_BY_DEFAULT and cfg.get("backend") != "hip" and "vram_elastic" not in cfg:
+        cfg["vram_elastic"] = True                     # the cache gives the reader its room when a picture comes; nothing is held back before
+        return cfg
     args = list(cfg.get("args") or [])
     if "--vram-reserve-mib" not in args[:-1]:
         args += ["--vram-reserve-mib", str(VISION_RESERVE_MIB)]
@@ -10378,6 +10523,12 @@ def _main(argv=None, *, lifecycle_event=None, interrupt_exit_code: int = 0) -> i
         if gone:
             print(f"[strata] image generation: missing {', '.join(gone)} - requests fail until setup --images has run "
                   "again", flush=True)
+        noise_problem = svc.images.noise_problem()
+        if noise_problem:
+            print(f"[strata] image generation: {noise_problem}", flush=True)
+        vae_problem = svc.images.vae_problem()
+        if vae_problem:
+            print(f"[strata] image generation: {vae_problem}", flush=True)
         print(f"[strata] image generation: {svc.images.model} {icfg.get('quant') or ''} on "
               f"{icfg.get('backend') or '?'} (POST /v1/images/generations; GPU policy {svc.images.policy})", flush=True)
     if cfg.get("prevent_sleep") is not None and not isinstance(cfg["prevent_sleep"], bool):
@@ -10594,7 +10745,11 @@ def _main(argv=None, *, lifecycle_event=None, interrupt_exit_code: int = 0) -> i
                 print(f"[strata] drain deadline expired; cancelling {cancelled} owned request(s) ...", flush=True)
                 svc.wait_for_drain(5)
                 drained = False
-        closers = [httpd.shutdown, getattr(engine, "close", None), vision.shutdown if vision else None,
+        else:
+            # #6055: without --shutdown-timeout there is no wait, but a request that arrives while the engine closes is
+            # still refused (503 server_draining, retry elsewhere) instead of being accepted and cut off with 0 tokens
+            svc.begin_drain()
+        closers =[httpd.shutdown, getattr(engine, "close", None), vision.shutdown if vision else None,
                    hub.close if hub is not None else None]
         try:
             for close in filter(None, closers):

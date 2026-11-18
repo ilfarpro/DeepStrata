@@ -23,11 +23,12 @@ ENV = {      # what each switch writes outside its default
     "faster_long_prompts": {"STRATA_KVA": "1"},
     "faster_12gb_nvidia": {"STRATA_ROUTE_PRIOR": "1.5"},
     "faster_radeon_9000": {"STRATA_PCIE_FRAC_DEFAULT": "old"},
+    "picture_reader": {"STRATA_VISION_TOWER": "mtmd"},       # llama.cpp's picture reader instead of Strata's own (owner 11-11)
     "deepseek_speedups": {"DS4_DEFAULTS": "026", "DS4_FAST_ATTN": "0", "DS4_ATTN_SLAB": "0", "DS4_COPY_PIN": "0", "DS4_COPY_HUGETLB": "0",
                           "DS4_STORE_SPARE": "0", "DS4_STORE_PUT": "0"},
     "qwen_defaults_026": {"STRATA_DEFAULTS": "026"},         # the Terminal's troubleshooting switch: not in the app
 }
-DEFAULT = {"faster_long_prompts": "off", "faster_12gb_nvidia": "off", "faster_radeon_9000": "on", "deepseek_speedups": "on", "qwen_defaults_026": "off"}
+DEFAULT = {"faster_long_prompts": "off", "faster_12gb_nvidia": "off", "faster_radeon_9000": "on", "picture_reader": "on", "deepseek_speedups": "on", "qwen_defaults_026": "off"}
 SIX = ("DS4_FAST_ATTN", "DS4_ATTN_SLAB", "DS4_COPY_PIN", "DS4_COPY_HUGETLB", "DS4_STORE_SPARE", "DS4_STORE_PUT")
 RTX3060 = {"name": "NVIDIA GeForce RTX 3060", "vendor": "nvidia", "arch": "86", "vram_gb": 12.0}
 RTX4070S = {"name": "NVIDIA GeForce RTX 4070 SUPER", "vendor": "nvidia", "arch": "89", "vram_gb": 12.0}
@@ -56,7 +57,9 @@ class Contract(unittest.TestCase):
 
     def test_an_effect_text_says_what_the_feature_does_in_plain_words(self):
         for s in W.SWITCHES:
-            if not s.terminal_only:
+            if s.words:                                       # a choice between two named options: the text names the other one
+                self.assertIn("Choose " + dict(s.words)["off"], s.effect, s.id)
+            elif not s.terminal_only:
                 self.assertRegex(s.effect, r"Off by default" if s.default == "off" else r"[Tt]urn off", s.id)
             self.assertNotRegex(s.effect, r"STRATA_|DS4_|--|env", s.id)
         self.assertEqual(W.SWITCHES[0].effect, "Reads very long prompts faster by approximating part of the work. Off by default: answers about long documents can miss or mix up details.")
@@ -243,7 +246,7 @@ class SameAsTheApp(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "node is not installed")
     def test_the_apps_table_has_the_same_names_and_words(self):
         script = ("import {SPEED_SWITCHES} from './apps/host/server/native-settings.mjs';"
-                  "console.log(JSON.stringify(SPEED_SWITCHES.map(s=>({id:s.id,label:s.label,hint:s.hint,default:s.default,env:s.env,legacy:s.legacy??{}}))))")
+                  "console.log(JSON.stringify(SPEED_SWITCHES.map(s=>({id:s.id,label:s.label,hint:s.hint,default:s.default,env:s.env,legacy:s.legacy??{},group:s.group,words:s.words??{}}))))")
         out = subprocess.run(["node", "--input-type=module", "-e", script], cwd=ROOT, capture_output=True, text=True, timeout=60, check=True).stdout
         app = json.loads(out)
         self.assertEqual([a["id"] for a in app], [s.id for s in W.app_switches()], "the Terminal-only switch is not in the app's table")
@@ -253,6 +256,8 @@ class SameAsTheApp(unittest.TestCase):
             self.assertEqual(a["env"], dict(s.env), s.id)
             self.assertEqual(a["default"], s.default, s.id)
             self.assertEqual(a["legacy"], dict(s.legacy), s.id)
+            self.assertEqual(a["group"], s.group, s.id)
+            self.assertEqual(a["words"], dict(s.words), s.id)
 
 
 if __name__ == "__main__":

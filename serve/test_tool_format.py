@@ -114,7 +114,7 @@ class Selection(unittest.TestCase):
         self.assertIs(parser_for_template(HERMES), JsonOutputParser)
         self.assertTrue(issubclass(JsonOutputParser, OutputParser))
 
-    def test_service_picks_by_template_and_the_family_still_wins(self):
+    def test_service_picks_by_template(self):
         from serve.server import ByteTokenizer, MockEngine, Service
         with tempfile.TemporaryDirectory() as d:
             h = Path(d) / "hermes.jinja"

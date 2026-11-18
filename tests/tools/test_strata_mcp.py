@@ -727,6 +727,21 @@ class Helpers(unittest.TestCase):
         self.assertEqual(pick(54.0, 13.0), ("qwen", "IQ3_S"))
         self.assertEqual(pick(54.0, 12.9), ("qwen", "IQ3_XXS"))
 
+    def test_the_apps_drafting_off_reaches_setup_as_mtp_off(self):
+        # notes-ctrl-fix-2: the app's Off on a Mac still fetched the draft layer; the installer had no word for it (the Terminal's 1821f298d passes --mtp off)
+        s = M.Strata(HERE.parent)
+        s.hardware = lambda fresh=False: {"ram_gb": 64.0, "gpus": [{"index": 0, "name": "x", "vram_gb": 16.0, "usable": True, "vendor": "nvidia"}],
+                                          "cpu": {"avx2": True}}
+        s.disk_free = lambda p: 1000.0
+        tools = M.Tools(s)
+        _p, args = tools.install_plan("qwen36", "UD-Q4_K_XL", 32768, "no", None, None, None, None, None, None, None, None, None, "off")
+        self.assertEqual(args[args.index("--mtp"):args.index("--mtp") + 2], ["--mtp", "off"])
+        _p, args = tools.install_plan("qwen36", "UD-Q4_K_XL", 32768, "no", None, None, None, None, None, None, None)
+        self.assertNotIn("--mtp", args, "no word: setup decides as before")
+        models, families, contexts, _src = s.tables()
+        schema = next(t for t in M.tool_defs(models, families, contexts) if t["name"] == "strata_install")["inputSchema"]["properties"]
+        self.assertEqual(schema["mtp"]["enum"], ["on", "off"])
+
 
 class PhysicalCores(unittest.TestCase):
     """#3417: the hardware report's cpu.cores is the physical cores; the Work profile takes 80% of it for --pool-workers."""

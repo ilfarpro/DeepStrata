@@ -24,7 +24,8 @@ vision_dir=${BUILD_VISION_DIR:-$repo/build-vision-spark}
 jobs=${JOBS:-$(nproc)}
 py=${PYTHON:-python3}
 cmake=${CMAKE:-cmake}
-llama=${STRATA_GGML_DIR:-$repo/third_party/llama.cpp}
+llama=${STRATA_GGML_DIR:-}     # an override: a llama.cpp checkout to take ggml from (kept for two releases); empty: the vendored third_party/strata-ggml
+ggml=""; [ -z "$llama" ] || ggml="-DSTRATA_GGML_DIR=$llama"
 
 case "$(uname -s)-$(uname -m)" in
   Linux-aarch64|Linux-arm64) ;;

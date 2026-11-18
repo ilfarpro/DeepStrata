@@ -1,7 +1,7 @@
 # Strata on the NVIDIA DGX Spark (Linux, ARM64)
 
 The DGX Spark is a small desktop box with a GB10 chip: a Blackwell GPU (compute capability 12.1, 48 SMs) and 20 Arm CPU cores that share
-128 GB of memory. Strata 0.2.7.1 runs Qwen3.8-Flash-Next and DeepSeek-V4.1-Flash on it. This page says what works, how to install it, what
+128 GB of memory. Strata 0.2.7.1 runs Qwen3.8-Flash-Next on it. This page says what works, how to install it, what
 the Spark does with its memory, and how the speeds were measured. It was tested on one Spark (Ubuntu 24.04, driver 580.173, CUDA 13.0).
 Nothing here is known to work on another ARM machine.
 
@@ -23,7 +23,7 @@ deepstrata launch
 
 `install.sh` unpacks the Terminal into `~/.local/share/strata` (no administrator rights) and checks the release's signed feed. `deepstrata launch`
 fetches the `linux-aarch64` engine package, shows what each model needs, downloads the one you choose and starts it. Pick Qwen3.8-Flash-Next
-IQ3_S (84 GB download) or the NVFP4 pack, or DeepSeek-V4.1-Flash 2.00 bpw (257 GB). The engine package needs glibc 2.39 or newer
+IQ3_S (84 GB download) or the NVFP4 pack. The engine package needs glibc 2.39 or newer
 (Ubuntu 24.04, DGX OS 7) and NVIDIA driver 580.65 or newer.
 
 ## Install from a source checkout
@@ -60,9 +60,9 @@ PATH="$PWD/.venv-build/bin:/usr/local/cuda/bin:$PATH" PYTHON="$PWD/.venv-build/b
 cp -r out-spark/engine ./engine
 ```
 
-About 3 minutes for the Qwen engine and 6 with the DeepSeek engine and the picture reader (the first run also fetches llama.cpp at the
-pinned commit). `out-spark/engine/` holds `strata`, `strata-dsv41`, `strata-vision`, `libstrata_kq.so`, the CUDA libraries and a `BUILD.json`.
-`BUILD_VISION=0` and `BUILD_DSV41=0` leave a part out. `packaging/build_cuda_linux_aarch64.sh` runs this build and makes the engine packages
+About 3 minutes for the engine (the first run also fetches llama.cpp at the
+pinned commit). `out-spark/engine/` holds `strata`, `strata-vision`, `libstrata_kq.so`, the CUDA libraries and a `BUILD.json`.
+`BUILD_VISION=0` leaves the picture reader out. `packaging/build_cuda_linux_aarch64.sh` runs this build and makes the engine package
 for the feed ([packaging/README.md](../packaging/README.md)). A model on a Q2_0 pack cannot run: its CPU kernels need AVX-512.
 
 ## What the Spark does with its memory
@@ -80,10 +80,6 @@ file's pages, which the GPU cache uses.
 
 The NVFP4 table does not fit in RAM beside the page cache the 68 GB expert file needs. Locking it measured 137 tok/s on a 4K prompt and 26 tok/s
 decode, against 1,252 and 39 without. Leave it on the SSD (setup does).
-
-DeepSeek-V4.1-Flash 2.00 bpw places 12,163 of its 15,744 experts in the GPU's share and runs the rest on the CPU lane from the model's files.
-The engine sizes that from the memory Linux can still give back (`MemAvailable` less 6 GiB, `DS4_UMA_HEADROOM_GIB`), because the model files' page
-cache is most of the memory `cudaMemGetInfo` calls used.
 
 ## Speeds
 
@@ -111,20 +107,21 @@ the aggregate tokens per second over all clients: 8 clients 35.6, 16 clients 41.
 a prompt of its own and a hidden code for each client, every answer named its own code and nobody else's (8 clients at 4 slots, 16 clients at 8
 slots), and none failed or hung.
 
-## The five speed defaults of this part
+## The six speed defaults of this part
 
-On a GB10 the engine switches on five settings that were measured here, and prints them at every start. `STRATA_SM121_PERF=0` (or
+On a GB10 the engine switches on six settings that were measured here, and prints them at every start. `STRATA_SM121_PERF=0` (or
 `STRATA_DEFAULTS=026`, which gives back everything 0.2.7.1 changed) turns the whole set off; a switch you set yourself is kept.
 
 | Switch | What it does | Measured on this Spark |
 |---|---|---|
 | `STRATA_PF_FUSED=1` | the fused IQ prompt kernels | IQ3_S prompt +10 to 27% |
+| `STRATA_PF_FUSED_KQ=1` | the same fused prompt kernels for the K-quant experts of Unsloth's UD-Q4_K_XL files (Q4_K or Q5_K gate/up, Q5_1 or Q8_0 down), instead of llama.cpp's MMQ; `STRATA_PF_FUSED_KQ=0` gives them back | UD-Q4_K_XL prompt 1.10x at 2K, 1.26x at 4K, 1.18x at 8K, 1.53x at 20K (median of 10 paired runs; single runs scatter between 0.5x and 2x) |
 | `STRATA_PREFILL_NVFP4=w4a4` | NVFP4 prompt matrix product with FP4 activations | NVFP4 prompt +16% |
 | `STRATA_HC_UPMIX=1` | the hyper-connection read's up projection and mix in one kernel | decode +5.4% |
 | `STRATA_SIDE_MIXER=2` | input-only QSA/GDN work on branches of the verify graph | fixed-work IQ3_S decode +6.7% (30 October) |
 | `STRATA_SPEC_COST=1` | the draft window follows what a draft costs | decode +4.7% |
 
-**What the first two switches do to the answers.** The fused prompt path and the FP4 activations round differently from the paths they replace,
+**What the first three switches do to the answers.** The fused prompt path and the FP4 activations round differently from the paths they replace,
 and the other three do not touch the text (the fused hyper-connection read gives bit-identical logits; the side mixer changes only graph scheduling;
 the cost-aware window only chooses
 which drafts to try, and the target checks every draft). 24 short greedy prompts gave 24 identical answers on IQ3_S and on NVFP4. On
@@ -133,7 +130,7 @@ does move: IQ3_S mean KL 0.019 (largest 0.082), NVFP4 0.032 (largest 0.126); the
 IQ3_S's case a near tie both times (0.20 against 0.20, 0.15 against 0.14); and a 24-token greedy answer stayed the same on 1 of 6 prompts. Two runs
 of the same setting gave identical logits, so the difference is the switches, not noise. All of the IQ3_S difference comes from the fused
 prompt path, and all of the NVFP4 difference from `w4a4`. On the 61-task quality suite (long-document retrieval, extraction of up to 72 exact rows, summaries, code, JSON, agent loops with tools), run through the server with the switches on and off: IQ3_S passed 56 tasks on and 51 off, NVFP4 56 on and 52 off. Retrieval found all 63 facts in every run, and no agent loop made an invalid tool call. The extraction facts were equal on IQ3_S (621 of 642 both ways); on NVFP4 one 40-row register lost a row with the switches on (616 against 621 of 642). One summary in each model gained or lost a flagged name or figure. Answers differ in wording on 21 of 61 tasks (IQ3_S) and 25 of 61 (NVFP4), and the wins and losses go both ways, so read the suite as "no loss we could measure", not as an improvement. The same setting run twice gave identical answers, so every difference comes from the switches. If you want the answers of 0.2.7, set `STRATA_SM121_PERF=0`: you keep the other
-Spark settings and lose the prompt speed-up.
+Spark settings and lose the prompt speed-up. For the K-quant switch (UD-Q4_K_XL, 48 prompts of 2K and 4K tokens, 256 forced tokens each) the forced-token KL against the FP16 prompt path's text is 0.895 times that of MMQ (interval 0.81 to 0.99; the most likely token agrees with the FP16 path in 96.3% of positions against 95.7%), and the same text came out twice, byte for byte, on both sides.
 
 With `"parallel": 4` (the default) the original four-switch set adds up: 32 clients at 2,000-token prompts read 41.3 tok/s with those four on
 and 35.7 with all four off. The side mixer was not part of that check. At `"parallel": 8` the two original decode switches cost about 3.5%

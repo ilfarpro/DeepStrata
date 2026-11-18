@@ -604,7 +604,6 @@ Buffer Context::alloc(size_t bytes) {
     r.ptr = [b contents];
     r.bytes = bytes;
     return r;
-#endif
 }
 
 Buffer Context::wrap(void* p, size_t bytes, size_t max_span) {

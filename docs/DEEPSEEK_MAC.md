@@ -1,4 +1,4 @@
-# DeepSeek-V4.1-Flash on a Mac
+# DeepSeek V4.1-Flash
 
 DeepSeek-V4.1-Flash runs on Apple Silicon Macs on its own Metal engine, `strata-dsv41`. It is a separate download from the
 Qwen engine: the app and `deepstrata launch` fetch it the first time you pick DeepSeek. This page lists what it needs, what it did

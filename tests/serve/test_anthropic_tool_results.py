@@ -46,7 +46,7 @@ class AnthropicToolResults(unittest.TestCase):
         before = copy.deepcopy(raw)
         self.assertEqual(results(raw), ["RESULT_FROM_SLOW", "RESULT_FROM_FAST"])
         self.assertEqual(raw, before)
-        for template in (TEMPLATE, DEEPSEEK):
+        for template in (TEMPLATE,):
             with self.subTest(template=str(template)):
                 prompt = template.render(normalized(raw), enable_thinking=False)
                 self.assertEqual(prompt, template.render(normalized(in_call_order()), enable_thinking=False))

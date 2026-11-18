@@ -1,6 +1,7 @@
 // src/prefill/gemm.cu - see include/strata/prefill/gemm.hpp.
 #include "strata/prefill/gemm.hpp"
 #include "strata/kernels/dequant_bf16.hpp"
+#include "strata/core/arch_defaults.hpp"   // prompt_f16_resolve (inline)
 #if defined(STRATA_PREFILL_MMQ) && defined(__HIPCC__)
 #include "strata/prefill/mmq_ids_margin.hpp"
 #include "strata/prefill/moe_mmq.hpp"

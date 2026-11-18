@@ -7,10 +7,11 @@ import { SPEED_SWITCH_TABLE, DRAFTING_FAMILIES, DFLASH2_MODEL_PATTERN } from '..
 import { transform } from 'esbuild';
 import * as S from '../server/native-settings.mjs';
 
-test('the speed switches of the settings are the generated table, with the Speed group added', () => {
-  assert.deepEqual(S.SPEED_SWITCHES.map(({ group, ...rest }) => rest), SPEED_SWITCH_TABLE);
-  assert.ok(S.SPEED_SWITCHES.every(s => s.group === 'Speed'));
-  assert.deepEqual(SPEED_SWITCH_TABLE.map(s => s.id), ['faster_long_prompts', 'faster_12gb_nvidia', 'faster_radeon_9000', 'deepseek_speedups']);
+test('the speed switches of the settings are the generated table, with the Speed group added where the table names none', () => {
+  assert.deepEqual(S.SPEED_SWITCHES.map(({ group, ...rest }) => rest), SPEED_SWITCH_TABLE.map(({ group, ...rest }) => rest));
+  assert.ok(S.SPEED_SWITCHES.every(s => s.group === (SPEED_SWITCH_TABLE.find(t => t.id === s.id).group ?? 'Speed')));
+  assert.deepEqual(SPEED_SWITCH_TABLE.map(s => s.id), ['faster_long_prompts', 'faster_12gb_nvidia', 'faster_radeon_9000', 'picture_reader', 'deepseek_speedups']);
+  assert.equal(S.SPEED_SWITCHES.find(s => s.id === 'picture_reader').group, 'Image reading');
 });
 
 test('the drafting families and the model-name rule are the generated ones', () => {

@@ -335,6 +335,35 @@ def apply_choices(cfg: dict, s: S.LaunchSettings) -> dict:
     return cfg
 
 
+def card_signals(cfg: dict, gpus: Any, want: dict) -> dict:
+    """Runner.drafting_signals for a run config and the launch's cards ``gpus``: the arguments with the person's own options over them, and the ONE card's memory."""
+    try:
+        from strata_control import drafting, user_args
+        args = [str(a) for a in cfg.get("args") or []]
+        if cfg.get("user_args"):
+            args = user_args.merge(args, cfg["user_args"])
+        run = {**cfg, "gpu": [int(g) for g in gpus] if gpus else cfg.get("gpu")}
+        return {"args": args, "vram_mib": drafting.card_vram_mib(run, want.get("backend"), want.get("archs"))}
+    except Exception:                                    # noqa: BLE001 - no signal means the tuned pack is not fetched
+        return {"args": [], "vram_mib": None}
+
+
+def auto_signals(catalog, s: S.LaunchSettings, family: str | None) -> dict:
+    """What the start's drafting decision reads besides the choice (drafting_inputs / drafting_signals): the model's set and the card signals of the installed config
+    (or none yet) with this launch's context and cards. With them, what setup is told to fetch and what the plan lists are the drafter the start runs: on the 12 GB
+    card with IQ3_S Auto is the MTP (drafting.CLASS_DEFAULTS); without them setup was told DFlash2, skipped the draft layer, and the start had no drafter (0.2.14
+    real-use run); on a Mac the set decides (Metal IQ3_S is the MTP, the other sets DFlash2). Never raises."""
+    try:
+        from strata_control import drafting
+        path = catalog.installed_config(catalog.tag_of(s.family, s.model))
+        cfg = apply_choices(read_config(path) if path is not None else {}, s)
+        backend, archs = drafting.detect_hardware()
+        return {"model_name": cfg.get("model_name") or catalog.model_name_of(family, s.model),
+                **card_signals(cfg, s.gpus, {"backend": backend, "archs": archs})}
+    except Exception:                                    # noqa: BLE001 - no signal: Auto as before
+        return {}
+
+
 def apply_cards(cfg: dict, gpus: "list[int] | dict | None") -> None:
     """The graphics cards of THIS launch go into its run config, whatever card the model was installed with (no reinstall): one card is a number,
     several are a list with the automatic layer split. None: the installed config's own choice stays.  A dict is the roles of every card
@@ -620,6 +649,24 @@ def launch_dir() -> Path:
     return d
 
 
+def launch_name_of(s) -> str:
+    """The name of the launch these settings make (Runner.name): its run config is launch/<name>.json."""
+    return S.slug(s.name or (s.model or "model") + "-" + S.context_label(s.context).lower())
+
+
+def saved_launch_word(name: str) -> str | None:
+    """The Drafting word the launch `name` (Runner.name) was given last time, as its own run config (launch/<name>.json) keeps it: auto | mtp | dflash2 | off,
+    or None when there is none or it cannot be read. The TUI's Drafting step and Runner.keep_saved_word read it."""
+    try:
+        from strata_control import drafting
+        prev = read_config(launch_dir() / f"{name}.json")
+        word = prev.get("drafting") if isinstance(prev, dict) else None
+        word = word.strip().lower() if isinstance(word, str) else None
+        return word if word in drafting.MODES else None
+    except Exception:                                        # noqa: BLE001 - no readable file, no word
+        return None
+
+
 # ----------------------------------------------------------------------------------------------- the runner
 
 
@@ -668,7 +715,6 @@ class Runner:
         self.hardware_override = hardware
         self.children: list[subprocess.Popen] = []
         self.notices: list[str] = []
-        self._engine_notes: set[str] = set()
         self.identity_notes: list[str] = []
         self.tune_result: dict | None = None
         self.config_path: Path | None = None
@@ -693,7 +739,7 @@ class Runner:
 
     @property
     def name(self) -> str:
-        return S.slug(self.s.name or (self.s.model or "model") + "-" + S.context_label(self.s.context).lower())
+        return launch_name_of(self.s)
 
     @property
     def profile(self) -> str:
@@ -886,7 +932,8 @@ class Runner:
         self.emit("engine", shape_engine.WORDS["checking"].format(model=name))
         source = update_cmd._feed_source(argparse.Namespace(feed=self.feed or os.environ.get("STRATA_UPDATE_FEED")), root or ec.components_dir())
         said: list[str] = []
-        exe = shape_engine.ensure(shape, source, components=root, emit=lambda m: (said.append(m), self.emit("engine", m, 0)), title=title)
+        exe = shape_engine.ensure(shape, source, components=root, emit=lambda m: (said.append(m), self.emit("engine", m, 0)), title=title,
+                                  automatic=True)     # with an engine installed, a check nobody asked for (netpolicy rule 4b)
         if exe is None:
             self.no_engine(said[-1] if said else shape_engine.WORDS["fetch_failed"].format(model=name, why="nothing was fetched"))
             return
@@ -1004,8 +1051,11 @@ class Runner:
             args += ["--kv", s.kv]
         if fam in ("qwen", "coder"):
             args += ["--experimental-speed-projection", "off"]
-        resolved = self.resolved_drafting(fam)
+        layer_fetch = getattr(self, "_layer_fetch", False)  # the start's safety net (fetch_missing_drafter): setup fetches the draft layer
+        resolved = "mtp" if layer_fetch else self.resolved_drafting(fam)
         mtp_word = s.mtp if resolved != "off" else "off"
+        if mtp_word is None and (layer_fetch or self.layer_back()):
+            mtp_word = "on"                                  # a drafter chosen again after Off: the "mtp": false that Off's "--mtp off" left goes (REAL-USE-1)
         if mtp_word in ("on", "off") and fam in modelstate.HELPER_FAMILIES:
             args += ["--mtp", mtp_word]                      # round 8, N3: "--mtp off" never reached setup, which then fetched the 5.2 GB draft layer
         if resolved == "dflash2" and fam in modelstate.HELPER_FAMILIES and mtp_word != "off":
@@ -1033,7 +1083,10 @@ class Runner:
         if sys.platform == "darwin":
             # a Mac's setup (Control mode, strata_control/mac_fit.py) takes fewer options (no --kv, --gpu, speed projection)
             keep = {"--yes", "--no-start", "--family", "--model", "--context", "--vision", "--data-dir", "--gguf-dir", "--move-data",
-                    "--set-default-data-dir", "--feed", "--dsv41-package"}   # (the last two: the DeepSeek engine package, 0.2.7.1)
+                    "--set-default-data-dir", "--feed", "--dsv41-package", "--drafter", "--mtp"}   # --drafter / --mtp: setup.py's Mac step
+                                                                                                    # fetches the draft layer only when the start
+                                                                                                    # runs the MTP, and not after a Drafting Off
+                                                                                                    # (`--mtp off`); --dsv41-package: DeepSeek pack, 0.2.7.1
             flags = ("--yes", "--no-start", "--move-data", "--set-default-data-dir")
             out, i = [], 0
             while i < len(args):
@@ -1077,6 +1130,23 @@ class Runner:
             return None, None
         desc = self.catalog.strata.describe_config(path)
         return path, desc
+
+    def layer_back(self, path: Path | None = None) -> bool:
+        """A drafter is named at this launch (Auto, MTP or DFlash2, not Off; no --mtp) while the installed config says "mtp": false: a Drafting Off launch hands
+        setup "--mtp off", and setup keeps that at every later run, so Auto read it as "the draft layer is off" and started without a drafter (0.2.13.1, REAL-USE-1).
+        Then setup runs again with "--mtp on", and the start is the one a first launch with that choice gets.  A model the feed says has no draft layer stays off."""
+        s = self.s
+        if s.mtp is not None or s.drafting is None or s.family not in modelstate.HELPER_FAMILIES:
+            return False                                     # (a Mac's setup takes the --mtp word too: setup_args)
+        from strata_control import drafting
+        if drafting.normalize(s.drafting) == "off" or self.resolved_drafting(s.family) == "off":
+            return False
+        try:
+            if path is None:
+                path = self.catalog.installed_config(self.catalog.tag_of(s.family, s.model))
+            return path is not None and read_config(path).get("mtp") is False
+        except Exception:                                    # noqa: BLE001 - an unreadable config is setup's to report; nothing changes here
+            return False
 
     def installed_serves_request(self, path: Path) -> bool:
         """C08: the installed copy is what this launch asked for. A --model-path (or the Folder step's own files) and a --data-dir always win:
@@ -1365,6 +1435,7 @@ class Runner:
             elif prog.get("step"):
                 self.emit("model", f"Setup step {prog['step']}", None, step=prog.get("step"))
         code = p.wait()
+        self.note_setup_lines(lines)
         if code != 0:
             err = ""
             for line in reversed(lines):
@@ -1431,7 +1502,7 @@ class Runner:
     def intel_chosen(self) -> bool:
         """The engine for this launch is the Intel Arc one (chosen with --backend intel, saved, or the only make here), and the model is one
         the built-in downloader sets up for NVIDIA and AMD only: Strata prepares the model files itself instead (adopt_prepared_files)."""
-        if self.multi_file() or sys.platform == "darwin" or WINDOWS:
+        if sys.platform == "darwin" or WINDOWS:
             return False
         try:
             from strata_control import engine_component
@@ -1638,7 +1709,7 @@ class Runner:
         from strata_control import drafting
         if self.feed_without_draft_layer(family):            # the model list says this model has no draft layer: no drafter is planned or fetched for it (G14, APP-LIN 0.2.14)
             return "off"
-        r = modelstate.resolved_drafting(self.s.drafting, family)
+        r = modelstate.resolved_drafting(self.s.drafting, family, **auto_signals(self.catalog, self.s, family))
         if r == "dflash2" and drafting.normalize(self.s.drafting) == "auto" and self.split_expected():
             return "mtp"
         return r
@@ -1665,7 +1736,7 @@ class Runner:
         try:
             from strata_control import split_engine as SE
             s = self.s
-            if s.family in modelstate.HELPER_FAMILIES and not self.multi_file() and not self.intel_chosen():
+            if s.family in modelstate.HELPER_FAMILIES and not self.intel_chosen():
                 base = dict(cfg or {})
                 if s.split_engine:
                     base["split_engine"] = s.split_engine
@@ -1705,23 +1776,21 @@ class Runner:
                 name = self.catalog.model_name_of(self.s.family, self.s.model)
             except Exception:                                # noqa: BLE001 - an unreadable table is only the old, generic plan
                 name = None
+        split = bool(self.s.gpus and len(self.s.gpus) > 1)
+        slot_drafts = False
+        if str(backend or "").lower() == "cuda" and drafting.request_count(args, int(self.s.parallel or 0)) in drafting.SLOT_DRAFT_REQUESTS:     # (the card is only read for a start that could be in the class)
+            sig = self.drafting_signals(cfg, {"backend": backend, "archs": archs})
+            slot_drafts = drafting.slot_drafts_by_default(mode, backend=backend, archs=archs, vram_mib=sig["vram_mib"], args=sig["args"], slots=int(self.s.parallel or 0), split=split)   # the drafter is fetched before the start (ensure_drafter)
         return {"mode": mode, "klass": drafting.card_class(archs), "model_name": name, "family": self.s.family,
                 "data_dir": drafting.data_dir_of(args) or (Path(self.s.data_dir) if self.s.data_dir else None),
                 "backend": backend, "archs": archs, "mtp_here": drafting.mtp_ready(args) if cfg else None,
-                "blocked": drafting.blocked_by(args, split=bool(self.s.gpus and len(self.s.gpus) > 1), slots=int(self.s.parallel or 0), named=drafting.normalize(mode) == "dflash2", backend=backend)}
+                "blocked": drafting.blocked_by(args, split=split, slots=int(self.s.parallel or 0), named=drafting.normalize(mode) == "dflash2", backend=backend, slot_drafts=slot_drafts),
+                "slots_none": drafting.slots_draft_nothing(drafting.merged_args(cfg), int(self.s.parallel or 0))}
 
     def drafting_signals(self, cfg: dict, want: dict) -> dict:
         """The two signals drafting.tuned_applies reads besides the backend and the card: the arguments (--expert-cache and the others the confidence reads, with the person's own
         options over them as the server merges them) and the memory of the ONE card this launch uses (None: several cards, a shared-memory chip, or not readable)."""
-        try:
-            from strata_control import drafting, user_args
-            args = [str(a) for a in cfg.get("args") or []]
-            if cfg.get("user_args"):
-                args = user_args.merge(args, cfg["user_args"])
-            run = {**cfg, "gpu": [int(g) for g in self.s.gpus] if self.s.gpus else cfg.get("gpu")}
-            return {"args": args, "vram_mib": drafting.card_vram_mib(run, want.get("backend"), want.get("archs"))}
-        except Exception:                                    # noqa: BLE001 - no signal means the tuned pack is not fetched
-            return {"args": [], "vram_mib": None}
+        return card_signals(cfg, self.s.gpus, want)
 
     def one_request_for_dflash2(self, config: Path) -> bool:
         """DFlash2 chosen on purpose and the person gave no number of requests: one at a time, said once (drafting.wants_one_request)."""
@@ -2612,6 +2681,8 @@ class Runner:
 
     def plan(self) -> dict:
         s = self.s
+        self.keep_saved_off()                                # the plan names the drafter the start will run
+        self.keep_saved_word()
         self.check_own_files()
         warns = [n.line() for n in (*S.check_access(s),)]
         warns += self.preflight_words()
@@ -2693,6 +2764,98 @@ class Runner:
             return bool(fam.get("feed")) and fam.get("drafter") == "none"
         except Exception:                                    # noqa: BLE001 - an unreadable table is only the generic plan line
             return False
+
+    def fetch_missing_drafter(self, base_path: Path) -> Path:
+        """The start's safety net: a model never starts without a drafter unless the person chose Off. When the start's decision (drafting.decide on the installed
+        config) is no drafter although Off was not chosen, the drafter it falls back to is the MTP layer and that is not here (DFlash2 blocked by several requests;
+        a card near a class line where setup and the start read the context differently): setup runs again and fetches the layer with its own download
+        lines, then the start decides again. Offline (setup goes on without the layer) or a server that does not answer: the start goes on without, with
+        the start's own line. Never stops the launch."""
+        from strata_control import drafting
+        try:
+            cfg = read_config(base_path)
+            want = self.drafting_inputs(cfg)
+            if not cfg or drafting.normalize(want["mode"]) == "off" or want.get("mtp_here") is not False or self.feed_without_draft_layer() \
+                    or self.s.family not in modelstate.HELPER_FAMILIES or drafting.decide(**want, **self.drafting_signals(cfg, want)).drafter != "off":
+                return base_path
+        except Exception:                                    # noqa: BLE001 - a question asked early is never a reason to stop a launch
+            return base_path
+        self._layer_fetch = True
+        try:
+            return self.ensure_model()
+        except Cancelled:
+            raise
+        except LaunchError:                                  # the layer could not be had: the start goes on without it and says so
+            return base_path
+        finally:
+            self._layer_fetch = False
+
+    def note_setup_lines(self, lines: list[str]) -> None:
+        """Remember that setup could not fetch the draft layer because this computer is offline: tools/mtp_fetch.py's own line (netpolicy "offline"),
+        after which setup goes on without the layer (setup.fetch_mtp, mtp_fetch exit 5)."""
+        from strata_control import netpolicy
+        tail = netpolicy.WORDS["offline"].split("{host}", 1)[1].format(what="the draft layer")
+        if any(tail in str(line) for line in lines or []):
+            self._mtp_offline = True
+
+    def say_mtp_offline(self, base_path: Path) -> None:
+        """Once per launch: the draft layer could not be downloaded offline and the start has no other drafter (drafting.MTP_OFFLINE_NOTE, shown like the
+        DFlash2 drafter's offline line). The start's own "Drafting: off (no drafter is downloaded yet)" stays as it is."""
+        if not getattr(self, "_mtp_offline", False) or getattr(self, "_mtp_offline_said", False):
+            return
+        from strata_control import drafting
+        try:
+            cfg = read_config(base_path)
+            want = self.drafting_inputs(cfg)
+            if drafting.normalize(want["mode"]) == "off" or drafting.decide(**want, **self.drafting_signals(cfg, want)).drafter != "off":
+                return                                       # Off was chosen, or another drafter runs: nothing to say
+        except Exception:                                    # noqa: BLE001 - a note is never a reason to stop a launch
+            return
+        self._mtp_offline_said = True
+        self.notices.append(drafting.MTP_OFFLINE_NOTE)
+        self.emit("model", drafting.MTP_OFFLINE_NOTE, None, level="warn")
+
+    def keep_saved_off(self) -> None:
+        """A launch without a Drafting word keeps the Off this launch ran with last time (its own run config, launch/<name>.json), unless the model's installed
+        config holds a Drafting choice of its own (the app's Models screen). Off is only ever the person's choice, and a chosen Off holds: where setup does not run
+        again the Off was only in that file, and the next start ran Auto's drafter (0.2.14 real-use run, Strix T6)."""
+        s = self.s
+        if s.drafting is not None:
+            return
+        try:
+            from strata_control import drafting
+            prev = read_config(launch_dir() / f"{self.name}.json")
+            if not isinstance(prev, dict) or drafting.normalize(prev.get("drafting")) != "off":
+                return
+            path = self.catalog.installed_config(self.catalog.tag_of(s.family, s.model))
+            if path is not None and read_config(path).get("drafting") is not None:
+                return
+            s.drafting = "off"
+        except Exception:                                    # noqa: BLE001 - an unreadable file keeps the launch as it was
+            return
+
+    def keep_saved_word(self) -> None:
+        """A launch without a Drafting word keeps the word this launch was given last time (Auto, MTP or DFlash2; Off is keep_saved_off's and is never touched here).
+        Owner 11-15: a drafter the person chose stays chosen, the way Off does; only a new explicit choice changes it, Auto included. (boxia d3d and l620 C2,
+        0.2.14.1: the restart with no word wrote null where "auto" was, and a chosen MTP or DFlash2 went back to Auto.) The saved word is what the person chose,
+        never the drafter a start fell back to (drafting.decide: a chosen drafter whose file is not here starts the other one when it is on disk and safe on the
+        card, with its note). Not carried over: when the model's installed config holds a Drafting choice of its own (the app's Models screen, a later choice)
+        or has its draft layer switched off with no choice (also later than the launch's word), and for a model with no Drafting choice."""
+        s = self.s
+        if s.drafting is not None:
+            return
+        try:
+            from strata_control import drafting
+            word = saved_launch_word(self.name)
+            if word is None or word == "off" or modelstate.drafting_for_family(word, s.family) is None:
+                return
+            path = self.catalog.installed_config(self.catalog.tag_of(s.family, s.model))
+            installed = read_config(path) if path is not None else {}
+            if isinstance(installed, dict) and (installed.get("drafting") is not None or installed.get("mtp") is False):
+                return
+            s.drafting = drafting.normalize(word)
+        except Exception:                                    # noqa: BLE001 - an unreadable file keeps the launch as it was
+            return
 
     def drafting_plan_line(self) -> str:
         """The drafting line of --plan: what drafts, or why not what was asked for. Nothing is changed or downloaded."""
@@ -2860,6 +3023,8 @@ class Runner:
 
     def run(self, *, start: bool = True) -> Result:
         self.restart_after = start
+        self.keep_saved_off()
+        self.keep_saved_word()                               # a restart with no word keeps the saved one (it was written as null and read back as Auto)
         try:
             self.check_own_files()                           # a wrong --model-path is said before the engine is downloaded
             if start:
@@ -2871,6 +3036,8 @@ class Runner:
             base = self.ensure_model()
             self.check_cancel()
             self.ensure_drafter(base)
+            base = self.fetch_missing_drafter(base)
+            self.say_mtp_offline(base)
             self.check_cancel()
             self.check_saved_state_readable()
             self.emit("config", "Writing this launch's settings…")
@@ -2941,6 +3108,9 @@ KNOWN_CAUSES = (
      "This engine is too old for this model. Update it with `strata update` and start again."),
     (re.compile(r"dll|libcu|cannot open shared object|0xc0000135", re.I),
      "A library the engine needs is missing. Update the engine (`strata update`) or install the graphics driver again."),
+    # a Strix Halo with --batch N: the engine's own line after a failed start (src/program/generate.cpp); it must stay the LAST entry (explain_engine_exit reads KNOWN_CAUSES[-1])
+    (re.compile(r"requests at once do not fit", re.I),
+     "This PC's memory cannot hold that many requests at once. Lower Concurrent requests in the app (or `--parallel` in the Terminal) by one and start again."),
 )
 
 
@@ -3066,7 +3236,7 @@ def explain_engine_exit(result: dict, config: Path | None, marks: dict | None = 
     if not text.endswith((".", "!")):
         text += "."
     step = HSA_START_NEXT if hsa else (VRAM_STOP_NEXT if vram_cause else next((words for pattern, words in KNOWN_CAUSES if pattern.search(" ".join([cause, str(why or "")]))), "Run it again; if it repeats, report the log."))
-    if shared_memory and not hsa and not any(p.search(" ".join([cause, str(why or "")])) for p, _ in KNOWN_CAUSES[:2]):
+    if shared_memory and not hsa and not any(p.search(" ".join([cause, str(why or "")])) for p, _ in (*KNOWN_CAUSES[:2], KNOWN_CAUSES[-1])):
         # a Strix Halo: the settings fix the expert cache beside a RAM budget, and the engine ended with no error text of its own (STRIX-2Q, 11-01)
         try:
             from strata_control import uma_pool, user_args as _ua

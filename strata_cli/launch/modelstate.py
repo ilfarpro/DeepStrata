@@ -82,13 +82,18 @@ class ModelState:
 HELPER_FAMILIES = ("qwen", "swift", "coder", "unsloth", "gyro")
 
 
-def resolved_drafting(drafting: str | None, family: str | None) -> str:
+#: the families whose start goes through the drafting helpers (MTP / DFlash2): every model with a draft layer
+HELPER_FAMILIES = ("qwen", "swift", "coder", "unsloth", "gyro")
+
+
+def resolved_drafting(drafting: str | None, family: str | None, *, model_name: str | None = None, args: list | None = None,
+                      vram_mib: float | None = None) -> str:
     """The drafter a choice means for this family on this computer: ``dflash2`` | ``mtp`` | ``off`` (strata_control/drafting.py: Auto is DFlash2 where the engine
     has it). Never raises; an unknown computer is the MTP."""
     try:
         from strata_control import drafting as _d
         backend, archs = _d.detect_hardware()
-        return _d.choice_of(drafting, family=family, backend=backend, archs=archs)
+        return _d.choice_of(drafting, family=family, backend=backend, archs=archs, model_name=model_name, args=args, vram_mib=vram_mib)
     except Exception:                                        # noqa: BLE001
         return "mtp"
 
@@ -108,6 +113,12 @@ def drafting_to_save(key: str, saved: object) -> str | None:
         return key
     from strata_control import drafting as _d
     return "auto" if saved is not None and _d.normalize(saved) != "auto" else None
+
+
+def layer_off_without_choice(base: dict | None) -> bool:
+    """The model's installed config has its draft layer off ("mtp": false: setup's --mtp off from a Drafting Off launch, or the app's Draft layer switch) and holds
+    no Drafting choice: the engine starts without a drafter, so the Drafting step shows Off; a drafter picked there is saved (runner.layer_back)."""
+    return isinstance(base, dict) and base.get("drafting") is None and base.get("mtp") is False
 
 
 def mtp_choice(mtp: str | None, drafting: str | None = None) -> str | None:

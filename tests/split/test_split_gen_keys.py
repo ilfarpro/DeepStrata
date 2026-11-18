@@ -18,8 +18,9 @@ ACCEPTED = {"temperature", "top_p", "top_k", "min_p", "penalty_repeat", "penalty
 # (refuse_for_split, logit_bias.validate_request)
 DROPPED = {"pen_from"}
 REFUSED = {"logprobs", "allowed", "logit_bias"}
-# keys only other engines are sent: the DeepSeek engine's restore points (STRATA_DS4_RESTORE_POINTS), the prefill-only request of serve/split.py, rid for several writers
-OTHER_ENGINES = {"marks", "tail", "shared", "prefill", "rid"}
+# keys only other engines are sent: the DeepSeek engine's restore points (STRATA_DS4_RESTORE_POINTS), the prefill-only request of serve/split.py, rid for several writers,
+# and the thinking budget's hold - the server sends it only to an engine that says hold in READY (can_hold), which the split engine never does
+OTHER_ENGINES = {"marks", "tail", "shared", "prefill", "rid", "hold"}
 
 
 def server_keys() -> set[str]:

@@ -6146,8 +6146,8 @@ class Service:
         ids = encoded_ids = self.encode_prompt(messages, tools, kwargs)
         if force and kwargs.get("enable_thinking", True) is False:
             ids = ids + self.tok.encode(force, parse_special=True)
-        self.embeddings.path = None
-        self.embeddings.keys = None
+        self.drop_embeddings()                          # an earlier request's combined file no run() took (a refused
+        self.embeddings.keys = None                     # retry, a test): its path goes with this line, so drop it here
         images = images_of(messages)
         ds_pics = False                                  # DeepSeek pictures (the engine's own tower): the file is already written
         if images:

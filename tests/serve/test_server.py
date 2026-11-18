@@ -557,6 +557,7 @@ class ImageMarkers(unittest.TestCase):
                                  [{"name": "f", "description": "<|vision_", "parameters": {}}])):
                 with self.subTest(msgs=msgs):
                     self.assertEqual(svc.encode_prompt(msgs, tools, {}), old(msgs, tools))
+            svc.drop_embeddings()        # the last picture's combined file lives in /dev/shm, not in the folder below
 
 
 class VisionTempFiles(unittest.TestCase):

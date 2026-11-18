@@ -1513,6 +1513,13 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
                          pt, sum / pt, (s.prof_ms[0] - s_dec.prof_ms[0]) / pt, (s.prof_ms[1] - s_dec.prof_ms[1]) / pt,
                          (s.prof_ms[2] - s_dec.prof_ms[2]) / pt, (s.prof_ms[3] - s_dec.prof_ms[3]) / pt,
                          (s.prof_ms[4] - s_dec.prof_ms[4]) / pt, (s.prof_ms[5] - s_dec.prof_ms[5]) / pt);
+            for (int v = 0; v < 8; ++v) {   // (issue #3: the same stages, each device's - which card a token waits on)
+                double dv = 0;
+                for (int i = 0; i < 6; ++i) dv += s.prof_dev[i][v] - s_dec.prof_dev[i][v];
+                if (dv > 0)
+                    std::fprintf(stderr, "maya ds4 serve: decode (DS4_PROF) CUDA%d %.2f ms a token of the stages\n", v,
+                                 dv / pt);
+            }
         }
         if (d_off > 0) std::fprintf(stderr, "maya ds4 serve: drafts %lld of %lld kept; %s\n", d_acc, d_off,
                                     per_position(s_dec, s).c_str());

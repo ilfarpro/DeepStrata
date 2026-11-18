@@ -99,6 +99,8 @@ struct Stats {
     int64_t ram_experts = 0, ram_moves = 0;   // CPU-lane experts read from the RAM tier; experts moved into it
     double prof_ms[6] = {};          // DS4_PROF: the GPU's time in decode by stage (between layers, attention, routing +
     int64_t prof_tokens = 0;         // shared expert, experts' gate / up, the wait for the CPU lane, down + post)
+    double prof_dev[6][8] = {};      // ... and each device's share of them (a token's waits split by the card that holds
+                                     // them: the decode's layer split is not the prompt's, so the prompt's table cannot say)
     // lookahead (decode windows of one): the picks of layers guessed a layer before (the next layer's gate on this
     // layer's FFN input), of them in the guess's top k / in all its guesses / in the guess two layers before; the picks
     // read from the files, of them prefetched early; experts prefetched early

@@ -13598,6 +13598,12 @@ struct Model::Impl {
                     long calls = 0, rows = 0, experts = 0;
                 };
                 std::map<std::pair<int, int>, Agg> agg;   // (type, role 0 gate+up, 1 down)
+                // (issue #3: the same kernels per CUDA device - a device's stage time minus its own kernels is the
+                // time it spent waiting, which the aggregate hides; CUDA0 ran one 2441-token prompt's stage in 5.4 s
+                // against CUDA1's 3.1 s and only this split says whether its kernels or its waits were the difference)
+                std::map<int, Agg> agg_dev;
+                int cur_dev = 0;
+                cudaGetDevice(&cur_dev);
                 {
                     std::lock_guard<std::mutex> lk(prof_mu);
                     for (const EkMark& m : ek_marks) {
@@ -13613,12 +13619,17 @@ struct Model::Impl {
                         y.ms += b;
                         y.flops += 2.0 * m.nrows * (double) g.dim * (double) m.ff;
                         y.calls++, y.rows += m.nrows, y.experts += m.nexp;
+                        Agg& z = agg_dev[m.dev];
+                        z.ms += a + b;
+                        z.flops += 3.0 * 2.0 * m.nrows * (double) g.dim * (double) m.ff;
+                        z.calls++, z.rows += m.nrows, z.experts += m.nexp;
                         ek_pool[m.dev].push_back(m.e0);
                         ek_pool[m.dev].push_back(m.e1);
                         ek_pool[m.dev].push_back(m.e2);
                     }
                     ek_marks.clear();
                 }
+                cudaSetDevice(cur_dev);   // (issue #3: the collection returns the thread's device, as #6 does for the waits)
                 double tot = 0;
                 for (auto& kv : agg) tot += kv.second.ms;
                 for (auto& kv : agg)
@@ -13632,6 +13643,21 @@ struct Model::Impl {
                 std::fprintf(stderr, "ds4 prof  expert kernels total %.1f ms\n", tot);
                 std::fprintf(stderr, "ds4 prof  experts stage outside its kernels %.1f ms (waits, issue gaps: %.0f%% of the stage)\n",
                              cprof_ms[3] - tot, cprof_ms[3] > 0 ? 100.0 * (cprof_ms[3] - tot) / cprof_ms[3] : 0.0);
+                {   // (issue #3: per device - its own expert kernels against the whole stage it ran, so the split
+                    // says whether a device's stage time is its kernels or its waits)
+                    for (size_t v = 0; v < devs.size() && v < (sizeof cprof_dev[0] / sizeof cprof_dev[0][0]); ++v) {
+                        const auto k = agg_dev.find(devs[v].id);
+                        if (k == agg_dev.end() || k->second.ms <= 0) continue;
+                        const Agg& e = k->second;
+                        std::fprintf(stderr,
+                                     "ds4 prof  expert kernels CUDA%d: %9.1f ms  experts %6ld  calls %5ld (%.1f us each)  "
+                                     "~%5.1f TFLOPS  outside its kernels %.1f ms of the stage's %.1f\n",
+                                     devs[v].id, e.ms, e.experts, e.calls,
+                                     e.experts > 0 ? 1e3 * e.ms / (double) e.experts : 0.0,
+                                     e.ms > 0 ? e.flops / e.ms / 1e9 : 0.0, std::max(0.0, cprof_dev[3][v] - e.ms),
+                                     cprof_dev[3][v]);
+                    }
+                }
             }
             {   // (issue #3, DS4_PROF: the GPU-side waits measured with event pairs - the stream's idle stretches
                 //  inside the experts' stage and of between-layers: what it waited for, per device)

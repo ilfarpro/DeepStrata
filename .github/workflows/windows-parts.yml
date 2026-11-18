@@ -49,6 +49,24 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      # The engine's ggml comes from the pinned llama.cpp: build_windows.ps1 looks for it in third_party\llama.cpp
+      # (its -GgmlDir default). The repository does not carry those sources, so the workflow fetches exactly the
+      # commit setup.py names (LLAMA_CPP_COMMIT), one commit deep, the way mac-parts.yml does for the Mac engines.
+      - name: llama.cpp (ggml) at the pinned commit
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $pin = (Select-String -Path setup.py -Pattern '^LLAMA_CPP_COMMIT = "([0-9a-f]+)"').Matches[0].Groups[1].Value
+          if (-not $pin) { throw "setup.py names no LLAMA_CPP_COMMIT" }
+          $dir = Join-Path $env:GITHUB_WORKSPACE "third_party\llama.cpp"
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          if (-not (Test-Path (Join-Path $dir ".git"))) {
+            git init -q "$dir"
+            git -C "$dir" remote add origin https://github.com/ggml-org/llama.cpp.git
+          }
+          git -C "$dir" fetch -q --depth 1 origin $pin
+          git -C "$dir" checkout -q FETCH_HEAD
+          if (-not (Test-Path (Join-Path $dir "CMakeLists.txt"))) { throw "the pinned llama.cpp has no CMakeLists.txt" }
       # -Only and -Commit are passed through the environment: an empty string must not turn into a positional argument.
       - name: Build the parts (Terminal, Qwen CUDA 13, strata-dsv41)
         shell: powershell

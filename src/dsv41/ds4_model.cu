@@ -6474,8 +6474,23 @@ struct Model::Impl {
         // (off the one-GPU path: only when asked - DS4_STREAM_ZC=1, or MAYA_DS4_PIN_BY_NEED's own opt-in)
         if (!ln_one && v == nullptr && !pin_by_need()) return false;
         for (const LaneDev& D : ln_dev)   // (an integrated GPU's kernels may read the staging in place: theirs)
-            if (D.integrated) return false;
-        return zc_host_ptr() || (pin_by_need() && devs.size() == 1);
+            if (D.integrated) {
+                if (pin_by_need() || v != nullptr)   // (issue #3: asked, refused - say which gate)
+                    std::fprintf(stderr, "ds4: PCIe lane: the copies stay in the staging: an integrated GPU cannot use "
+                                         "the pinned pages' addresses in its kernels\n");
+                return false;
+            }
+        const bool hp = zc_host_ptr();
+        if (!hp && !(pin_by_need() && devs.size() == 1)) {
+            // (issue #3: this box's cards cannot take a registered host pointer in a kernel, and the lane's pulls
+            // hand the pinned pages to kernels; the DMAs alone could, but nothing asks them yet)
+            if (pin_by_need() || v != nullptr)
+                std::fprintf(stderr, "ds4: PCIe lane: the copies stay in the staging: a device cannot use a registered "
+                                     "host pointer (cudaDevAttrCanUseHostPointerForRegisteredMem), and the lane's pulls "
+                                     "hand the pinned pages to its kernels\n");
+            return false;
+        }
+        return true;
     }
     void zc_pin() {   // (copy_mode)
         if (NH != 1 || ram_chunks.empty() || !zc_allowed()) return;

@@ -105,32 +105,93 @@ constexpr int T_IQ2_XXS = GGML_TYPE_IQ2_XXS, T_IQ2_XS = GGML_TYPE_IQ2_XS, T_IQ2_
               //   sum w x = d_x (d_w sum q a + m_w sum a):
               // the activation blocks carry sum a per 32 values in their eight spare bytes (quant_act_nat_kernel and
               // the H epilogue write it for every path; no other format reads it)
-              T_Q4_K = GGML_TYPE_Q4_K, T_Q5_K = GGML_TYPE_Q5_K, T_Q5_0 = GGML_TYPE_Q5_0, T_Q5_1 = GGML_TYPE_Q5_1, T_Q8_0 = GGML_TYPE_Q8_0;
+              T_Q4_K = GGML_TYPE_Q4_K, T_Q5_K = GGML_TYPE_Q5_K, T_Q5_0 = GGML_TYPE_Q5_0, T_Q5_1 = GGML_TYPE_Q5_1, T_Q8_0 = GGML_TYPE_Q8_0,
+              // CUDA opt-in (STRATA_PF_FUSED_Q6K=1): UD-Q6_K_XL's gate/up (47 layers; UD-Q5_K_XL's one Q6_K layer): w = d sc (q - 32), an
+              // int8 scale per 16 values, no minimum
+              T_Q6_K = GGML_TYPE_Q6_K,
+              // CUDA opt-in (STRATA_PF_FUSED_TQ=1): the Gyro trellis types (agentionai's ids, cmake/strata_ggml_tq_overlay.cmake; the pinned
+              // ggml.h has no enumerators for them): 128 weights a block, {fp16 d; qs}; Gyro-M TQ2_T, Gyro-S TQK6 gate/up + TQK7 down
+              T_TQ2_T = 144, T_TQK6 = 145, T_TQK7 = 146,
+              // NVFP4 (ModelOpt's packs): 64-value blocks {4 UE4M3 scales, 32 bytes of E2M1 codes}, one block a stage.  Its int8 weights are the E2M1 values
+              // doubled (kvalues_fp4: 0, 1, 2, 3, 4, 6, 8, 12 with signs), one scale d_ue4m3 / 2 per 16 values (the per-16 path); the per-expert weight_scale_2
+              // values (s_gate, s_up, s_down: the blob's 16-byte tail) go on the FP32 products in the epilogues
+              T_NVFP4 = GGML_TYPE_NVFP4;
+// Turing (sm_75, STRATA_PF_FUSED_SM75): the i-quant gate/up formats and the IQ4_NL down that have a set-up instance of native_kernel there, one bit each (DevInfo::t75_set; a down's bits are
+// 8 up).  The kernels are the same source as sm_80+'s (the Turing MMAs are m8n8k16, mma32 / mma16 below); the block gets 64 KB of shared memory there, so a format is set up only if its
+// instance fits (setup_ww), and its 64-row (WW 4) instance only if that fits too (t75_w4).  kT75Formats is the list of formats taken on Turing (a commit adds one format at a time).
+__host__ __device__ constexpr int t75_slot(int t) {
+    return t == T_IQ2_XXS ? 0 : t == T_IQ2_XS ? 1 : t == T_IQ2_S ? 2 : t == T_IQ3_XXS ? 3 : t == T_IQ3_S ? 4 : t == T_IQ4_XS ? 5 : t == T_IQ4_NL ? 6 : -1;
+}
+__host__ __device__ constexpr unsigned t75_bit(int t, bool gu) { return t75_slot(t) < 0 ? 0u : 1u << (t75_slot(t) + (gu ? 0 : 8)); }
+constexpr unsigned kT75Formats = t75_bit(T_IQ3_S, true) | t75_bit(T_IQ4_NL, false) | t75_bit(T_IQ2_S, true) | t75_bit(T_IQ3_XXS, true) | t75_bit(T_IQ4_XS, true) |
+                                 t75_bit(T_IQ2_XXS, true) | t75_bit(T_IQ2_XS, true);
+// the trellis types: 128-value blocks (32 steps of 4 weights), two 32-value sub-blocks a 64-value stage
+__host__ __device__ constexpr bool is_tq(int t) { return t == T_TQ2_T || t == T_TQK6 || t == T_TQK7; }
+__host__ __device__ constexpr int tq_k(int t) { return t == T_TQK6 ? 6 : t == T_TQK7 ? 7 : 8; }
 static_assert(sizeof(block_iq2_xxs) == 66 && sizeof(block_iq2_xs) == 74 && sizeof(block_iq2_s) == 82 &&
               sizeof(block_iq3_xxs) == 98 && sizeof(block_iq3_s) == 110 && sizeof(block_iq4_xs) == 136 &&
               sizeof(block_iq4_nl) == 18 && sizeof(block_q2_0) == 18 && sizeof(block_q4_K) == 144 &&
-              sizeof(block_q5_K) == 176 && sizeof(block_q5_0) == 22 && sizeof(block_q5_1) == 24 && sizeof(block_q8_0) == 34,
+              sizeof(block_q5_K) == 176 && sizeof(block_q5_0) == 22 && sizeof(block_q5_1) == 24 && sizeof(block_q8_0) == 34 &&
+              sizeof(block_q6_K) == 210 && sizeof(block_nvfp4) == 36,
               "the block layouts this file decodes");
 
 // block bytes, scale per 16 values, codebook bytes in shared memory
 __host__ __device__ constexpr int block_bytes(int t) {
     return t == T_IQ2_XXS ? 66 : t == T_IQ2_XS ? 74 : t == T_IQ2_S ? 82 : t == T_IQ3_XXS ? 98 : t == T_IQ3_S ? 110
-         : t == T_IQ4_XS ? 136 : t == T_Q4_K ? 144 : t == T_Q5_K ? 176 : t == T_Q5_0 ? 22 : t == T_Q5_1 ? 24 : t == T_Q8_0 ? 34 : 18;
+         : t == T_IQ4_XS ? 136 : t == T_Q4_K ? 144 : t == T_Q5_K ? 176 : t == T_Q5_0 ? 22 : t == T_Q5_1 ? 24 : t == T_Q8_0 ? 34
+         : t == T_Q6_K ? 210 : t == T_NVFP4 ? 36 : t == T_TQ2_T ? 34 : t == T_TQK6 ? 26 : t == T_TQK7 ? 30 : 18;
 }
 // the formats with a minimum (w = d q + m), and the raw words a sub-block's load stage holds
 __host__ __device__ constexpr bool has_min(int t) { return t == T_Q4_K || t == T_Q5_K || t == T_Q5_1; }
 __host__ __device__ constexpr int raw_words(int t) {
-    return t == T_Q4_K ? 10 : t == T_Q5_K ? 18 : t == T_Q5_0 ? 6 : t == T_Q5_1 ? 6 : t == T_Q8_0 ? 9 : 5;
+    return t == T_Q4_K ? 10 : t == T_Q5_K ? 18 : t == T_Q5_0 ? 6 : t == T_Q5_1 ? 6 : t == T_Q8_0 ? 9 : t == T_Q6_K ? 18 : t == T_TQ2_T ? 4 : 5;
 }
-__host__ __device__ constexpr bool per16(int t) { return t == T_IQ2_XS || t == T_IQ2_S; }
+__host__ __device__ constexpr bool per16(int t) { return t == T_IQ2_XS || t == T_IQ2_S || t == T_Q6_K || t == T_NVFP4; }
 __host__ __device__ constexpr int grid_bytes(int t) {
     return t == T_IQ2_XXS ? 256 * 8 : t == T_IQ2_XS ? 512 * 8 : t == T_IQ2_S ? 1024 * 8 : t == T_IQ3_XXS ? 256 * 4
-         : t == T_IQ3_S ? 512 * 4 : 0;
+         : t == T_IQ3_S ? 512 * 4 : is_tq(t) ? 2048 * 2 : 0;   // (the trellis types: the int8 codebook tq_lut_i8, 2,048 points of two int8)
 }
+// ---- weight staging (CUDA sm_80+): the 512-thread 128-row instances of the formats below copy each weight row's slot into shared memory with 16-byte
+// cp.async (a ring of two slots, issued two slots ahead) instead of every decode thread reading it from global memory in 2- and 4-byte loads; the decode
+// then runs the same load_unit on the shared-memory address, so the bits are the same.  It is chosen per instance at compile time, only where it was measured
+// faster (RTX A4000, one layer: +10..+16% for these pairs); every other instance keeps its code and its shared memory unchanged.
+// A slot is the bytes of SPB stages (64 values of K each) of a row: a 256-value block for the gate/up i-quants, two stages of 32-value blocks (four blocks) for IQ4_NL / Q5_0 / Q8_0 on either side,
+// and for the Q6_K gate/up half a super-block gathered from three windows (ql, qh, scales + d).  The GGUF blocks are only 2-byte aligned, so a slot is copied as the 16-byte chunks of the aligned
+// window around it (SW_CHUNKS of them).
+constexpr int kSwAst = 3;               // the staged instances' activation stages (the ring needs SPB >= AST - 1; 4 stages would not fit the ring beside it)
+constexpr size_t kSmemOptIn = 101376;   // 99 KB: the opt-in shared memory a block gets on sm_86 / sm_89 / sm_120 / sm_121
+__host__ __device__ constexpr bool sw_on(int t, bool gu) {
+#if defined(__HIPCC__)
+    (void) t; (void) gu;
+    return false;
+#else
+    // (the K-quant downs: Q5_K / Q6_K rows of 256-value super-blocks, i.e. a K that is a multiple of 256 - Qwen3.6's n_ff 512; the Flash-Next geometry (640) has none; the K-quant gate/up Q4_K / Q5_K:
+    // their K is the model width, 2,560 / 2,048 = 10 / 8 super-blocks)
+    return gu ? (t == T_IQ3_XXS || t == T_IQ3_S || t == T_IQ4_XS || t == T_Q8_0 || t == T_Q6_K || t == T_Q4_K || t == T_Q5_K)
+              : (t == T_IQ4_NL || t == T_Q8_0 || t == T_Q5_0 || ((t == T_Q5_K || t == T_Q6_K) && D_ROWS_K % 256 == 0));
+#endif
+}
+__host__ __device__ constexpr bool sw_inst(int t, bool gu, int ww, int nt, bool f16) { return sw_on(t, gu) && ww == 2 && nt == THREADS && !f16; }
+// the 32-value-block formats (two blocks a 64-value stage), gate/up (Q8_0) or down
+__host__ __device__ constexpr bool sw_b32(int t) { return t == T_IQ4_NL || t == T_Q5_0 || t == T_Q8_0; }
+// the gate/up formats whose block spans 256 values (the kernel's GU256: one block per four stages)
+// (a K-quant down with K a multiple of 256 walks its super-blocks the same way: Q5_K / Q6_K)
+__host__ __device__ constexpr bool sw_gu256(int t, bool gu) {
+    return (gu || ((t == T_Q5_K || t == T_Q6_K) && D_ROWS_K % 256 == 0)) && t != T_Q2_0 && t != T_Q8_0 && t != T_NVFP4 && !is_tq(t);
+}
+// stages a slot: a whole 256-value block (gate/up i-quants), else two (four 32-value blocks; the Q6_K gate/up and the Q5_K / Q6_K downs: half a super-block)
+__host__ __device__ constexpr int sw_spb(int t, bool gu) { return sw_gu256(t, gu) && t != T_Q6_K && t != T_Q5_K ? 4 : 2; }
+__host__ __device__ constexpr int sw_slot_bytes(int t, bool gu) { return sw_gu256(t, gu) ? block_bytes(t) : sw_spb(t, gu) * 2 * block_bytes(t); }   // (Q6_K: unused, its slot is three windows)
+// 16-byte chunks of a row's slot: the aligned window is at most slot + 14 bytes; Q6_K: ql 64 B (5) + qh 32 B (3) + scales and d, at most 18 B (2);
+// Q5_K (down only): qs 64 B (5) + qh 32 B (3) + d, dmin and the 12 scale bytes 16 B (2)
+__host__ __device__ constexpr int sw_chunks(int t, bool gu) { return (t == T_Q6_K || t == T_Q5_K) ? 10 : (sw_slot_bytes(t, gu) + 14 + 15) / 16; }
 constexpr int WLDH = 144;               // F16: bytes per decoded weight row of a stage: 64 halves + 16 (ldmatrix rows apart)
-__host__ __device__ constexpr size_t smem_bytes(int t, int ww, int astages = ASTAGES, int nt = THREADS, bool f16 = false) {
-    return (size_t) 2 * weight_rows(ww) * (f16 ? WLDH : WLD + 16) + (size_t) astages * tile_rows(ww, nt) * AB +
-           (size_t) tile_rows(ww, nt) * 4 + grid_bytes(t);
+// shared memory of an instance.  `astages` is the device's depth (host_astages()); a staged instance takes kSwAst instead and adds its ring, sized for ITS side
+// (gu) only: a failed shared-memory set-up makes dev_info() drop every fused kernel
+__host__ __device__ constexpr size_t smem_bytes(int t, int ww, int astages, int nt, bool f16, bool gu) {
+    const bool sw = sw_inst(t, gu, ww, nt, f16) && astages == ASTAGES;
+    return (size_t) 2 * weight_rows(ww) * (f16 ? WLDH : WLD + 16) + (size_t) (sw ? kSwAst : astages) * tile_rows(ww, nt) * AB +
+           (size_t) tile_rows(ww, nt) * 4 + grid_bytes(t) + (sw ? (size_t) 2 * weight_rows(ww) * 16 * sw_chunks(t, gu) : 0);
 }
 
 // moe_fused.cu's grouping tables (the same layout: fused::group writes them)
@@ -3190,12 +3251,45 @@ void experts_native(const Batch& b, const NativeGeom& g, int n_expert, int64_t n
         experts_native(w, g, n_expert, n, scratch, xa, src, ha, dm, stream);
         return;
     }
-    const int ww = pick_ww(n, n_expert);
+    // the launch's gate/up kernel is a staging instance: the tile rule then takes 128 rows (the gate/up is about two thirds of the layer; a down that is not staged, Q2_0 or Q8_0 or Q5_0,
+    // still ran faster in the 128-row tile with it: IQ3_S / Q2_0 on the RTX A4000, RESULTS-P4-SM.md S1).  Either kernel staged: the blob check.
+    const bool staged = sw_on(g.gu_type, true), wide = g.gu_type == T_Q6_K || g.gu_type == T_Q8_0;   // wide: the Q6_K / Q8_0 gate/up class of the sm_86 tile line (40+ SMs)
+    const int ww = launch_ww(b, g, n, n_expert, staged, wide, strata::prefill::fused_tile::kq_flash_kind(g.gu_type, g.d_type));   // (the staging check inside: a launch that fails it takes the unstaged 64-row kernel; the last argument: Flash-Next's K-quant pairs)
     // the most 64-row tiles the batch can have (every row in it, plus a partial tile per expert) - the items of the
     // ones inside a larger item end at once
     const int64_t tiles = (n + kTileRows - 1) / kTileRows + (b.e1 - b.e0);
     const unsigned g_gu = (unsigned) std::min<int64_t>(tiles * (GU_ROWS_N / weight_rows(ww)), (int64_t) d.sms * d.occ);
     const unsigned g_d = (unsigned) std::min<int64_t>(tiles * (D_ROWS_N / weight_rows(ww)), (int64_t) d.sms * d.occ);
+#if !defined(__HIPCC__)   // (a HIP build returns above; no K-quant instance of native_kernel in its code objects)
+    if (g.gu_type == T_NVFP4) {   // the NVFP4 / NVFP4 pair (native_supported); its own occupancy; the per-expert scales are applied inside the kernels
+        if (g.d_type != T_NVFP4) {
+            std::fprintf(stderr, "prefill fused experts (native): NVFP4 gate/up with down type %d is not covered here\n", g.d_type);
+            std::exit(1);
+        }
+        const unsigned n_gu = (unsigned) std::min<int64_t>(tiles * (GU_ROWS_N / weight_rows(ww)), (int64_t) d.sms * d.occ_nvfp4_gu);
+        const unsigned n_d = (unsigned) std::min<int64_t>(tiles * (D_ROWS_N / weight_rows(ww)), (int64_t) d.sms * d.occ_nvfp4_d);
+        launch<T_NVFP4, true>(ww, n_gu, b, g, tb, xa, src, ha, nullptr, s);
+        launch<T_NVFP4, false>(ww, n_d, b, g, tb, ha, src, nullptr, dm, s);
+        ck(cudaGetLastError(), "experts_native");
+        return;
+    }
+    if (g.gu_type == T_Q4_K || g.gu_type == T_Q5_K) {   // STRATA_PF_FUSED_KQ=1 (gu_covered / d_covered_on checked d.kq above); their own occupancy
+        const unsigned k_gu = (unsigned) std::min<int64_t>(tiles * (GU_ROWS_N / weight_rows(ww)), (int64_t) d.sms * d.occ_kq);
+        const unsigned k_d = (unsigned) std::min<int64_t>(tiles * (D_ROWS_N / weight_rows(ww)), (int64_t) d.sms * d.occ_kq);
+        if (g.d_type != T_Q5_1 && !(g.d_type == T_Q8_0 && d.kq8)) {
+            std::fprintf(stderr, "prefill fused experts (native): K-quant gate/up with down type %d is not covered here\n", g.d_type);
+            std::exit(1);
+        }
+        if (g.gu_type == T_Q4_K) launch<T_Q4_K, true>(ww, k_gu, b, g, tb, xa, src, ha, nullptr, s);
+        else launch<T_Q5_K, true>(ww, k_gu, b, g, tb, xa, src, ha, nullptr, s);
+        if (g.d_type == T_Q8_0) {   // (A2) its own occupancy
+            const unsigned k8 = (unsigned) std::min<int64_t>(tiles * (D_ROWS_N / weight_rows(ww)), (int64_t) d.sms * d.occ_kq8);
+            launch<T_Q8_0, false>(ww, k8, b, g, tb, ha, src, nullptr, dm, s);
+        } else launch<T_Q5_1, false>(ww, k_d, b, g, tb, ha, src, nullptr, dm, s);
+        ck(cudaGetLastError(), "experts_native");
+        return;
+    }
+#endif
     switch (g.gu_type) {
         case T_IQ2_XXS: launch<T_IQ2_XXS, true>(ww, g_gu, b, g, tb, xa, src, ha, nullptr, s); break;
         case T_IQ2_XS: launch<T_IQ2_XS, true>(ww, g_gu, b, g, tb, xa, src, ha, nullptr, s); break;

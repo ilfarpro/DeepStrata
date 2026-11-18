@@ -38,7 +38,7 @@ test('the host shows the speed switches strata_control shows, for every card, en
   assert.ok(V.switches.length > 100);
   for (const row of V.switches) {
     const model = V.models[row.model];
-    const context = { deepseek: model.arch === 'deepseek41' || /strata-dsv41/i.test(model.exe ?? ''), backend: row.backend, gpus: [V.cards[row.card]], arch: model.arch ?? null };
+    const context = { deepseek: model.arch === 'deepseek41' || /strata-dsv41/i.test(model.exe ?? ''), backend: row.backend, gpus: [V.cards[row.card]], arch: model.arch ?? null, vision: !!model.vision };
     const shown = S.SPEED_SWITCHES.filter(s => S.speedSwitchApplies(s.id, context)).map(s => s.id).sort();
     assert.deepEqual(shown, row.shows, `${row.model} on ${row.backend} with ${row.card}`);
   }

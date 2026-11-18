@@ -31,7 +31,7 @@ def normalize(value, world):
             s = s.replace(form.replace("/", "\\"), word)
         if "<" in s or "\\" in s:
             s = re.sub(r"(<ROOT>|<REPO>)([^\s\"',;]*)", lambda m: m.group(1) + m.group(2).replace("\\", "/"), s)
-        s = re.sub(r"<ROOT>/(local/Strata|local/DeepStrata|state/strata|state/deepstrata)/", "<ROOT>/<STATE>/", s)   # the per-user state folder is named by the host OS and by the product
+        s = re.sub(r"<ROOT>/(local/Strata|state/strata)/", "<ROOT>/<STATE>/", s)   # the per-user state folder is named by the host OS
         s = KEY.sub("<KEY>", s)
         s = re.sub(r"/strata-engine\.exe\b", "/strata-engine", s)
         return s

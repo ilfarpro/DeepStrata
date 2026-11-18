@@ -582,8 +582,8 @@
    "first_commit": "d69424c965",
    "first_date": "2026-10-05",
    "since": "v0.1.40",
-   "last_commit": "2725c23f74",
-   "last_date": "2026-10-18",
+   "last_commit": "eb92671d60",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "program",
    "note": "[auto] on by default for some GPU architectures only (sm_86 src/core/nv_defaults.cpp:32=2; sm_60 src/core/nv_defaults.cpp:46=2); opt-in elsewhere; the variable overrides it",
@@ -636,8 +636,8 @@
    "first_commit": "e5d186398c",
    "first_date": "2026-10-03",
    "since": "v0.1.38",
-   "last_commit": "2725c23f74",
-   "last_date": "2026-10-18",
+   "last_commit": "eb92671d60",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "program",
    "note": "[auto] on by default for some GPU architectures only (sm_86 src/core/nv_defaults.cpp:31=1; sm_60 src/core/nv_defaults.cpp:45=1); opt-in elsewhere; the variable overrides it",
@@ -1039,8 +1039,8 @@
    "first_commit": "01529aaa82",
    "first_date": "2026-09-24",
    "since": "v0.1.0",
-   "last_commit": "1c3c6d3351",
-   "last_date": "2026-10-19",
+   "last_commit": "05718a08f5",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "core",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -1131,8 +1131,8 @@
    "first_commit": "6149efd3a4",
    "first_date": "2026-10-03",
    "since": "v0.1.39",
-   "last_commit": "ab6bce05de",
-   "last_date": "2026-10-13",
+   "last_commit": "f73fa74107",
+   "last_date": "2026-11-15",
    "status": "opt-in",
    "owner": "core",
    "note": "[reviewed] Writes experts.bin for mmap experts; user-facing storage option, off unless set. [gh-sweep-1028/WORKLIST-ENGINE.md:101]",
@@ -1207,8 +1207,8 @@
    "first_commit": "00ec1d081d",
    "first_date": "2026-09-30",
    "since": "v0.1.31",
-   "last_commit": "dea6920b81",
-   "last_date": "2026-10-20",
+   "last_commit": "5450e4344d",
+   "last_date": "2026-11-15",
    "status": "opt-in",
    "owner": "core",
    "note": "[auto] documented for users (docs/AMD_HIP.md:477), 8 more",
@@ -1907,8 +1907,8 @@
    "first_commit": "91f1e85dd1",
    "first_date": "2026-10-09",
    "since": "v0.1.42",
-   "last_commit": "91f1e85dd1",
-   "last_date": "2026-10-09",
+   "last_commit": "716ebae14e",
+   "last_date": "2026-11-14",
    "status": "opt-in",
    "owner": "program",
    "note": "[auto] documented for users (docs/DETAILS.md:1253)",
@@ -1923,7 +1923,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 866,
+     "line": 1129,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -2428,13 +2428,13 @@
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 4002,
+     "line": 4053,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 4002,
+     "line": 4053,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -2466,7 +2466,7 @@
     },
     {
      "file": "serve/server.py",
-     "line": 4113
+     "line": 4133
     }
    ],
    "doc_mentions": [
@@ -2935,8 +2935,8 @@
    "first_commit": "0f7224d168",
    "first_date": "2026-10-27",
    "since": "v0.2.7",
-   "last_commit": "ca378670b2",
-   "last_date": "2026-10-27",
+   "last_commit": "29147556b9",
+   "last_date": "2026-11-14",
    "status": "opt-in",
    "owner": "core",
    "note": "[auto] documented for users (docs/DETAILS.md:1598), 3 more",
@@ -3036,8 +3036,8 @@
    "first_commit": "bebeb791a4",
    "first_date": "2026-10-14",
    "since": "v0.1.45",
-   "last_commit": "c9abd38a7f",
-   "last_date": "2026-11-07",
+   "last_commit": "01e21ef20e",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "program",
    "note": "on by default (lane PARK-POOL): in a single-stage serve with a conversation cache the checkpoint pool is on and keeps ready checkpoints (STRATA_CKPT_POOL_READY, by default as many as fit in a twelfth of the cache, at most 4; park_pool_plan in park_pool_policy.hpp); not in the Metal build; NAME=0 turns it off (the diagnostic switch; no user setting); a value you set is kept. Also the parallel-request stack default (QUAL-PAR): on with 2 or more batch slots on Linux CUDA (arch_defaults.cpp parallel_default_env_cuda) and on Windows gfx1151.",
@@ -3086,8 +3086,8 @@
    "first_commit": "ca378670b2",
    "first_date": "2026-10-27",
    "since": "v0.2.7",
-   "last_commit": "8becec7d5c",
-   "last_date": "2026-10-31",
+   "last_commit": "01e21ef20e",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "program",
    "note": "unset: the engine picks the count (lane PARK-POOL): as many ready checkpoints as fit in a twelfth of the conversation cache, at most 4 (park_pool_plan; 1 on a 2 GiB cache, 2 on 3.8 GiB, 4 from 5.25 GiB up); a value you set is kept, 0 = none ahead of time. Idle memory that counts against --conversation-cache-mib and is given back before any parked conversation is evicted or the RAM floor is reached. Also set to 4 by the parallel-request stack (QUAL-PAR) on Linux CUDA with 2 or more batch slots and on Windows gfx1151.",
@@ -3281,7 +3281,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3457,
+     "line": 3720,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -3641,7 +3641,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 719,
+     "line": 982,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -3705,7 +3705,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6766,
+     "line": 7148,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -3744,7 +3744,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5420,
+     "line": 5683,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -3810,13 +3810,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5067,
+     "line": 5330,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7251,
+     "line": 7633,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -3849,7 +3849,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5073,
+     "line": 5336,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -3883,7 +3883,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5193,
+     "line": 5456,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -3971,19 +3971,19 @@
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5764,
+     "line": 6146,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6719,
+     "line": 7101,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6952,
+     "line": 7334,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -4049,19 +4049,19 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5068,
+     "line": 5331,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5083,
+     "line": 5346,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7251,
+     "line": 7633,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -4108,11 +4108,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "dd404b382e",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "dd404b382e",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "program",
    "note": "[reviewed] a test of the backstop: a loan is reused by chunk alone, so a later short segment overruns the lent tail and Prefill::run_impl's chunk check ends the request with its error.",
@@ -4254,7 +4254,7 @@
    "launch_sets": [
     {
      "file": "strata_control/speed_switches.py",
-     "line": 59,
+     "line": 67,
      "value": "\"026\""
     }
    ],
@@ -4283,8 +4283,8 @@
    "first_commit": "a3ab37fc03",
    "first_date": "2026-10-26",
    "since": "v0.2.7",
-   "last_commit": "3cc5714f37",
-   "last_date": "2026-11-05",
+   "last_commit": "e95ba413c1",
+   "last_date": "2026-11-13",
    "status": "rollback",
    "owner": "core",
    "note": "[auto] described as on by default (docs/MMVQ_IL_TABLE.md:18); rollback wording at docs/release-notes-0.2.7.md:33; first named in release notes 0.2.7; name first appears in v0.2.7",
@@ -4440,8 +4440,8 @@
    "first_commit": "cca3dd2e33",
    "first_date": "2026-10-26",
    "since": "v0.2.7",
-   "last_commit": "a3ab37fc03",
-   "last_date": "2026-10-26",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -6155,11 +6155,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "8b225dcb2e",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "fc66df9866",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "program",
    "note": "Test-harness setting: =1 in the environment of ONE engine start makes a machine with no draft-cost table learn it in that start (forced filler windows, a burst of requests, about 1000 timed rounds). The server and the launcher never set it; without it a fresh table is built passively from real requests and is not used by the next start.",
@@ -6253,7 +6253,7 @@
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2705,
+     "line": 2968,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -6391,8 +6391,8 @@
    "first_commit": "cca3dd2e33",
    "first_date": "2026-10-26",
    "since": "v0.2.7",
-   "last_commit": "a3ab37fc03",
-   "last_date": "2026-10-26",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -6430,8 +6430,8 @@
    "first_commit": "216252f034",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "216252f034",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] off unless set, not documented for users",
@@ -6463,8 +6463,8 @@
    "first_commit": "216252f034",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "216252f034",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] off unless set, not documented for users",
@@ -6496,8 +6496,8 @@
    "first_commit": "216252f034",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "216252f034",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 512.0 (src/dsv41/ds4_model.cu:1444)",
@@ -6529,8 +6529,8 @@
    "first_commit": "bbd0a2c673",
    "first_date": "2026-10-20",
    "since": "v0.2.4",
-   "last_commit": "1b667c7abb",
-   "last_date": "2026-10-25",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[reviewed] DeepSeek disk-skip experiment tuning, lossy by design; no verdict. [src/dsv41/ds4_model.cu:1395]",
@@ -6562,8 +6562,8 @@
    "first_commit": "216252f034",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "216252f034",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 64.0 (src/dsv41/ds4_model.cu:1443)",
@@ -6595,8 +6595,8 @@
    "first_commit": "bbd0a2c673",
    "first_date": "2026-10-20",
    "since": "v0.2.4",
-   "last_commit": "27f3137493",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -6628,8 +6628,8 @@
    "first_commit": "216252f034",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "216252f034",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 32.0 (src/dsv41/ds4_model.cu:1442)",
@@ -6661,8 +6661,8 @@
    "first_commit": "f73ae5a62e",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "a3ab37fc03",
-   "last_date": "2026-10-26",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -6706,8 +6706,8 @@
    "first_commit": "94413c7057",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "e6c5997091",
-   "last_date": "2026-10-24",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[reviewed] Matrix-core kernel is active by default; =0 is SIMT fallback, =2 an alternative kernel. [notes-dsv41-r97.md:145]",
@@ -6739,8 +6739,8 @@
    "first_commit": "e51e84e22a",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "216252f034",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 2 (src/dsv41/ds4_model.cu:6833)",
@@ -6884,8 +6884,8 @@
    "first_commit": "0be5d73f00",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "0be5d73f00",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -6917,8 +6917,8 @@
    "first_commit": "15f1fe0548",
    "first_date": "2026-10-23",
    "since": "v0.2.7.1",
-   "last_commit": "15f1fe0548",
-   "last_date": "2026-10-23",
+   "last_commit": "c6f84f2815",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "metal/engine",
    "note": "[auto] off unless set, not documented for users",
@@ -6950,8 +6950,8 @@
    "first_commit": "bbd0a2c673",
    "first_date": "2026-10-20",
    "since": "v0.2.4",
-   "last_commit": "bbd0a2c673",
-   "last_date": "2026-10-20",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] off unless set, not documented for users",
@@ -6996,8 +6996,8 @@
    "first_commit": "bbd0a2c673",
    "first_date": "2026-10-20",
    "since": "v0.2.4",
-   "last_commit": "1cace5c864",
-   "last_date": "2026-10-23",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] off unless set, not documented for users",
@@ -7035,8 +7035,8 @@
    "first_commit": "a280f5bbd0",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "a280f5bbd0",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[checked] Windows one-GPU DeepSeek path pins by need by default; =0 turns it off (src/dsv41/ds4_model.cu:6058-6059 comment).",
@@ -7068,8 +7068,8 @@
    "first_commit": "a280f5bbd0",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "a280f5bbd0",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -7101,8 +7101,8 @@
    "first_commit": "c17b458c4f",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "c17b458c4f",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 2 (src/dsv41/ds4_main.cpp:805)",
@@ -7134,8 +7134,8 @@
    "first_commit": "c17b458c4f",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "c17b458c4f",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 2 (src/dsv41/ds4_main.cpp:804)",
@@ -7167,8 +7167,8 @@
    "first_commit": "c17b458c4f",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "c17b458c4f",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 1024 (src/dsv41/ds4_main.cpp:806)",
@@ -7200,8 +7200,8 @@
    "first_commit": "e9d9ed8bb3",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "e9d9ed8bb3",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] off unless set, not documented for users",
@@ -7233,8 +7233,8 @@
    "first_commit": "8a7102ec4d",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "8a7102ec4d",
-   "last_date": "2026-10-24",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 1 (src/dsv41/ds4_model.cu:12850)",
@@ -7343,8 +7343,8 @@
    "first_commit": "a280f5bbd0",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "a280f5bbd0",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -7382,8 +7382,8 @@
    "first_commit": "bbd0a2c673",
    "first_date": "2026-10-20",
    "since": "v0.2.4",
-   "last_commit": "1b667c7abb",
-   "last_date": "2026-10-25",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[reviewed] RAM tier was slower than page cache on a V100/64 GB; hardware-specific, no explicit not-shipped verdict. [src/dsv41/ds4_model.cu:1360]",
@@ -7451,8 +7451,8 @@
    "first_commit": "69896982ae",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "69896982ae",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[reviewed] Chunk size for the opt-in read-pieces mode (default off); tuning knob. [src/dsv41/ds4_main.cpp:1526]",
@@ -7484,8 +7484,8 @@
    "first_commit": "69896982ae",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "69896982ae",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "opt-in",
    "owner": "dsv41",
    "note": "[reviewed] \"Pieces default off: owner's call\"; A/B vs default run, no not-shipped verdict. [notes-041-maya-port2.md:18]",
@@ -7517,8 +7517,8 @@
    "first_commit": "69896982ae",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "69896982ae",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "unsure",
    "owner": "dsv41",
    "note": "[reviewed] Only a passing mention; no clear role or verdict found in evidence. [phaseA-tests/maya-port/PORT2/RESULTS.md:7]",
@@ -7558,8 +7558,8 @@
    "first_commit": "6e53c7f8d6",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "6e53c7f8d6",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] set by the managed start (serve/server.py:784); the engine itself keeps it off",
@@ -7591,8 +7591,8 @@
    "first_commit": "3ec28f5cc0",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "3ec28f5cc0",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -7630,8 +7630,8 @@
    "first_commit": "cdc3a26577",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "6e53c7f8d6",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] described as on by default (code)",
@@ -7663,8 +7663,8 @@
    "first_commit": "cdc3a26577",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "cdc3a26577",
-   "last_date": "2026-10-24",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 4 (src/dsv41/ds4_main.cpp:564)",
@@ -7696,8 +7696,8 @@
    "first_commit": "cdc3a26577",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "cdc3a26577",
-   "last_date": "2026-10-24",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 7 (src/dsv41/ds4_main.cpp:566)",
@@ -7734,7 +7734,7 @@
    "launch_sets": [
     {
      "file": "serve/server.py",
-     "line": 4529,
+     "line": 4549,
      "value": "str(Path(log).parent / \"ds4-slots\")"
     }
    ],
@@ -7743,8 +7743,8 @@
    "first_commit": "cdc3a26577",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "cdc3a26577",
-   "last_date": "2026-10-24",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] set by the managed start (serve/server.py:4261); the engine itself keeps it off",
@@ -7775,7 +7775,7 @@
    "launch_sets": [
     {
      "file": "serve/server.py",
-     "line": 4526,
+     "line": 4546,
      "value": "DS41_SLOT_GB_DEFAULT"
     }
    ],
@@ -7786,8 +7786,8 @@
    "first_commit": "cdc3a26577",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "cdc3a26577",
-   "last_date": "2026-10-24",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "opt-in",
    "owner": "dsv41",
    "note": "[auto] documented for users (docs/DEEPSEEK41.md:134)",
@@ -7824,7 +7824,7 @@
    "launch_sets": [
     {
      "file": "serve/server.py",
-     "line": 4525,
+     "line": 4545,
      "value": "DS41_SLOT_KEEP_DEFAULT"
     }
    ],
@@ -7835,8 +7835,8 @@
    "first_commit": "cdc3a26577",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "27f3137493",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "opt-in",
    "owner": "dsv41",
    "note": "[auto] documented for users (docs/DEEPSEEK41.md:135)",
@@ -7868,8 +7868,8 @@
    "first_commit": "cdc3a26577",
    "first_date": "2026-10-24",
    "since": "v0.2.4",
-   "last_commit": "cdc3a26577",
-   "last_date": "2026-10-24",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "dsv41",
    "note": "[auto] tunable with a built-in default 1024 (src/dsv41/ds4_main.cpp:565)",
@@ -7901,8 +7901,8 @@
    "first_commit": "216252f034",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "216252f034",
-   "last_date": "2026-10-31",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -7934,8 +7934,8 @@
    "first_commit": "1c2388876c",
    "first_date": "2026-10-21",
    "since": "v0.2.4",
-   "last_commit": "1c2388876c",
-   "last_date": "2026-10-21",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -7967,8 +7967,8 @@
    "first_commit": "1e72cdc4b9",
    "first_date": "2026-10-26",
    "since": "v0.2.7",
-   "last_commit": "1e72cdc4b9",
-   "last_date": "2026-10-26",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -8064,7 +8064,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5578,
+     "line": 5841,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -8100,19 +8100,19 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5582,
+     "line": 5845,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5585,
+     "line": 5848,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5585,
+     "line": 5848,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -8129,8 +8129,8 @@
    "first_commit": "e51b4379dc",
    "first_date": "2026-10-12",
    "since": "v0.1.44",
-   "last_commit": "e51b4379dc",
-   "last_date": "2026-10-12",
+   "last_commit": "10e3399f0d",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "prefill",
    "note": "Research: the layer whose first-chunk MoE input STRATA_DUMP_MOE_INPUT writes; \"all\" writes every layer of the first chunk to <path>.L<layer> (the rows for the bench's --real mode).",
@@ -8286,7 +8286,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 518,
+     "line": 781,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -8339,8 +8339,8 @@
    "first_commit": "a606e3a966",
    "first_date": "2026-10-01",
    "since": "v0.1.32",
-   "last_commit": "8544420180",
-   "last_date": "2026-10-27",
+   "last_commit": "7fc188c0b9",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "core",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -8836,6 +8836,12 @@
      "fn": "getenv"
     },
     {
+     "file": "src/qwen35/q36_engine.cu",
+     "line": 1416,
+     "backend": "cuda-hip",
+     "fn": "getenv"
+    },
+    {
      "file": "include/strata/kernels/q36_prompt_route.hpp",
      "line": 21,
      "backend": "cuda-hip",
@@ -8851,11 +8857,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "fe67f7fbeb",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "b2114b4ec7",
+   "last_date": "2026-11-13",
    "status": "rollback",
    "owner": "kernels",
    "note": "CUDA / HIP, not a user setting. Unset: the HIP cards gfx1030 / gfx1031 / gfx1032 (RX 6000 series RDNA2, no matrix cores) run a prompt layer's expert groups on our own int8 dot-product kernels (native_expert_i8) for the gate/up formats IQ2_XXS, IQ2_XS, IQ3_XXS, IQ3_S and IQ2_S with an IQ4_NL or Q2_0 down, in the prompt path's MMQ groups of 256 entries or more (include/strata/kernels/i8_expert_rule.hpp); every other card is unchanged in a build with MMQ. In a build without llama.cpp's MMQ (-DSTRATA_MMQ=OFF, or HIP without STRATA_PREFILL_MMQ) unset means on for every card and every layer the kernel covers that the fused kernels and the staged group entry do not take (otherwise the layer would run on the per-expert FP16 path); on a Tesla P100 (compute capability 6.0, no dp4a) that default applies only to prompt chunks under the stream floor (stream_all_min, 1,024 tokens), the FP16 path from it up, as the build with MMQ does there. =0 goes back to the old kernels on that class, or to the FP16 path in a build without MMQ (the way back). =1 asks for the int8 kernels on any card (a layer the fused kernels take stays on them; on a card with fused kernels set STRATA_PF_FUSED=0 as well) . The Qwen3.6 engine (strata-q36) asks the same question per layer (include/strata/kernels/q36_prompt_route.hpp): the fused kernels, then these kernels when this is set to 1, then MMQ, then these kernels when it is not 0, then the grouped kernels; the gate/up formats Q4_K, Q5_K, Q6_K and Q8_0 with a Q5_K, Q6_K, Q8_0 or Q5_1 down are covered there, and a chunk whose experts average under 7 rows (6 on a P100) takes the grouped kernels. Goes away with MMQ (release C) or stays as the only path.",
@@ -8892,8 +8898,8 @@
    "first_commit": "9067cc64d3",
    "first_date": "2026-10-26",
    "since": "v0.2.7",
-   "last_commit": "9e20319069",
-   "last_date": "2026-10-27",
+   "last_commit": "62b6a47ea4",
+   "last_date": "2026-11-12",
    "status": "opt-in",
    "owner": "core",
    "note": "[auto] documented for users (docs/OLDER_GPUS.md:210), 3 more",
@@ -9217,13 +9223,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2356,
+     "line": 2619,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7014,
+     "line": 7396,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -9709,8 +9715,8 @@
    "first_commit": "01529aaa82",
    "first_date": "2026-09-24",
    "since": "v0.1.0",
-   "last_commit": "f000d4a455",
-   "last_date": "2026-11-06",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] off unless set, not documented for users",
@@ -9782,8 +9788,8 @@
    "first_commit": "b8dbdfe12a",
    "first_date": "2026-10-03",
    "since": "v0.1.39",
-   "last_commit": "dd7b0b5f07",
-   "last_date": "2026-10-09",
+   "last_commit": "8a2b0f5f00",
+   "last_date": "2026-11-09",
    "status": "research",
    "owner": "kernels/cpu",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -11473,19 +11479,19 @@
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2481,
+     "line": 2542,
      "backend": "hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2563,
+     "line": 2624,
      "backend": "hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2597,
+     "line": 2658,
      "backend": "hip",
      "fn": "getenv"
     },
@@ -11524,8 +11530,8 @@
    "first_commit": "9708b549a4",
    "first_date": "2026-10-05",
    "since": "v0.1.40",
-   "last_commit": "c9abd38a7f",
-   "last_date": "2026-11-07",
+   "last_commit": "64e95049ab",
+   "last_date": "2026-11-15",
    "status": "rollback",
    "owner": "core",
    "note": "[auto] on unless set to 0 (src/core/arch_defaults.cpp:64); rollback wording at code; name first appears in v0.1.40.1",
@@ -11687,7 +11693,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 547,
+     "line": 810,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -11914,8 +11920,8 @@
    "first_commit": "bbd0a2c673",
    "first_date": "2026-10-20",
    "since": "v0.2.4",
-   "last_commit": "bbd0a2c673",
-   "last_date": "2026-10-20",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[reviewed] Legacy|new kernel A/B selector for GLM EXL3 decode. [src/dsv41/vendor/exl3.cu:1269]",
@@ -11965,9 +11971,9 @@
    "first_commit": "45cbb451e7",
    "first_date": "2026-10-23",
    "since": "v0.2.7.1",
-   "last_commit": "45cbb451e7",
-   "last_date": "2026-10-23",
-   "status": "",
+   "last_commit": "c6f84f2815",
+   "last_date": "2026-11-11",
+   "status": "research",
    "owner": "",
    "note": "",
    "retire_after": "",
@@ -12097,7 +12103,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2236,
+     "line": 2499,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -12755,7 +12761,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 745,
+     "line": 1008,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -12896,8 +12902,8 @@
    "first_commit": "2a0d2f5521",
    "first_date": "2026-10-13",
    "since": "v0.1.44",
-   "last_commit": "2a0d2f5521",
-   "last_date": "2026-10-13",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl/kernels",
    "note": "[auto] off unless set, not documented for users",
@@ -13153,7 +13159,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 597,
+     "line": 860,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -13188,7 +13194,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 614,
+     "line": 877,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -13222,7 +13228,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 701,
+     "line": 964,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -13427,8 +13433,8 @@
    "first_commit": "fe6c5260ec",
    "first_date": "2026-10-03",
    "since": "v0.1.40",
-   "last_commit": "567c46873f",
-   "last_date": "2026-11-07",
+   "last_commit": "0cb1550665",
+   "last_date": "2026-11-13",
    "status": "default",
    "owner": "core",
    "note": "on by default on CUDA when the GGUF carries the hyper-connection projections as Q8_0 (an Unsloth UD-* file; generate.cpp via NativeDense::gguf_carries_q8_hc; owner yes 2026-11-07); gfx12 and gfx1151 HIP keep their own rule; STRATA_HC_Q8=0 turns it off; the GSQ-RCO packs (BF16 projections) are unchanged",
@@ -13500,8 +13506,8 @@
    "first_commit": "58729711d9",
    "first_date": "2026-10-03",
    "since": "v0.1.40",
-   "last_commit": "23a38a0bb7",
-   "last_date": "2026-10-07",
+   "last_commit": "0b3364d416",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "core",
    "note": "[auto] off unless set, not documented for users",
@@ -13594,8 +13600,8 @@
    "first_commit": "9d0b28df54",
    "first_date": "2026-10-01",
    "since": "v0.1.32",
-   "last_commit": "fddee3a47d",
-   "last_date": "2026-10-01",
+   "last_commit": "f9932c6aee",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "kernels/cuda",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -13635,7 +13641,7 @@
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 674,
+     "line": 937,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -13690,8 +13696,8 @@
    "first_commit": "31b2472a3f",
    "first_date": "2026-10-03",
    "since": "v0.1.40",
-   "last_commit": "7f6bc33081",
-   "last_date": "2026-10-30",
+   "last_commit": "9187ef658b",
+   "last_date": "2026-11-12",
    "status": "default",
    "owner": "core",
    "note": "[auto] on by default for some GPU architectures only (? src/core/arch_defaults.cpp:167=1; gfx1151 (Windows) src/core/arch_defaults.cpp:177=1; sm_121 src/core/nv_defaults.cpp:72=1); opt-in elsewhere; the variable overrides it",
@@ -13707,7 +13713,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4605,
+     "line": 4868,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -14161,8 +14167,8 @@
    "first_commit": "972cad1bc5",
    "first_date": "2026-10-05",
    "since": "v0.1.40",
-   "last_commit": "85f839d80c",
-   "last_date": "2026-10-12",
+   "last_commit": "8d7f997d41",
+   "last_date": "2026-11-12",
    "status": "default",
    "owner": "prefill",
    "note": "[auto] on by default for a Radeon 780M (gfx1103, integrated, Linux) only (include/strata/core/arch_defaults.hpp:82 prompt_f16_resolve, used by prompt_f16() in src/prefill/gemm.cu); opt-in elsewhere (=1); =0 turns it off. [docs/AMD_HIP.md:512]",
@@ -14444,8 +14450,8 @@
    "first_commit": "73ba449679",
    "first_date": "2026-10-01",
    "since": "v0.1.32",
-   "last_commit": "938b76eb3e",
-   "last_date": "2026-11-03",
+   "last_commit": "9187ef658b",
+   "last_date": "2026-11-12",
    "status": "default",
    "owner": "kernels/cuda",
    "note": "[auto] on by default for some GPU architectures only (? src/core/arch_defaults.cpp:163=1; gfx1151 (Windows) src/core/arch_defaults.cpp:174=1); opt-in elsewhere; the variable overrides it",
@@ -14585,11 +14591,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "f123a0d000",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "79606603f0",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "kernels",
    "note": "Debug only: STRATA_EXPERT_I8's kernels return at point n, uniform over the block (a fault hunt on HIP). 0: off.",
@@ -14604,7 +14610,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 1605,
+     "line": 1868,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -14618,11 +14624,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "ab35aff9bc",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "ab35aff9bc",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "kernels",
    "note": "Debug only: prints one line per prompt chunk with the routed entries that ran on native_expert_i8 and the ones that stayed on the group walk's own kernels. 0: off.",
@@ -14656,8 +14662,8 @@
    "first_commit": "2856a8045e",
    "first_date": "2026-10-18",
    "since": "v0.2.1",
-   "last_commit": "ebdfaacd1c",
-   "last_date": "2026-10-18",
+   "last_commit": "fe67f7fbeb",
+   "last_date": "2026-11-12",
    "status": "opt-in",
    "owner": "sycl/prefill",
    "note": "[auto] documented for users (docs/INTEL_INT8_EXPERTS.md:27)",
@@ -14686,11 +14692,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "65035696af",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "79606603f0",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "kernels",
    "note": "Research: the few-rows route of STRATA_EXPERT_I8's prompt path: a layer whose experts average fewer routed rows than the limit runs on the grouped kernels instead of the int8 kernel. Not set: 6 on a Tesla P100, 7 elsewhere (8 and 10 with STRATA_I8_N8=0). 0: off (the int8 kernel keeps its 256-entry floor). N: a limit of N rows per expert.",
@@ -14837,11 +14843,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "ab7da27849",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "79606603f0",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "kernels",
    "note": "The 8-entry slices of the tile-2..4 int8 expert kernel (STRATA_EXPERT_I8's prompt path; two weight rows and one entry of each 8-entry slice per thread; output bit-identical). Not set: on for tile 2 (up to about 1,950 tokens at Flash-Next's shape), off for tiles 3 and above. 1: tiles 2 to 4. 0: off.",
@@ -14891,11 +14897,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "ca38bf15df",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "4eff163098",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "kernels",
    "note": "Test only: pretends the card has this many bytes of shared memory per block, so STRATA_EXPERT_I8's kernels fall to a smaller tile or answer 'not supported' (native_i8_parity uses it).",
@@ -14937,11 +14943,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "fe67f7fbeb",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "4eff163098",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "kernels",
    "note": "Research: the tile of STRATA_EXPERT_I8's kernels, 2, 3 or 4 rows of 16 entries per thread (32, 48 or 64 entries a block), 8 = the 128-entry tile. Unset: chosen by the entries per expert.",
@@ -14992,7 +14998,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4939,
+     "line": 5202,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -15141,13 +15147,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4804,
+     "line": 5067,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8383,
+     "line": 8765,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -16479,11 +16485,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "f9932c6aee",
+   "first_date": "2026-11-15",
+   "since": "v0.2.14",
+   "last_commit": "5450e4344d",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "core",
    "note": "=0 turns off the engine's KFD-quiet changes on an integrated gfx11 GPU under Linux (gfx1103, gfx1150, gfx1151: the load order, the drain on a stop by signal, the staged pageable copies; on gfx1103 also the unregistered expert arena; include/strata/core/kfd_quiet.hpp); automatic on that class, nothing on other devices; for A/B runs only, not for users",
@@ -16512,11 +16518,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "8d1fadf925",
+   "first_date": "2026-11-15",
+   "since": "v0.2.14",
+   "last_commit": "c3f6978b10",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "core",
    "note": "=1 makes the prompt path keep its own buffers instead of lending expert cache slots on an integrated gfx11 GPU under Linux, for chunks up to 16,384 tokens where the buffers fit with 3 GiB to spare (off by default; =0 or STRATA_PREFILL_BORROW=1 keeps the loan); nothing on other devices; for A/B runs only, not for users",
@@ -16545,11 +16551,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "8d1fadf925",
+   "first_date": "2026-11-15",
+   "since": "v0.2.14",
+   "last_commit": "5450e4344d",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "core",
    "note": "=0 registers the expert arena with the GPU driver on the Radeon 780M class (gfx1103) under Linux (by default it is not registered and not locked with mlock there; STRATA_ARENA_PIN_GIB or STRATA_UMA_REGISTER=1 set by the user wins); automatic on that class, nothing on other devices; for A/B runs only, not for users",
@@ -16578,11 +16584,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "f9932c6aee",
+   "first_date": "2026-11-15",
+   "since": "v0.2.14",
+   "last_commit": "f73fa74107",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "core",
    "note": "=0 leaves GPU_PINNED_MIN_XFER_SIZE unset on an integrated gfx11 GPU under Linux (the engine sets it to 1000000 before HIP starts, so pageable copies go through the HIP runtime's staging buffers; a value the caller set wins); automatic on that class, nothing on other devices; for A/B runs only, not for users",
@@ -16739,7 +16745,7 @@
    "launch_sets": [
     {
      "file": "strata_control/speed_switches.py",
-     "line": 40,
+     "line": 43,
      "value": "\"1\""
     },
     {
@@ -16928,7 +16934,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4660,
+     "line": 4923,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -17510,25 +17516,25 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4746,
+     "line": 5009,
      "backend": "hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4748,
+     "line": 5011,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8330,
+     "line": 8712,
      "backend": "hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8332,
+     "line": 8714,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -17553,8 +17559,8 @@
    "first_commit": "c3c034745b",
    "first_date": "2026-10-03",
    "since": "v0.1.39",
-   "last_commit": "ffe40c1695",
-   "last_date": "2026-10-26",
+   "last_commit": "f0356cb25f",
+   "last_date": "2026-11-14",
    "status": "rollback",
    "owner": "prefill",
    "note": "[11-14] CUDA: on by default (include/strata/core/kv_host_dma.hpp kv_host_dma_on): on a streamed layer (--kv-resident) the prompt's new K/V cells go from the staging pool to the RAM copy by one DMA copy, and no kernel writes the RAM copy; =0 gives back the kernel's own stores to the RAM copy. AMD (HIP) and Intel Arc (SYCL): off by default; =1 turns the DMA copy on (docs/TROUBLESHOOTING.md:325, the Windows AMD driver-reset steps). The K/V bytes every reader sees are the same with the switch on or off.",
@@ -17647,13 +17653,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2305,
+     "line": 2568,
      "backend": "hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3767,
+     "line": 4030,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -17678,8 +17684,8 @@
    "first_commit": "f1635c2174",
    "first_date": "2026-10-05",
    "since": "v0.1.40",
-   "last_commit": "23a38a0bb7",
-   "last_date": "2026-10-07",
+   "last_commit": "f9932c6aee",
+   "last_date": "2026-11-15",
    "status": "opt-in",
    "owner": "prefill",
    "note": "[reviewed] Listed as opt-in speed switch, \"4-5% slower on our 5070, so off\"; documented to users. [release-v0.1.40.md:64]",
@@ -17824,7 +17830,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 1433,
+     "line": 1696,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -18209,7 +18215,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7218,
+     "line": 7600,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -18242,7 +18248,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7614,
+     "line": 7996,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -18371,8 +18377,8 @@
    "first_commit": "5396360ef7",
    "first_date": "2026-09-30",
    "since": "v0.1.31",
-   "last_commit": "d486fbe7d6",
-   "last_date": "2026-11-06",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "program",
    "note": "[reviewed] Quant yardstick / KL harness switch, reads all window logits. [src comment]",
@@ -18775,11 +18781,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "e02647b741",
+   "first_date": "2026-11-14",
+   "since": "v0.2.14",
+   "last_commit": "434663b1ba",
+   "last_date": "2026-11-14",
    "status": "rollback",
    "owner": "core",
    "note": "[reviewed] under a container memory limit the memory guard and the expert arena's RAM check credit active and inactive file cache minus the engine's own mapped pages; set to 1 brings back the old inactive-only credit. [src/core/conversation_memory.cpp:363]",
@@ -19548,8 +19554,8 @@
    "first_commit": "a6e55d062e",
    "first_date": "2026-10-12",
    "since": "v0.1.44",
-   "last_commit": "1b667c7abb",
-   "last_date": "2026-10-25",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "opt-in",
    "owner": "dsv41",
    "note": "[auto] documented for users (docs/MAC.md:266)",
@@ -19751,8 +19757,8 @@
    "first_commit": "e2bf3d36a2",
    "first_date": "2026-10-13",
    "since": "v0.1.44",
-   "last_commit": "1b667c7abb",
-   "last_date": "2026-10-25",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "opt-in",
    "owner": "dsv41",
    "note": "[auto] documented for users (docs/MAC.md:267)",
@@ -20058,8 +20064,8 @@
    "first_commit": "e3ed743f21",
    "first_date": "2026-10-27",
    "since": "v0.2.7.1",
-   "last_commit": "e3ed743f21",
-   "last_date": "2026-10-27",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -20753,13 +20759,13 @@
    "reads": [
     {
      "file": "metal/src/mtl_rt.mm",
-     "line": 1012,
+     "line": 1013,
      "backend": "metal",
      "fn": "getenv"
     },
     {
      "file": "metal/src/mtl_rt.mm",
-     "line": 1012,
+     "line": 1013,
      "backend": "metal",
      "fn": "getenv"
     }
@@ -20970,7 +20976,7 @@
     },
     {
      "file": "setup.py",
-     "line": 10594,
+     "line": 10597,
      "value": "\"1\" if stream else \"0\""
     }
    ],
@@ -21179,13 +21185,13 @@
    "reads": [
     {
      "file": "metal/src/mtl_rt.mm",
-     "line": 611,
+     "line": 612,
      "backend": "metal",
      "fn": "getenv"
     },
     {
      "file": "metal/src/mtl_rt.mm",
-     "line": 611,
+     "line": 612,
      "backend": "metal",
      "fn": "getenv"
     }
@@ -21278,8 +21284,8 @@
    "first_commit": "86f677b4a9",
    "first_date": "2026-10-14",
    "since": "v0.1.45",
-   "last_commit": "89f4fa18ee",
-   "last_date": "2026-11-06",
+   "last_commit": "9d53a1a8db",
+   "last_date": "2026-11-13",
    "status": "opt-in",
    "owner": "prefill",
    "note": "[reviewed] Documented opt-in needing STRATA_MMQ_TAB build; E23 rejected it as default but it is a user feature. [docs/DETAILS.md:1081]",
@@ -21294,7 +21300,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8660,
+     "line": 9042,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -21404,7 +21410,7 @@
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3895,
+     "line": 3946,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -21415,11 +21421,11 @@
    "engine_sets": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3893
+     "line": 3944
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3895
+     "line": 3946
     }
    ],
    "engine_defaults": [
@@ -21458,8 +21464,8 @@
    "first_commit": "465cd61dfb",
    "first_date": "2026-10-12",
    "since": "v0.1.44",
-   "last_commit": "88e6634390",
-   "last_date": "2026-11-07",
+   "last_commit": "0ce77eaf85",
+   "last_date": "2026-11-13",
    "status": "default",
    "owner": "core",
    "note": "[auto] on by default for some GPU architectures only (NVIDIA cc>=8 src/core/nv_defaults.cpp:124=1); opt-in elsewhere; the variable overrides it",
@@ -21527,8 +21533,8 @@
    "first_commit": "5dbd8774d8",
    "first_date": "2026-10-26",
    "since": "v0.2.7",
-   "last_commit": "fbf6e1c753",
-   "last_date": "2026-10-31",
+   "last_commit": "62b6a47ea4",
+   "last_date": "2026-11-12",
    "status": "opt-in",
    "owner": "prefill",
    "note": "[auto] documented for users (docs/OLDER_GPUS.md:191), 1 more",
@@ -22557,7 +22563,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2627,
+     "line": 2890,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -22597,7 +22603,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2671,
+     "line": 2934,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -22620,8 +22626,8 @@
    "first_commit": "a402eefdd1",
    "first_date": "2026-09-29",
    "since": "v0.1.26",
-   "last_commit": "b88eff688b",
-   "last_date": "2026-09-30",
+   "last_commit": "5a9d6f5599",
+   "last_date": "2026-11-11",
    "status": "rollback",
    "owner": "prefill",
    "note": "[reviewed] CUDA / HIP: on unless set to 0 (src/prefill/prefill.cpp:2319, the MTP drafter's prompt pass on FP16 GEMMs instead of Q8_0 MMQ; =0 is MMQ's form until MMQ leaves the build); SYCL: off unless set to 1 (no MMQ there). Not documented for users",
@@ -22637,7 +22643,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2632,
+     "line": 2895,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -23452,11 +23458,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "0ee2639926",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "0ee2639926",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "core",
    "note": "turns off the file-cache give-back during and after the expert load on an integrated gfx11 GPU under Linux (posix_fadvise DONTNEED behind the arena read and once per model file; automatic on that class, nothing on other devices); for A/B runs only, not for users",
@@ -23506,8 +23512,8 @@
    "first_commit": "bb19becc24",
    "first_date": "2026-10-05",
    "since": "v0.1.40",
-   "last_commit": "23a38a0bb7",
-   "last_date": "2026-10-07",
+   "last_commit": "0a17fb99e2",
+   "last_date": "2026-11-12",
    "status": "opt-in",
    "owner": "core",
    "note": "unset: the engine decides (no huge-page request for the expert arena on an integrated gfx11 GPU under Linux: gfx1103, gfx1150, gfx1151; a request everywhere else, as before); 1 (any value but 0): never request them, as before; 0: request them, also on those GPUs (#2126's free-block check still applies). Documented for users (docs/TROUBLESHOOTING.md:122).",
@@ -23860,11 +23866,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "8f6393a373",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "f9932c6aee",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "core",
    "note": "turns off the wait before READY on an integrated gfx11 GPU under Linux (the engine waits until its own KFD eviction counter was quiet for 2 s, at most 10 s; automatic on that class, nothing on other devices); for A/B runs only, not for users",
@@ -24438,11 +24444,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "716ebae14e",
+   "first_date": "2026-11-14",
+   "since": "v0.2.14",
+   "last_commit": "7a9f8d2ad0",
+   "last_date": "2026-11-14",
    "status": "rollback",
    "owner": "kernels/cpu",
    "note": "[reviewed] On by default on Linux hosts with more than one memory node: the engine keeps its threads on the graphics card's node, so the pinned buffers it allocates land there too (only when that node has the CPUs and the free memory for it). =0 (also off / false / no) keeps the earlier placement. On one-node hosts it moves no thread; it does nothing on Windows and macOS. [phaseA-tests/par/RESULTS-NUMA-CARD.md BLOCK 6]",
@@ -24521,8 +24527,8 @@
    "first_commit": "e4d22e7ef1",
    "first_date": "2026-10-20",
    "since": "v0.2.2",
-   "last_commit": "7274c10e9a",
-   "last_date": "2026-10-20",
+   "last_commit": "716ebae14e",
+   "last_date": "2026-11-14",
    "status": "rollback",
    "owner": "kernels/cpu",
    "note": "[reviewed] NUMA split turned on by default in 0.2.2; =0 turns it off. [phaseA-tests/_issues_dump/3667.md:51]",
@@ -24621,8 +24627,8 @@
    "first_commit": "709f8dc63d",
    "first_date": "2026-10-20",
    "since": "v0.2.2",
-   "last_commit": "7274c10e9a",
-   "last_date": "2026-10-20",
+   "last_commit": "716ebae14e",
+   "last_date": "2026-11-14",
    "status": "rollback",
    "owner": "kernels/cpu",
    "note": "[reviewed] 0.2.2 auto-splits the CPU pool per NUMA node; variables turn it off. [docs/release-notes-0.2.2.md:11]",
@@ -24742,8 +24748,8 @@
    "first_commit": "e2f7c47447",
    "first_date": "2026-11-03",
    "since": "v0.2.11",
-   "last_commit": "52ac4e7337",
-   "last_date": "2026-11-03",
+   "last_commit": "0ce77eaf85",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "core",
    "note": "[auto] not documented for users; code default not readable from the call",
@@ -25148,8 +25154,8 @@
    "first_commit": "f73b3c86a4",
    "first_date": "2026-10-27",
    "since": "v0.2.7",
-   "last_commit": "85e3dde522",
-   "last_date": "2026-10-27",
+   "last_commit": "29147556b9",
+   "last_date": "2026-11-14",
    "status": "opt-in",
    "owner": "core",
    "note": "[reviewed] Documented conversation-cache park option for slow host links; off unless set. [docs/DETAILS.md:1598]",
@@ -25178,11 +25184,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "e04c4c9311",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "01e21ef20e",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "core",
    "note": "on by default on Linux (lane PARK-POOL): unset = an arena of min(2 GiB, a quarter of the conversation cache) in 64 MiB steps (none under 128 MiB), reserved once and made resident in the background; the K/V buffers of parked conversations (segments of 512 KiB and more) are taken from it, so a park no longer pays the first touch of fresh pages. Idle bytes count against --conversation-cache-mib and are given back before any parked conversation is evicted or the RAM floor is reached. NAME=0 turns it off (the diagnostic switch; no user setting), NAME=N sets N MiB (still at most a quarter of the cache). Windows and macOS: the OS layer is not written, the arena is never created there (inert).",
@@ -25264,8 +25270,8 @@
    "first_commit": "0f7224d168",
    "first_date": "2026-10-27",
    "since": "v0.2.7",
-   "last_commit": "85e3dde522",
-   "last_date": "2026-10-27",
+   "last_commit": "01e21ef20e",
+   "last_date": "2026-11-11",
    "status": "opt-in",
    "owner": "core",
    "note": "[auto] documented for users (docs/DETAILS.md:1610)",
@@ -25520,8 +25526,8 @@
    "first_commit": "7aaf466d18",
    "first_date": "2026-10-03",
    "since": "v0.1.40",
-   "last_commit": "7f6bc33081",
-   "last_date": "2026-10-30",
+   "last_commit": "9187ef658b",
+   "last_date": "2026-11-12",
    "status": "default",
    "owner": "kernels/cuda",
    "note": "[auto] on by default for some GPU architectures only (? src/core/arch_defaults.cpp:165=1; gfx1151 (Windows) src/core/arch_defaults.cpp:176=1); opt-in elsewhere; the variable overrides it",
@@ -25809,7 +25815,7 @@
    "launch_sets": [
     {
      "file": "strata_control/speed_switches.py",
-     "line": 47,
+     "line": 50,
      "value": "\"old\""
     },
     {
@@ -26133,7 +26139,7 @@
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3672,
+     "line": 3723,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -26174,7 +26180,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 754,
+     "line": 1017,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -26207,7 +26213,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5244,
+     "line": 5507,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -26276,7 +26282,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 670,
+     "line": 933,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -26300,8 +26306,8 @@
    "first_commit": "6e31946cbe",
    "first_date": "2026-11-05",
    "since": "v0.2.12",
-   "last_commit": "3d209733d2",
-   "last_date": "2026-11-08",
+   "last_commit": "3d302a600d",
+   "last_date": "2026-11-14",
    "status": "default",
    "owner": "prefill",
    "note": "[auto] on by default for some GPU architectures only (gfx1151 (Windows) src/core/arch_defaults.cpp:189=1); opt-in elsewhere; the variable overrides it",
@@ -26412,8 +26418,8 @@
    "first_commit": "bd5cc1f27b",
    "first_date": "2026-10-14",
    "since": "v0.1.45",
-   "last_commit": "63f063852f",
-   "last_date": "2026-11-06",
+   "last_commit": "3d302a600d",
+   "last_date": "2026-11-14",
    "status": "default",
    "owner": "prefill",
    "note": "[auto] on by default for some GPU architectures only (gfx1151 (Windows) src/core/arch_defaults.cpp:185=1); opt-in elsewhere; the variable overrides it",
@@ -26461,7 +26467,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6300,
+     "line": 6682,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -26475,11 +26481,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "af5803e4be",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "b1db4ab8e4",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "prefill",
    "note": "[reviewed] Research switch, off unless set (\"0\" off, anything else on; src/prefill/fewrows.hpp), except that the Tesla P100 prompt default turns it on when gp100_prompt_default.hpp's kGp100Default is true. On the FP16 prompt path an expert with 1..12 rows runs on the quantized grouped kernels (no dequantize) instead of dequantize + FP16 GEMMs; native packs without APR only. Tesla P100 numbers in phaseA-tests/par/RESULTS-P4-FALLBACK.md. Not documented for users",
@@ -26599,19 +26605,19 @@
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2807,
+     "line": 2868,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2823,
+     "line": 2884,
      "backend": "hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2841,
+     "line": 2902,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -26623,7 +26629,7 @@
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3914,
+     "line": 3965,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -26646,11 +26652,11 @@
    "engine_sets": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3917
+     "line": 3968
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3919
+     "line": 3970
     }
    ],
    "engine_defaults": [
@@ -26702,8 +26708,8 @@
    "first_commit": "47de4a4d83",
    "first_date": "2026-10-02",
    "since": "v0.1.36",
-   "last_commit": "6e31946cbe",
-   "last_date": "2026-11-05",
+   "last_commit": "3d302a600d",
+   "last_date": "2026-11-14",
    "status": "default",
    "owner": "core",
    "note": "[auto] on by default for some GPU architectures only (gfx1151 (Windows) src/core/arch_defaults.cpp:196=1; gfx1103 / gfx1150 / gfx1151 (Linux, integrated) src/core/arch_defaults.cpp:376=1; sm_121 src/core/nv_defaults.cpp:66=1); opt-in elsewhere; the variable overrides it; =0 keeps MMQ",
@@ -26718,7 +26724,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2260,
+     "line": 2321,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -26754,7 +26760,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2806,
+     "line": 2867,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -26787,7 +26793,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2822,
+     "line": 2883,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -26801,11 +26807,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "96fef73d26",
+   "first_date": "2026-11-10",
+   "since": "v0.2.14",
+   "last_commit": "96fef73d26",
+   "last_date": "2026-11-10",
    "status": "rollback",
    "owner": "prefill",
    "note": "[OWN-4A 11-10] IQ2_XXS / IQ2_XS gate/up (the IQ3_XXS pack, the IQ2_XS sets) on the fused prompt kernels: default ON on gfx12 under Linux (0.2.15, owner 11-10); =0 keeps those layers on MMQ (two releases); Windows gfx12: opt-in via STRATA_PF_FUSED=1",
@@ -26828,13 +26834,13 @@
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2406,
+     "line": 2467,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2475,
+     "line": 2536,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -26861,8 +26867,8 @@
    "first_commit": "7440806987",
    "first_date": "2026-10-04",
    "since": "v0.1.40",
-   "last_commit": "4dbaf703fd",
-   "last_date": "2026-11-05",
+   "last_commit": "5410b3bc0b",
+   "last_date": "2026-11-13",
    "status": "rollback",
    "owner": "prefill",
    "note": "[11-12] CUDA: the K-quant experts of UD-Q4_K_XL (Q4_K / Q5_K gate/up with a Q5_1 or Q8_0 down) are read by Strata's fused prompt kernels by default on compute capability 8.0, 8.6, 8.9 and 12.0 cards with 80 or more multiprocessors (RTX A6000, A40, RTX 3090, RTX PRO 5000 class), and with 40 to 79 on the staged launches unless STRATA_PF_FUSED_SM40=0, and on the DGX Spark (12.1) through its defaults table; =0 puts them back on MMQ, =1 takes them on every sm_80+ card. AMD: still opt-in (=1 with STRATA_PF_FUSED=1 on gfx12; on by default on gfx1151 under Windows). One layer on the RTX A6000, Q4_K / Q5_1, MMQ time / fused time with the 128-row tile: 1.65 / 1.49 / 1.52 / 1.29 / 1.04 / 0.97 / 0.88 at 300 / 1,000 / 2,048 / 4,096 / 8,192 / 20,000 / 32,768 tokens. [docs/STRIX_HALO.md:228]",
@@ -26878,7 +26884,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2832,
+     "line": 2893,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -26920,7 +26926,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2264,
+     "line": 2325,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -26956,7 +26962,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2391,
+     "line": 2452,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -26978,8 +26984,8 @@
    "first_commit": "c47c699486",
    "first_date": "2026-10-26",
    "since": "v0.2.7",
-   "last_commit": "10c8cc629f",
-   "last_date": "2026-10-27",
+   "last_commit": "289dd66fc2",
+   "last_date": "2026-11-13",
    "status": "opt-in",
    "owner": "prefill",
    "note": "[auto] documented for users (docs/DETAILS.md:1159), 3 more",
@@ -26995,13 +27001,13 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2198,
+     "line": 2259,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2559,
+     "line": 2620,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -27018,8 +27024,8 @@
    "first_commit": "63f063852f",
    "first_date": "2026-11-06",
    "since": "v0.2.12",
-   "last_commit": "e77bd43bc9",
-   "last_date": "2026-11-06",
+   "last_commit": "e95ba413c1",
+   "last_date": "2026-11-13",
    "status": "rollback",
    "owner": "prefill",
    "note": "[OWN-4A 11-10] Q5_0 down layers (UD-IQ4_XS-v31) on the fused prompt kernels: default ON on gfx12 under Linux (0.2.15, owner 11-10) and on gfx1151 under Windows (round 0217); =0 keeps the dequantize + FP16 GEMM route (two releases), =1 turns it on elsewhere (gfx12 Windows, Linux gfx1151)",
@@ -27035,13 +27041,13 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2216,
+     "line": 2277,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2624,
+     "line": 2685,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -27055,11 +27061,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "6f041b3366",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "289dd66fc2",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "prefill",
    "note": "[DRAFT] CUDA and HIP gfx12 (phase 4, opt-in, default off): a Q6_K gate/up with a Q8_0 down (UD-Q6_K_XL's 47 layers, UD-Q5_K_XL's one Q6_K layer) on the fused native kernels instead of MMQ, on any sm_80+ card and on gfx1200 / gfx1201. In a build without llama.cpp's MMQ it is on by default on both (a value you set is kept).",
@@ -27075,13 +27081,13 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2204,
+     "line": 2265,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2579,
+     "line": 2640,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -27095,11 +27101,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "fe62b42c6c",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "289dd66fc2",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "prefill",
    "note": "[DRAFT] CUDA and HIP gfx12 (phase 4, opt-in, default off): a Q8_0 down behind an i-quant gate/up (the pinned UD-IQ4_XS's five Q8_0-down layers) on the fused native kernels instead of MMQ, on any sm_80+ card and on gfx1200 / gfx1201. In a build without llama.cpp's MMQ it is on by default on both (a value you set is kept).",
@@ -27115,13 +27121,13 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2210,
+     "line": 2271,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2617,
+     "line": 2678,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -27135,11 +27141,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "9651f8c4ff",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "289dd66fc2",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "prefill",
    "note": "[DRAFT] CUDA and HIP gfx12 (phase 4, opt-in, default off): a Q8_0 gate/up with a Q8_0 down (the Q8_0 set, UD-Q6_K_XL's one Q8_0 layer) on the fused native kernels instead of MMQ, on any sm_80+ card and on gfx1200 / gfx1201. In a build without llama.cpp's MMQ it is on by default on both (a value you set is kept).",
@@ -27167,13 +27173,13 @@
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2407,
+     "line": 2468,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2927,
+     "line": 2988,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -27187,11 +27193,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "f73297a96a",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "d1ec6f0397",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "prefill",
    "note": "CUDA diagnostic for bug reports, not a user setting: =0 puts compute capability 8.0, 8.6, 8.9 and 12.0 cards with 40-79 SMs back on MMQ for the IQ3_XXS / IQ3_S / IQ4_XS gate/up layers with an IQ4_NL or Q2_0 down (the fused prompt kernels are the default on those cards since 11-12, on 8.0 and 8.9 by the same code with no card of those two run; unset or =1 is the default; RTX A4000 end to end: prompt time MMQ / fused 1.000 / 1.003 / 1.028 / 1.012 at 2K / 4K / 8K / 20K). Goes away with MMQ (release C).",
@@ -27212,7 +27218,7 @@
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2368,
+     "line": 2429,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -27231,8 +27237,8 @@
    "first_commit": "9512b9c84b",
    "first_date": "2026-10-15",
    "since": "v0.1.45",
-   "last_commit": "7f1964a6cb",
-   "last_date": "2026-10-15",
+   "last_commit": "7fc188c0b9",
+   "last_date": "2026-11-13",
    "status": "opt-in",
    "owner": "prefill",
    "note": "[auto] documented for users (docs/DETAILS.md:1158)",
@@ -27247,7 +27253,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2375,
+     "line": 2436,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -27261,11 +27267,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "7fc188c0b9",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "7fc188c0b9",
+   "last_date": "2026-11-13",
    "status": "rollback",
    "owner": "prefill",
    "note": "[reviewed] On a Turing card (sm_75) the i-quant gate/up pairs run on the fused kernels when STRATA_PF_FUSED_SM75 is on; 0 here puts them back on the int8 dp4a kernels (Q2_0 / Q2_0 stays fused).",
@@ -27280,7 +27286,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2362,
+     "line": 2423,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -27294,11 +27300,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "4543053612",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "4d958fbdbf",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "prefill",
    "note": "CUDA diagnostic for bug reports, not a user setting: =0 puts compute capability 8.0, 8.6 and 8.9 cards (the sm_86 class) back on MMQ for the default list's gate/up formats (IQ2_XXS, IQ2_XS, IQ2_S, IQ3_XXS, IQ3_S, IQ4_XS; the fused prompt kernels are the default on 8.6 cards with 80+ SMs since 11-11, IQ2_XXS / IQ2_XS since 11-12, and on 8.0 and 8.9 cards since 11-12 by the same code with no card of those two run). Goes away with MMQ (release C).",
@@ -27314,7 +27320,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2745,
+     "line": 2806,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -27337,8 +27343,8 @@
    "first_commit": "60445b58c0",
    "first_date": "2026-10-02",
    "since": "v0.1.36",
-   "last_commit": "23a38a0bb7",
-   "last_date": "2026-10-07",
+   "last_commit": "cb5f224140",
+   "last_date": "2026-11-14",
    "status": "research",
    "owner": "prefill",
    "note": "[reviewed] Tile tuning: nothing on sm_86, auto stays. [phaseA-tests/notes-144-pfiq.md:12]",
@@ -27354,7 +27360,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2586,
+     "line": 2647,
      "backend": "hip",
      "fn": "getenv"
     },
@@ -27374,11 +27380,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "ff301f11ed",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "09b6038869",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "prefill",
    "note": "[DRAFT] CUDA and HIP gfx12 (phase 4): the Gyro trellis experts (TQK6 / TQK7, TQ2_T / TQ2_T), Hadamard-folded layers included, on the fused native kernels instead of MMQ. CUDA, unset: Gyro-S (TQK6 / TQK7) on compute capability 8.0, 8.6 and 8.9 cards with 80+ SMs (RTX A6000 class, gated on the 8.6 A6000 only; 8.0 and 8.9 by the same code since 11-12, no card of those two run; include/strata/prefill/fused_tq_default.hpp, tests/prefill/fused_tq_default_test.cpp), a diagnostic switch for bug reports, not a user setting; =1: Gyro-S and Gyro-M (TQ2_T / TQ2_T, no gate series) on any sm_80+ card and, on HIP, on gfx1200 / gfx1201 (HIP: opt-in, default off in a build with MMQ); =0: MMQ again. STRATA_PF_FUSED_SM86=0 turns the sm_86 default off too. In a build without llama.cpp's MMQ it is on by default on CUDA (sm_80+) and on HIP gfx1200 / gfx1201 (a value you set is kept). Goes with MMQ in release C.",
@@ -27393,7 +27399,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2268,
+     "line": 2329,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -27431,7 +27437,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 727,
+     "line": 990,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -27498,8 +27504,8 @@
    "first_commit": "4c00d2e7a3",
    "first_date": "2026-10-03",
    "since": "v0.1.40",
-   "last_commit": "7f6bc33081",
-   "last_date": "2026-10-30",
+   "last_commit": "9187ef658b",
+   "last_date": "2026-11-12",
    "status": "default",
    "owner": "prefill",
    "note": "[auto] on by default for some GPU architectures only (? src/core/arch_defaults.cpp:164=1; gfx1151 (Windows) src/core/arch_defaults.cpp:175=1); opt-in elsewhere; the variable overrides it",
@@ -27514,7 +27520,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 1895,
+     "line": 2158,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -27547,7 +27553,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 1875,
+     "line": 2138,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -27566,8 +27572,8 @@
    "first_commit": "fbf6e1c753",
    "first_date": "2026-10-31",
    "since": "v0.2.10",
-   "last_commit": "c940106485",
-   "last_date": "2026-10-31",
+   "last_commit": "9d53a1a8db",
+   "last_date": "2026-11-13",
    "status": "opt-in",
    "owner": "prefill",
    "note": "[reviewed] Listed among opt-ins checked as off unless set. [gh-sweep-1031/INT-TRIAL2.md:95]",
@@ -27616,7 +27622,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 693,
+     "line": 956,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -27655,7 +27661,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 1911,
+     "line": 2174,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -27725,7 +27731,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 3093,
+     "line": 3154,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -27739,11 +27745,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "e985dd3d5e",
+   "first_date": "2026-11-10",
+   "since": "v0.2.14",
+   "last_commit": "e985dd3d5e",
+   "last_date": "2026-11-10",
    "status": "research",
    "owner": "prefill",
    "note": "trial switch (OWN-4A, 11-10): the K-quant fused prompt kernels on the occupancy launch, 3 blocks per WGP; HIP only, off by default",
@@ -27765,7 +27771,7 @@
     },
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2292,
+     "line": 2353,
      "backend": "hip",
      "fn": "getenv"
     },
@@ -27810,7 +27816,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2305,
+     "line": 2366,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -27909,7 +27915,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 3007,
+     "line": 3068,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -27930,11 +27936,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "7aa7c8238f",
+   "first_date": "2026-11-14",
+   "since": "v0.2.14",
+   "last_commit": "3d302a600d",
+   "last_date": "2026-11-14",
    "status": "default",
    "owner": "prefill",
    "note": "on by default for some GPU architectures only (gfx1151 (Windows) src/core/arch_defaults.cpp:212=1); opt-in elsewhere; the variable overrides it",
@@ -27949,7 +27955,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 3017,
+     "line": 3078,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -27963,11 +27969,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "7aa7c8238f",
+   "first_date": "2026-11-14",
+   "since": "v0.2.14",
+   "last_commit": "7aa7c8238f",
+   "last_date": "2026-11-14",
    "status": "opt-in",
    "owner": "prefill",
    "note": "with STRATA_PF_P1A on gfx1151: also the Q5_K gate/up and Q8_0 down layers on the P1A kernels; not measured as a default",
@@ -27984,7 +27990,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 727,
+     "line": 990,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -28052,7 +28058,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3009,
+     "line": 3272,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -28091,7 +28097,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 415,
+     "line": 678,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -28124,7 +28130,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3054,
+     "line": 3317,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -28157,7 +28163,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3057,
+     "line": 3320,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -28190,7 +28196,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2952,
+     "line": 3215,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -28224,7 +28230,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2993,
+     "line": 3256,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -28264,7 +28270,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3027,
+     "line": 3290,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -28304,7 +28310,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3023,
+     "line": 3286,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -28343,7 +28349,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3050,
+     "line": 3313,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -28376,7 +28382,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2978,
+     "line": 3241,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -28402,6 +28408,39 @@
    "retired_in": ""
   },
   {
+   "name": "STRATA_PF_PLAIN_FLOOR",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [
+    {
+     "file": "src/prefill/prefill.cpp",
+     "line": 607,
+     "backend": "cuda-hip",
+     "fn": "getenv"
+    }
+   ],
+   "parse": "string",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [],
+   "first_commit": "fb7dee4e57",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "29173b3dba",
+   "last_date": "2026-11-14",
+   "status": "rollback",
+   "owner": "prefill",
+   "note": "In a build without llama.cpp's MMQ that loads the plain Q2_0 pack (not a native pack) on a discrete CUDA card, prompt chunks of 1,536 tokens or more are read by the streamed walk on the fused kernels, with or without the CPU prefill share. Before, the share's limit (3,072 tokens) was the floor although the share takes no experts of that pack, and below it each routed expert ran on the dequantize + FP16 path (a 1,567-token tail chunk of a 20,000-token prompt: about 0.95 s). The plain pack's own floor of 64 tokens was measured on an integrated GPU; on a discrete card it streams every expert for every chunk (256 tokens: 2.07 times slower). Measured on one RTX 5070 on PCIe 4.0 x16 only. =0 is the old rule on every class. Integrated cards, HIP builds, a build with MMQ and the native packs are unchanged. src/prefill/prefill.cpp plain_discrete_floor_now, include/strata/prefill/plain_floor_rule.hpp.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
    "name": "STRATA_PF_Q8D_F16",
    "backends": [
     "hip"
@@ -28409,7 +28448,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2540,
+     "line": 2601,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -28431,6 +28470,39 @@
    "status": "research",
    "owner": "prefill",
    "note": "[auto] not documented for users; code default not readable from the call",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
+   "name": "STRATA_PF_SHARE_OWN",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [
+    {
+     "file": "src/prefill/prefill.cpp",
+     "line": 433,
+     "backend": "cuda-hip",
+     "fn": "getenv"
+    }
+   ],
+   "parse": "string",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [],
+   "first_commit": "9d53a1a8db",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "9d53a1a8db",
+   "last_date": "2026-11-13",
+   "status": "rollback",
+   "owner": "prefill",
+   "note": "A prompt layer on which the CPU prefill share took experts keeps the staged fused entry and the int8 kernels for the GPU's own experts, in a build without llama.cpp's MMQ (before, such a layer ran the GPU's experts on the FP16 path: 12 to 18 percent slower than the build with MMQ at 2,049 tokens on an RTX A4000). Unset: new rule in a build without MMQ, old rule (MMQ's groups) in a build with MMQ. =0 is the old rule everywhere, =1 the new rule in a build with MMQ too (research). src/prefill/prefill.cpp share_keeps_own_kernels, include/strata/prefill/share_own_rule.hpp.",
    "retire_after": "",
    "retired_in": ""
   },
@@ -28465,8 +28537,8 @@
    "first_commit": "fd59c9c39b",
    "first_date": "2026-11-02",
    "since": "v0.2.10",
-   "last_commit": "fd59c9c39b",
-   "last_date": "2026-11-02",
+   "last_commit": "6d7a183f0c",
+   "last_date": "2026-11-12",
    "status": "default",
    "owner": "program",
    "note": "[auto] described as on by default (code)",
@@ -28495,14 +28567,49 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "6d7a183f0c",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "4e4888ddc2",
+   "last_date": "2026-11-13",
    "status": "rollback",
    "owner": "program",
    "note": "Way back for the small-card prompt path (CUDA, one card, native pack, default chunk under 8,192 tokens): unset, the native fused expert kernels run inside the path's MMQ buffer layout (the layer-major walk's groups and the streamed chunks); 0: MMQ's kernels there, as before. STRATA_PF_SMALL=0 turns the whole rule off; STRATA_PF_FUSED named by hand still wins over both.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
+   "name": "STRATA_PF_STAGED_FO",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [
+    {
+     "file": "src/prefill/prefill.cpp",
+     "line": 416,
+     "backend": "cuda-hip",
+     "fn": "getenv"
+    }
+   ],
+   "parse": "flag",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [
+    "docs/STRIX_HALO.md:221"
+   ],
+   "first_commit": "37f0d8c688",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "ce414cb9e9",
+   "last_date": "2026-11-13",
+   "status": "rollback",
+   "owner": "prefill",
+   "note": "[reviewed] The staged walk's fused group entry for a layer that has no MMQ tile but that the fused kernels cover (UD-Q4_K_XL on gfx1151 without STRATA_MMQ_KQ; every layer of a build without llama.cpp's MMQ): a prompt chunk below the long-prompt floor runs its routed experts on the fused kernels, streaming only the routed ones, instead of the dequantize + FP16 GEMM path. Unset: in a build without llama.cpp's MMQ on for every layer the fused kernels cover, on every card class (the build without MMQ takes the path the build with MMQ takes wherever that path does not need MMQ; the layers the fused kernels do not cover take the int8 kernels, then the FP16 path); in a build with MMQ on for Windows gfx1151 with a layer set that has no MMQ tile and the fused kernels on every layer, off elsewhere. =1 asks for it on any card (research), =0 turns it off (the long-prompt path from 64 tokens on the Windows gfx1151 class). src/prefill/prefill.cpp staged_fo_on, include/strata/prefill/staged_fo_rule.hpp.",
    "retire_after": "",
    "retired_in": ""
   },
@@ -28515,7 +28622,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4455,
+     "line": 4718,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -28564,7 +28671,7 @@
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 665,
+     "line": 928,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -28616,8 +28723,8 @@
    "first_commit": "b6b7a87d84",
    "first_date": "2026-10-03",
    "since": "v0.1.40",
-   "last_commit": "23a38a0bb7",
-   "last_date": "2026-10-07",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "opt-in",
    "owner": "kernels/cuda",
    "note": "[reviewed] STRIX_HALO.md section 5 sets it for users to keep default numerics on short prompts. [_issues_dump/2021.md:6]",
@@ -28632,7 +28739,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2760,
+     "line": 2821,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -28649,8 +28756,8 @@
    "first_commit": "9a398bd5bf",
    "first_date": "2026-10-27",
    "since": "v0.2.7.1",
-   "last_commit": "9a398bd5bf",
-   "last_date": "2026-10-27",
+   "last_commit": "5b6396fda7",
+   "last_date": "2026-11-10",
    "status": "research",
    "owner": "prefill",
    "note": "[auto] diagnostic / trace / measurement switch by name or by code, not documented for users",
@@ -28665,7 +28772,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2593,
+     "line": 2654,
      "backend": "hip",
      "fn": "getenv"
     }
@@ -28679,11 +28786,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "6bb186c278",
+   "first_date": "2026-11-15",
+   "since": "v0.2.14",
+   "last_commit": "64e95049ab",
+   "last_date": "2026-11-15",
    "status": "default",
    "owner": "prefill",
    "note": "on by default on Windows gfx1151 in a build without llama.cpp's MMQ (the fused prompt kernels take Gyro-S's trellis experts; include/strata/prefill/fused_tq_hip.hpp kG1151DefaultOn); =0 (or STRATA_GFX1151_DEFAULTS=0) turns it off, =1 also takes Gyro-M's pair and turns it on for Linux gfx1151; nothing on other devices; for A/B runs only, not for users",
@@ -28738,7 +28845,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 1651,
+     "line": 1914,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -30303,8 +30410,8 @@
    "first_commit": "7cf709e5b1",
    "first_date": "2026-09-28",
    "since": "v0.1.13",
-   "last_commit": "78316c8df4",
-   "last_date": "2026-11-02",
+   "last_commit": "b902973681",
+   "last_date": "2026-11-13",
    "status": "default",
    "owner": "core",
    "note": "[auto] on by default for some GPU architectures only (gfx1151 src/core/arch_defaults.cpp:87=1); opt-in elsewhere; the variable overrides it",
@@ -30582,8 +30689,8 @@
    "first_commit": "7a55995818",
    "first_date": "2026-10-20",
    "since": "v0.2.2",
-   "last_commit": "7a55995818",
-   "last_date": "2026-10-20",
+   "last_commit": "716ebae14e",
+   "last_date": "2026-11-14",
    "status": "opt-in",
    "owner": "program",
    "note": "[reviewed] Experimental, off by default --pool-cores option, documented. [notes-022-cores.md:33]",
@@ -30823,7 +30930,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 581,
+     "line": 844,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -30895,8 +31002,8 @@
    "first_commit": "1493781e91",
    "first_date": "2026-10-28",
    "since": "v0.2.9",
-   "last_commit": "cda6463e8e",
-   "last_date": "2026-10-31",
+   "last_commit": "c3f6978b10",
+   "last_date": "2026-11-15",
    "status": "opt-in",
    "owner": "program",
    "note": "[auto] documented for users (docs/STRIX_HALO.md:221), 1 more",
@@ -30911,7 +31018,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4260,
+     "line": 4523,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -30946,7 +31053,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4264,
+     "line": 4527,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -30981,7 +31088,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 396,
+     "line": 659,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31012,8 +31119,8 @@
    "first_commit": "978d355852",
    "first_date": "2026-10-07",
    "since": "v0.1.40.2",
-   "last_commit": "d2068bde56",
-   "last_date": "2026-10-31",
+   "last_commit": "6069c9d0c4",
+   "last_date": "2026-11-15",
    "status": "default",
    "owner": "prefill",
    "note": "[reviewed] CPU prefill share is armed by default in places (gfx12, below 1,024 tokens); variable tunes or disables. [phaseA-tests/amd-q/RESULTS.md:109]",
@@ -31067,13 +31174,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 424,
+     "line": 687,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 427,
+     "line": 690,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -31092,8 +31199,8 @@
    "first_commit": "92bce20e4b",
    "first_date": "2026-10-07",
    "since": "v0.1.41",
-   "last_commit": "2b9f05093d",
-   "last_date": "2026-11-06",
+   "last_commit": "bb0476d0aa",
+   "last_date": "2026-11-13",
    "status": "opt-in",
    "owner": "prefill",
    "note": "[reviewed] Documented CPU share extension, off by default. [release-v0.1.41.md:66]",
@@ -31109,13 +31216,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6894,
+     "line": 7276,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8142,
+     "line": 8524,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31138,8 +31245,8 @@
    "first_commit": "7cf709e5b1",
    "first_date": "2026-09-28",
    "since": "v0.1.13",
-   "last_commit": "ffe40c1695",
-   "last_date": "2026-10-26",
+   "last_commit": "bde9faeb9c",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "prefill",
    "note": "[auto] diagnostic / trace / measurement switch by name or by code, not documented for users",
@@ -31155,13 +31262,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6907,
+     "line": 7289,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7251,
+     "line": 7633,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31238,8 +31345,8 @@
    "first_commit": "5e53c516b3",
    "first_date": "2026-10-05",
    "since": "v0.1.40",
-   "last_commit": "125025a770",
-   "last_date": "2026-10-14",
+   "last_commit": "a17d2f9100",
+   "last_date": "2026-11-14",
    "status": "opt-in",
    "owner": "program",
    "note": "[auto] documented for users (docs/DETAILS.md:1089)",
@@ -31297,7 +31404,13 @@
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6122,
+     "line": 5975,
+     "backend": "cuda-hip",
+     "fn": "getenv"
+    },
+    {
+     "file": "src/prefill/prefill.cpp",
+     "line": 6504,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31322,8 +31435,8 @@
    "first_commit": "e8de49ebc1",
    "first_date": "2026-10-02",
    "since": "v0.1.38",
-   "last_commit": "653f011360",
-   "last_date": "2026-10-14",
+   "last_commit": "3a4763217c",
+   "last_date": "2026-11-12",
    "status": "default",
    "owner": "prefill",
    "note": "[reviewed] Grouped gather is default; =0 turns it off with no gain measured. [docs/DETAILS.md:1117]",
@@ -31339,7 +31452,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2803,
+     "line": 3066,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31424,7 +31537,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2815,
+     "line": 3078,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31503,7 +31616,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4256,
+     "line": 4519,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31544,7 +31657,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7128,
+     "line": 7510,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31654,7 +31767,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7139,
+     "line": 7521,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -31687,7 +31800,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7134,
+     "line": 7516,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -31720,7 +31833,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7160,
+     "line": 7542,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -31753,7 +31866,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7149,
+     "line": 7531,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -31786,7 +31899,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7144,
+     "line": 7526,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -31833,11 +31946,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "b637627a37",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "b637627a37",
+   "last_date": "2026-11-13",
    "status": "rollback",
    "owner": "program",
    "note": "[reviewed] \"STRATA_PREFILL_LOAN_WALK=0 keeps the rounded chunk\"; a prompt piece below the walk floor lends buffers for the staged walk (default on).",
@@ -31853,13 +31966,25 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 1706,
+     "line": 376,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6300,
+     "line": 486,
+     "backend": "cuda-hip",
+     "fn": "getenv"
+    },
+    {
+     "file": "src/prefill/prefill.cpp",
+     "line": 1969,
+     "backend": "cuda-hip",
+     "fn": "getenv"
+    },
+    {
+     "file": "src/prefill/prefill.cpp",
+     "line": 6682,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31906,8 +32031,8 @@
    "first_commit": "7cf709e5b1",
    "first_date": "2026-09-28",
    "since": "v0.1.13",
-   "last_commit": "89f4fa18ee",
-   "last_date": "2026-11-06",
+   "last_commit": "74e0ad55ba",
+   "last_date": "2026-11-14",
    "status": "opt-in",
    "owner": "prefill",
    "note": "[auto] documented for users (docs/AMD_HIP.md:394), 15 more",
@@ -31923,7 +32048,7 @@
    "reads": [
     {
      "file": "src/prefill/moe_fused_iq.cu",
-     "line": 2885,
+     "line": 2946,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -31969,8 +32094,8 @@
    "first_commit": "e51b4379dc",
    "first_date": "2026-10-12",
    "since": "v0.1.44",
-   "last_commit": "8544420180",
-   "last_date": "2026-10-27",
+   "last_commit": "cf9d86fba1",
+   "last_date": "2026-11-13",
    "status": "default",
    "owner": "prefill",
    "note": "[auto] on by default for some GPU architectures only (sm_121 src/core/nv_defaults.cpp:67=w4a4); opt-in elsewhere; the variable overrides it",
@@ -31985,7 +32110,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3190,
+     "line": 3453,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -32054,7 +32179,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 532,
+     "line": 795,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -32097,7 +32222,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4275,
+     "line": 4538,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -32132,7 +32257,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4276,
+     "line": 4539,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -32236,7 +32361,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 371,
+     "line": 615,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -32265,8 +32390,8 @@
    "first_commit": "3e3d69b4d4",
    "first_date": "2026-09-30",
    "since": "v0.1.30",
-   "last_commit": "125025a770",
-   "last_date": "2026-10-14",
+   "last_commit": "29173b3dba",
+   "last_date": "2026-11-14",
    "status": "rollback",
    "owner": "prefill",
    "note": "[reviewed] The chunk size from which a prompt chunk takes the long-prompt path (1,024 by default). On Windows gfx1151 with a layer set that has no MMQ tile and the fused kernels on every layer (UD-Q4_K_XL) the staged walk has a fused entry (STRATA_PF_STAGED_FO, on by default there) and the floor stays 1,024; with STRATA_PF_STAGED_FO=0 that class uses 64 (src/prefill/prefill.cpp default_stream_floor, include/strata/prefill/stream_floor_rule.hpp). STRATA_PREFILL_STREAM_MIN=1024 restores the old rule. Any value set replaces the floor everywhere. [docs/STRIX_HALO.md:156]",
@@ -32328,11 +32453,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "71f3c6db67",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "a17d2f9100",
+   "last_date": "2026-11-14",
    "status": "rollback",
    "owner": "program",
    "note": "[reviewed] \"STRATA_PREFILL_TAIL_LOAN=0 keeps the stream floor's tail\"; the lent fused MoE buffers are sized for the segment's own short last chunk, not for stream floor - 1 tokens (default on; one GPU).",
@@ -32348,13 +32473,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3523,
+     "line": 3786,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3564,
+     "line": 3827,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -32403,19 +32528,19 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2040,
+     "line": 2303,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2054,
+     "line": 2317,
      "backend": "hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2219,
+     "line": 2482,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -32483,8 +32608,8 @@
    "first_commit": "10552345e9",
    "first_date": "2026-10-14",
    "since": "v0.1.45",
-   "last_commit": "3f1fa67f14",
-   "last_date": "2026-10-20",
+   "last_commit": "716ebae14e",
+   "last_date": "2026-11-14",
    "status": "opt-in",
    "owner": "program",
    "note": "[auto] documented for users (docs/SECOND_GPU.md:110), 1 more",
@@ -32537,11 +32662,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: the 'B60 next pool' path of the fused GR and IQ kernels (the name is the code's); read at sycl/src/kernels/cuda/fused_gr.dp.cpp:2895 and iq_kernels.dp.cpp:5191 and only effective on the main actor. Read from the code only; the integration lane measured nothing on it.",
@@ -32570,11 +32695,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: the S4 down-projection variant of the IQ2 kernels (p4_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:4721). Read from the code only; the integration lane measured nothing on it.",
@@ -32603,11 +32728,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: the 2-D pair layout of the fused GR kernel, main actor only (gr_2d_pair_enabled, sycl/src/kernels/cuda/fused_gr.dp.cpp:2764). Read from the code only; the integration lane measured nothing on it.",
@@ -32636,11 +32761,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private selector for STRATA_PRIVATE_GR_F32_REG: which phase takes the FP32 register path; unset or 'both' = both phases, otherwise the named phase only (gf_phase, sycl/src/kernels/cuda/fused_gr.dp.cpp:2691). Read from the code only; the integration lane measured nothing on it.",
@@ -32669,11 +32794,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private switch, off by default (any non-zero number turns it on): the FP32 register path of the fused GR kernel for 1 to 4 tokens when the down projection is sliced (gf_enabled, sycl/src/kernels/cuda/fused_gr.dp.cpp:2686). Read from the code only; the integration lane measured nothing on it.",
@@ -32702,11 +32827,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private switch, off by default (non-zero turns it on): four-wide loads in the GR up-projection low-order part (gr_lo_vec4_enabled, sycl/src/kernels/cuda/fused_gr.dp.cpp:2367). Read from the code only; the integration lane measured nothing on it.",
@@ -32735,11 +32860,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: the Q8 up-projection kernel with 32-row blocks (more blocks, fewer serial rows per warp, same bits), Battlemage layout only (b60_gr_q8_up32_enabled, sycl/src/kernels/cuda/fused_gr.dp.cpp:2386). Read from the code only; the integration lane measured nothing on it.",
@@ -32768,11 +32893,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private switch, off by default (non-zero turns it on): the combined kernel takes SiLU from the low-order part (gr_combo_silu_enabled, sycl/src/kernels/cuda/fused_gr.dp.cpp:2530). Read from the code only; the integration lane measured nothing on it.",
@@ -32801,11 +32926,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: structure-of-arrays cache of the fused GR kernel, main actor only (gr_soa_enabled, sycl/src/kernels/cuda/fused_gr.dp.cpp:2969). Read from the code only; the integration lane measured nothing on it.",
@@ -32834,11 +32959,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: 16-row up-projection blocks of the fused GR kernel, Battlemage layout only (gr_up_rows16_enabled, sycl/src/kernels/cuda/fused_gr.dp.cpp:2517). Read from the code only; the integration lane measured nothing on it.",
@@ -32867,11 +32992,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: the 64-wide grid variant of the IQ gate/up kernel (grid64_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:4816). Read from the code only; the integration lane measured nothing on it.",
@@ -32900,11 +33025,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: the S4 grid table variant of the IQ gate/up kernel (grid_s4_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:4913). Read from the code only; the integration lane measured nothing on it.",
@@ -32945,11 +33070,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: packed-weight IQ1_M gate/up kernel, Battlemage cards with packed weights only (i1_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:5090). Read from the code only; the integration lane measured nothing on it.",
@@ -32984,11 +33109,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: prepared row reuse of the IQ2 gate/up kernel (gu22_row_reuse_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:4227). Read from the code only; the integration lane measured nothing on it.",
@@ -33017,11 +33142,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: basis-9 variant of the S4 grid gate/up kernel (grid_s4_basis9_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:5310). Read from the code only; the integration lane measured nothing on it.",
@@ -33050,11 +33175,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: shared-local-memory variant of the S4 grid gate/up kernel (grid_s4_slm_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:5192). Read from the code only; the integration lane measured nothing on it.",
@@ -33083,11 +33208,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: work-group-16 variant of the S4 grid gate/up kernel (grid_s4_wg16_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:5427). Read from the code only; the integration lane measured nothing on it.",
@@ -33128,11 +33253,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: packed-weight IQ2_XXS gate/up kernel, Battlemage cards with packed weights only (p16_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:4623). Read from the code only; the integration lane measured nothing on it.",
@@ -33161,11 +33286,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: sixteen-row S4 variant of the IQ2_XXS gate/up kernel (xxs_s4_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:5480). Read from the code only; the integration lane measured nothing on it.",
@@ -33194,11 +33319,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: exact int4 DPAS path of the IQ4 matrix-vector kernel when the weights are packed (sycl/src/kernels/cuda/native_mmvq.dp.cpp:3717). Read from the code only; the integration lane measured nothing on it.",
@@ -33227,11 +33352,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: demand-driven MTP drafting state; debug disagreement or forced-miss modes keep the normal path (sycl/src/program/generate.cpp:11735). Read from the code only; the integration lane measured nothing on it.",
@@ -33260,11 +33385,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private debug switch: any value (even empty) prints functional evidence of the demand-driven MTP path, kept out of timing (sycl/src/program/generate.cpp:11866). Read from the code only; the integration lane measured nothing on it.",
@@ -33293,11 +33418,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private micro-benchmark switch of the demand-driven MTP path (a number; replays the last chain's staging, no model or device allocation; sycl/src/program/generate.cpp:12153). Read from the code only; the integration lane measured nothing on it.",
@@ -33338,11 +33463,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Private opt-in (=1), off by default: register-resident packed-weight kernel, Battlemage cards with packed weights only (ps_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:4467). Read from the code only; the integration lane measured nothing on it.",
@@ -33460,13 +33585,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 5015,
+     "line": 5278,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8414,
+     "line": 8796,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -33997,7 +34122,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 1598,
+     "line": 1649,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34030,7 +34155,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3974,
+     "line": 4025,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34065,13 +34190,13 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 4000,
+     "line": 4051,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 4000,
+     "line": 4051,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34104,7 +34229,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 2399,
+     "line": 2450,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34139,7 +34264,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 2929,
+     "line": 2980,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34172,7 +34297,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 2067,
+     "line": 2118,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34222,8 +34347,8 @@
    "first_commit": "1176eb3c5b",
    "first_date": "2026-10-12",
    "since": "v0.1.44",
-   "last_commit": "1176eb3c5b",
-   "last_date": "2026-10-12",
+   "last_commit": "b2114b4ec7",
+   "last_date": "2026-11-13",
    "status": "default",
    "owner": "qwen35",
    "note": "[auto] on unless set to 0 (src/qwen35/q36_engine.cu:1374)",
@@ -34238,13 +34363,13 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 2926,
+     "line": 2977,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 2951,
+     "line": 3002,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34277,7 +34402,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 1636,
+     "line": 1687,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34312,7 +34437,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3975,
+     "line": 4026,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34345,7 +34470,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3283,
+     "line": 3334,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34381,7 +34506,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 2280,
+     "line": 2331,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34414,7 +34539,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 1698,
+     "line": 1749,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34447,7 +34572,7 @@
    "reads": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 1637,
+     "line": 1688,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -34737,7 +34862,7 @@
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3896,
+     "line": 3947,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -34754,11 +34879,11 @@
    "engine_sets": [
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3892
+     "line": 3943
     },
     {
      "file": "src/qwen35/q36_engine.cu",
-     "line": 3896
+     "line": 3947
     }
    ],
    "engine_defaults": [
@@ -35118,11 +35243,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "1705c8b9f0",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "e93b90250d",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "image",
    "note": "[DRAFT] Switch of Strata's own WMMA attention in the image DiT code (strata-dit-step, strata-image) on gfx1200 / gfx1201 (RDNA4): on by default there, 0 turns it off. Measured on an R9700 at 1024 x 1024, 8 steps: 6.93 s with it, 27.75 s without; the pictures are 54.1 dB (worst 35.2 dB) from the ones without it. The opt-in native DiT runner patch for sd-cli (tools/image/sdcpp_native) reads this name too and keeps its own default: there 1 turns it on.",
@@ -35185,7 +35310,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4987,
+     "line": 5250,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -35225,13 +35350,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4988,
+     "line": 5251,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4989,
+     "line": 5252,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -35276,13 +35401,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4990,
+     "line": 5253,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4990,
+     "line": 5253,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -35315,7 +35440,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4999,
+     "line": 5262,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -35406,7 +35531,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 711,
+     "line": 974,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -35439,7 +35564,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 715,
+     "line": 978,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -36476,7 +36601,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 522,
+     "line": 785,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -36818,7 +36943,7 @@
    "launch_sets": [
     {
      "file": "strata_control/speed_switches.py",
-     "line": 43,
+     "line": 46,
      "value": "\"1.5\""
     },
     {
@@ -37685,13 +37810,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4853,
+     "line": 5116,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8402,
+     "line": 8784,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -37800,13 +37925,13 @@
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8586,
+     "line": 8968,
      "backend": "metal",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 8628,
+     "line": 9010,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -38009,8 +38134,8 @@
    "first_commit": "5a826638b4",
    "first_date": "2026-10-01",
    "since": "v0.1.32",
-   "last_commit": "6e31946cbe",
-   "last_date": "2026-11-05",
+   "last_commit": "3d302a600d",
+   "last_date": "2026-11-14",
    "status": "default",
    "owner": "core",
    "note": "[auto] on by default for some GPU architectures only (? src/core/arch_defaults.cpp:166=1; gfx1151 (Windows) src/core/arch_defaults.cpp:179=1); opt-in elsewhere; the variable overrides it",
@@ -38026,7 +38151,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 4917,
+     "line": 5180,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -38112,11 +38237,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "33648fef1e",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "33648fef1e",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "program",
    "note": "on unless set to 0: a decode window that finishes after the server's STOP is dropped whole (not committed, not printed), so the session ends at the rows the client was sent (lane AGENT-CAP; serial and pipelined loop; src/program/generate.cpp)",
@@ -38333,19 +38458,19 @@
     },
     {
      "file": "serve/server.py",
-     "line": 4605,
+     "line": 4625,
      "value": "1"
     },
     {
      "file": "serve/server.py",
-     "line": 4613,
+     "line": 4633,
      "value": "1"
     }
    ],
    "launch_reads": [
     {
      "file": "serve/server.py",
-     "line": 4608
+     "line": 4628
     }
    ],
    "doc_mentions": [
@@ -38507,8 +38632,8 @@
    "first_commit": "139d702ebd",
    "first_date": "2026-10-14",
    "since": "v0.1.45",
-   "last_commit": "8becec7d5c",
-   "last_date": "2026-10-31",
+   "last_commit": "01e21ef20e",
+   "last_date": "2026-11-11",
    "status": "default",
    "owner": "program",
    "note": "the engine's own default (the parallel-request stack, bit-exact, QUAL-PAR): on with 2 or more batch slots on Linux CUDA (arch_defaults.cpp parallel_default_env_cuda, applied in generate.cpp) and on Windows gfx1151; NAME=0 turns it off; a value you set is kept",
@@ -38649,8 +38774,8 @@
    "first_commit": "ba2c2d5fb7",
    "first_date": "2026-10-17",
    "since": "v0.2.1",
-   "last_commit": "081d1c04d2",
-   "last_date": "2026-10-31",
+   "last_commit": "5b6396fda7",
+   "last_date": "2026-11-10",
    "status": "opt-in",
    "owner": "core",
    "note": "[reviewed] Umbrella for sm_120 bit-exact kernels, +0.3..0.5%; documented. [blackwell/decisions/E21.md:14]",
@@ -38686,8 +38811,8 @@
    "first_commit": "9a398bd5bf",
    "first_date": "2026-10-27",
    "since": "v0.2.7.1",
-   "last_commit": "f94a27da60",
-   "last_date": "2026-11-01",
+   "last_commit": "ba15b58bdd",
+   "last_date": "2026-11-12",
    "status": "opt-in",
    "owner": "kernels/cuda",
    "note": "[auto] documented for users (docs/DGX_SPARK_LINUX.md:92), 2 more",
@@ -39304,11 +39429,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "4079483b6d",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "4079483b6d",
+   "last_date": "2026-11-11",
    "status": "opt-in",
    "owner": "program",
    "note": "repeatable output: =1 fixes the draft policy's window costs (no measured round time changes them), as --draft-costs does with this machine's learned table; an expert override for tests and A/Bs, off by default",
@@ -39337,11 +39462,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "4079483b6d",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "4079483b6d",
+   "last_date": "2026-11-11",
    "status": "opt-in",
    "owner": "program",
    "note": "with STRATA_SPEC_FIXED=1: the round ms of windows of 1, 2, ... rows, comma separated, for every context bucket (unset: fixed where the costs stand)",
@@ -39747,8 +39872,8 @@
    "first_commit": "ecf7424b53",
    "first_date": "2026-11-02",
    "since": "v0.2.10",
-   "last_commit": "ee0b367fb7",
-   "last_date": "2026-11-03",
+   "last_commit": "4c39e8624e",
+   "last_date": "2026-11-12",
    "status": "default",
    "owner": "program",
    "note": "[auto] on unless set to 0 (src/program/generate.cpp:4077)",
@@ -40411,8 +40536,8 @@
    "first_commit": "88f4146c53",
    "first_date": "2026-10-01",
    "since": "v0.1.32",
-   "last_commit": "23a38a0bb7",
-   "last_date": "2026-10-07",
+   "last_commit": "51e5e7adcc",
+   "last_date": "2026-11-14",
    "status": "research",
    "owner": "program",
    "note": "[reviewed] Code: chunk geometry changes rounding so it is off by default; no verdict. [src/program/generate.cpp:9722]",
@@ -40720,7 +40845,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2210,
+     "line": 2473,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -40754,13 +40879,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 845,
+     "line": 1108,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2206,
+     "line": 2469,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -40843,7 +40968,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2198,
+     "line": 2461,
      "backend": "cuda-hip",
      "fn": "getenv"
     }
@@ -40879,7 +41004,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2186,
+     "line": 2449,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -41011,8 +41136,8 @@
    "first_commit": "d95805c61a",
    "first_date": "2026-10-03",
    "since": "v0.1.39",
-   "last_commit": "ee0b367fb7",
-   "last_date": "2026-11-03",
+   "last_commit": "4c39e8624e",
+   "last_date": "2026-11-12",
    "status": "research",
    "owner": "program",
    "note": "[reviewed] Experimental split-stack flag; no change in report. [_issues_dump/2239.md:67]",
@@ -41202,7 +41327,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 7091,
+     "line": 7473,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -41246,6 +41371,39 @@
    "retired_in": ""
   },
   {
+   "name": "STRATA_SWITCH_POINT",
+   "backends": [
+    "cuda-hip"
+   ],
+   "reads": [
+    {
+     "file": "src/prefill/prefill.cpp",
+     "line": 452,
+     "backend": "cuda-hip",
+     "fn": "getenv"
+    }
+   ],
+   "parse": "flag",
+   "default_state": null,
+   "code_default": null,
+   "engine_sets": [],
+   "engine_defaults": [],
+   "launch_files": [],
+   "launch_sets": [],
+   "launch_reads": [],
+   "doc_mentions": [],
+   "first_commit": "e84392acc0",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "216af487d7",
+   "last_date": "2026-11-13",
+   "status": "rollback",
+   "owner": "prefill",
+   "note": "Default: on for one class of card, off for every other (CUDA builds only; HIP never): NVIDIA discrete on PCIe, one GPU, link probe ran, compute capability 8.6 (RTX A6000 / A4000 class). Values: 0 = off, 1 = on for any CUDA card (not measured outside the class). STRATA_SWITCH_POINT=0 keeps the fixed 1,024-token floor and the fixed 3,072 CPU-share limit; =1 asks for the rule on any other CUDA card (not measured there). The chunk size from which a prompt chunk streams every expert the card does not hold comes from a cost estimate of the staged and the streamed walk (include/strata/prefill/switch_point_rule.hpp), and the CPU share's limit is 1.6 times it; a card holding every expert keeps 1,024. STRATA_PREFILL_STREAM_MIN and STRATA_PREFILL_CPU_SHARE_MAX keep precedence.",
+   "retire_after": "",
+   "retired_in": ""
+  },
+  {
    "name": "STRATA_SYCL_ADAPT_WINDOW_PRESENCE",
    "backends": [
     "sycl"
@@ -41267,11 +41425,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: the mirrored adaptive route histogram counts presence of an expert in a window instead of rows, to match the CPU usage counter's increment order (sycl/src/core/verify.cpp:2673). Read from the code only; the integration lane measured nothing on it.",
@@ -41333,11 +41491,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: bounded-launch IQ gate/up dequantization to FP16 (sycl/src/kernels/cuda/iq_kernels.dp.cpp:6643). Read from the code only; the integration lane measured nothing on it.",
@@ -41366,11 +41524,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Number of subgroups of the IQ gate/up dequantization; unset = 1 (the single-subgroup path); other values take the tiled kernel (dequant_gu_subgroups, sycl/src/kernels/cuda/iq_kernels.dp.cpp:6613). Read from the code only; the integration lane measured nothing on it.",
@@ -41399,11 +41557,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: static row indexing in the tiled IQ gate/up dequantization; only read when STRATA_SYCL_DEQUANT_GU_SG is not 1 (sycl/src/kernels/cuda/iq_kernels.dp.cpp:6647). Read from the code only; the integration lane measured nothing on it.",
@@ -41432,11 +41590,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: static type dispatch in the tiled IQ gate/up dequantization; only read when STRATA_SYCL_DEQUANT_GU_SG is not 1 (sycl/src/kernels/cuda/iq_kernels.dp.cpp:6646). Read from the code only; the integration lane measured nothing on it.",
@@ -41465,11 +41623,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Switch, off by default (non-zero turns it on): row reuse of the IQ2_XXS expert kernel (g_iq2xxs_reuse, sycl/src/kernels/cuda/iq_kernels.dp.cpp:4251). Read from the code only; the integration lane measured nothing on it.",
@@ -41498,11 +41656,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: staged expert reads in the verify path; needs device planning with STRATA_VERIFY_NO_HOST and not the Battlemage layout (sycl/src/core/verify.cpp:1659). Read from the code only; the integration lane measured nothing on it.",
@@ -41531,11 +41689,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Tuning number of the staged expert copy of STRATA_SYCL_EXPERT_STAGE; the code's default is 8 (sycl/src/core/verify.cpp:1664). Read from the code only; the integration lane measured nothing on it.",
@@ -41564,11 +41722,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Tuning string of the staged expert reads of STRATA_SYCL_EXPERT_STAGE: the group batching (sycl/src/core/verify.cpp:1663). Read from the code only; the integration lane measured nothing on it.",
@@ -41597,11 +41755,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: FP16 expert pair kernel in the prompt path; needs a native layout, no MMQ and XMX mode 0 (sycl/src/prefill/prefill.cpp:4309). Read from the code only; the integration lane measured nothing on it.",
@@ -41630,11 +41788,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: register-resident QK variant of the GDN prompt kernel (sycl/src/prefill/kernels.dp.cpp:2762). Read from the code only; the integration lane measured nothing on it.",
@@ -41663,11 +41821,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: 256-register-file variant of the GDN QK kernel for the 16 / 48 head shape with 10,240 conv channels (sycl/src/kernels/cuda/verify_kernels.dp.cpp:2244). Read from the code only; the integration lane measured nothing on it.",
@@ -41696,11 +41854,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: GDN state-only commit in the verify path (sycl/src/core/verify.cpp:2129). Read from the code only; the integration lane measured nothing on it.",
@@ -41804,11 +41962,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Mode number, default 0 (off); only the value 3 selects the cached-norm mode (sycl/src/kernels/cuda/fused_gr.dp.cpp:77). Read from the code only; the integration lane measured nothing on it.",
@@ -41837,11 +41995,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Switch, off by default (non-zero turns it on): the GR low-order part is computed once (g_gr_lo_once, sycl/src/kernels/cuda/fused_gr.dp.cpp:1150). Read from the code only; the integration lane measured nothing on it.",
@@ -41870,11 +42028,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: direct bounds in the GR norm (g_gr_norm_direct_bounds, sycl/src/kernels/cuda/fused_gr.dp.cpp:570). Read from the code only; the integration lane measured nothing on it.",
@@ -41903,11 +42061,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: metadata-quartet gate/up dequantization for type 16 with n_ff 640 and n_embd 2560 (sycl/src/kernels/cuda/iq_kernels.dp.cpp:6547). Read from the code only; the integration lane measured nothing on it.",
@@ -41936,11 +42094,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "rollback",
    "owner": "sycl",
    "note": "ON by default; =0 turns it off: the IQ4 matrix-vector kernel selects its table values by bit select, not a lookup, unless set to 0 (use_bit_select, sycl/src/kernels/cuda/native_mmvq.dp.cpp:3745). Read from the code only; the integration lane measured nothing on it.",
@@ -41969,11 +42127,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "rollback",
    "owner": "sycl",
    "note": "ON by default; =0 turns it off: pair reuse in the IQ4 matrix-vector kernel (sycl/src/kernels/cuda/native_mmvq.dp.cpp:3737). Read from the code only; the integration lane measured nothing on it.",
@@ -42002,11 +42160,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "rollback",
    "owner": "sycl",
    "note": "ON by default; =0 turns it off: split Q8 activation handling in the IQ4 matrix-vector kernel (sycl/src/kernels/cuda/native_mmvq.dp.cpp:3741). Read from the code only; the integration lane measured nothing on it.",
@@ -42035,11 +42193,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: ESIMD IQ4 kernel for 4 columns on Battlemage with n_in 2560 or 6144 (sycl/src/kernels/cuda/native_mmvq.dp.cpp:3758). Read from the code only; the integration lane measured nothing on it.",
@@ -42068,11 +42226,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: XMX IQ4 kernel for 4 columns on the shapes 2560 to 6144 / 10240 / 12288 / 248320 and 6144 to 2560 (sycl/src/kernels/cuda/native_mmvq.dp.cpp:3764). Read from the code only; the integration lane measured nothing on it.",
@@ -42107,11 +42265,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: adaptive routing mirror on the SYCL verify path (sycl_mirror_adapt, sycl/src/core/verify.cpp:75). Read from the code only; the integration lane measured nothing on it.",
@@ -42146,11 +42304,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default: packed-sign IQ gate/up row-reuse kernel for the 2560 / 640 shape, only with the old kernels, split-multi and IQ2_XXS reuse off (sycl/src/kernels/cuda/iq_kernels.dp.cpp:5641). Read from the code only; the integration lane measured nothing on it.",
@@ -42179,11 +42337,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Profiling switch of the prompt path's expert copy: the value 0 changes what happens when no copy-engine queue could be made (sycl/src/prefill/prefill.cpp:1350); STRATA_COPY_ENGINE=0 turns the copy engine itself off. Read from the code only; the integration lane measured nothing on it.",
@@ -42218,11 +42376,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "rollback",
    "owner": "sycl",
    "note": "ON by default; =0 turns it off: the Q2 word-expand path of the IQ kernels is taken unless the variable starts with 0 (q2_word_expand_enabled, sycl/src/kernels/cuda/iq_kernels.dp.cpp:3706-3709: `return !(v && v[0] == '0')`), then a per-device check in the same function. Read from the code only; the integration lane measured nothing on it.",
@@ -42251,11 +42409,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "rollback",
    "owner": "sycl",
    "note": "ON by default; =0 turns it off: chunked down projection of the QSA decode attention (sycl/src/kernels/cuda/qsa_decode_attn.dp.cpp:963). Read from the code only; the integration lane measured nothing on it.",
@@ -42290,11 +42448,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "rollback",
    "owner": "sycl",
    "note": "ON by default; =0 turns it off: the vector variant of the QSA value kernel with 8 keys (sycl/src/kernels/cuda/qsa_decode_attn.dp.cpp:2569). Read from the code only; the integration lane measured nothing on it.",
@@ -42323,11 +42481,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Path of a routing audit file; read only in builds with STRATA_SYCL_WORKLOAD_TRACE and needs device planning (sycl/src/core/verify.cpp:908). Read from the code only; the integration lane measured nothing on it.",
@@ -42356,11 +42514,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "cb436853ab",
+   "first_date": "2026-10-20",
+   "since": "v0.2.14",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "research",
    "owner": "sycl",
    "note": "Opt-in (=1), off by default, and compiled only in builds that define the macro of the same name: the TLA attention kernel for batch 32 with a 2,051 cap (sycl/src/prefill/prefill.cpp:3638). Read from the code only; the integration lane measured nothing on it.",
@@ -42712,8 +42870,8 @@
    "first_commit": "2ad5867efb",
    "first_date": "2026-11-01",
    "since": "v0.2.10",
-   "last_commit": "2ad5867efb",
-   "last_date": "2026-11-01",
+   "last_commit": "e5806740a6",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "dsv41",
    "note": "[reviewed] Test-only hook; does nothing when unset. [gh-sweep-1031/INT-TRIAL3.md:135]",
@@ -43603,13 +43761,13 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 3893,
+     "line": 4156,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 6822,
+     "line": 7204,
      "backend": "cuda-hip",
      "fn": "getenv"
     },
@@ -43732,8 +43890,8 @@
    "first_commit": "07b4a6263a",
    "first_date": "2026-09-25",
    "since": "v0.1.2",
-   "last_commit": "0a0e4463ea",
-   "last_date": "2026-11-06",
+   "last_commit": "6069c9d0c4",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "prefill",
    "note": "[reviewed] Trace switch used for diagnosis. [notes-028-eng-p1.md:42]",
@@ -43926,11 +44084,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "3220dbc0e0",
+   "first_date": "2026-11-11",
+   "since": "v0.2.14",
+   "last_commit": "d3d4d16120",
+   "last_date": "2026-11-11",
    "status": "research",
    "owner": "core",
    "note": "[reviewed] The A/B switch of the shared-memory page drop (lane SPARK, gate on the DGX Spark): a GPU that shares the system RAM (cudaDevAttrIntegrated) and holds every expert gives the GGUF's cached expert pages back after the prompt path is set up. 0 keeps the pages (the old behaviour); 2 also prints the bytes and the free memory. Not documented for users.",
@@ -44003,11 +44161,11 @@
    "doc_mentions": [
     "docs/BATCHING.md:152"
    ],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "3a25581693",
+   "first_date": "2026-11-12",
+   "since": "v0.2.14",
+   "last_commit": "00807c9b30",
+   "last_date": "2026-11-12",
    "status": "rollback",
    "owner": "program",
    "note": "STRATA_UMA_PIN_CAP=0 keeps the RAM budget as given: on a Strix Halo (Windows HIP) with --batch 2 or more the engine cuts the pinned RAM copy of experts so that it plus the slots' pinned K/V stays at 22.75 GiB (15.0 GiB of experts at 4 slots and 131,072 tokens), measured on one 64 GB PC (strix-20261112-1937-7dbd started, -1923-8a6a failed at 25.75 GiB); the engine's line names this switch",
@@ -44048,8 +44206,8 @@
    "first_commit": "dab7ee72d0",
    "first_date": "2026-10-19",
    "since": "v0.2.1",
-   "last_commit": "dea6920b81",
-   "last_date": "2026-10-20",
+   "last_commit": "5450e4344d",
+   "last_date": "2026-11-15",
    "status": "research",
    "owner": "core",
    "note": "[reviewed] Strix UMA memory registration experiment; no verdict. [phaseA-tests/notes-024-strix-pp.md:14]",
@@ -44565,8 +44723,8 @@
    "first_commit": "1c58de5ab2",
    "first_date": "2026-09-29",
    "since": "v0.1.22",
-   "last_commit": "661ff29339",
-   "last_date": "2026-10-12",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "default",
    "owner": "core",
    "note": "[reviewed] strata-sycl.sh sets it =1 for Intel users; launch-script set. [docs/INTEL.md:45]",
@@ -44956,8 +45114,8 @@
    "first_commit": "cf0e9c1e6e",
    "first_date": "2026-09-29",
    "since": "v0.1.39",
-   "last_commit": "3d6f1718ff",
-   "last_date": "2026-10-12",
+   "last_commit": "cb436853ab",
+   "last_date": "2026-10-20",
    "status": "opt-in",
    "owner": "sycl/core",
    "note": "[reviewed] SYCL setting with several release-note fixes; user-visible. [release-v0.1.43.1.md:28]",
@@ -45540,11 +45698,11 @@
    "launch_sets": [],
    "launch_reads": [],
    "doc_mentions": [],
-   "first_commit": null,
-   "first_date": null,
-   "since": null,
-   "last_commit": null,
-   "last_date": null,
+   "first_commit": "84e11a7732",
+   "first_date": "2026-11-13",
+   "since": "v0.2.14",
+   "last_commit": "9448501635",
+   "last_date": "2026-11-13",
    "status": "research",
    "owner": "program",
    "note": "Research switch: =0 turns off the window warm-up (one dummy verify window per allowed width, once, before the first request is read, so a width the policy picks inside a long request does not pay its first-run graph or pipeline build there); default on, changes nothing a request can see.",
@@ -45686,7 +45844,7 @@
    "reads": [
     {
      "file": "src/prefill/prefill.cpp",
-     "line": 2360,
+     "line": 2623,
      "backend": "cuda-hip",
      "fn": "getenv"
     }

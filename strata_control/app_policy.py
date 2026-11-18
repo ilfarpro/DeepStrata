@@ -33,6 +33,10 @@ def table() -> list[dict]:
         row = {"id": s.id, "label": s.label, "hint": s.effect, "default": s.default, "env": _entries(s.env)}
         if s.legacy:
             row["legacy"] = _entries(s.legacy)
+        if s.group != "Speed":
+            row["group"] = s.group
+        if s.words:
+            row["words"] = _entries(s.words)
         out.append(row)
     return out
 

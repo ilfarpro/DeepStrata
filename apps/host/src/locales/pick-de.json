@@ -1,7 +1,6 @@
 {
  "vp01": "{0} Download",
  "vp02": "Braucht {0} Speicher",
- "vp03": "Braucht {0} Speicher und etwa {1} GB Festplattenplatz",
  "vp04": "Passt",
  "vp05": "Passt mit SSD-Streaming",
  "vp06": "Passt nicht",
@@ -15,5 +14,6 @@
  "vp14": "Es belegt etwa",
  "vp15": "Nichts. Es passt in den Speicher.",
  "vp16": "Gerade vom SSD gelesen: {0}",
- "vp17": "Diese Version würde etwa {0} Grafikspeicher und {1} RAM belegen."
+ "vp17": "Diese Version würde etwa {0} Grafikspeicher und {1} RAM belegen.",
+ "vp03": "Braucht {0} Speicher und etwa {1} GB Festplattenplatz"
 }

@@ -40,7 +40,7 @@ export const ENV_FLAG=/^(?:STRATA|DS4)_[A-Z0-9_]+$/;
  * same for the Terminal (tests/terminal/test_speed_switches.py compares the two).
  */
 /* The table (ids, words, defaults, environment entries) is generated from strata_control/speed_switches.py into policy-generated.mjs; this file only adds the group the screen lists them under and the rules for where a switch applies (below), which tests/speed-switches.test.mjs and tests/terminal/test_speed_switches.py run against the same cases. */
-export const SPEED_SWITCHES=SPEED_SWITCH_TABLE.map(s=>({id:s.id,label:s.label,group:'Speed',hint:s.hint,default:s.default,env:s.env,...(s.legacy?{legacy:s.legacy}:{})}));
+export const SPEED_SWITCHES=SPEED_SWITCH_TABLE.map(s=>({id:s.id,label:s.label,group:s.group??'Speed',hint:s.hint,default:s.default,env:s.env,...(s.legacy?{legacy:s.legacy}:{}),...(s.words?{words:s.words}:{})}));
 const GFX12=/^gfx120[01]$/i, RADEON_9000=/\b(?:RX\s*9\d{3}|AI\s*PRO\s*R97\d{2}|R97\d{2})\b/i;
 /**
  * Which switches make sense for this model on this PC: only those are shown. `backend` is the engine's (cuda, hip, sycl, metal, cpu). `arch` is the "arch"
@@ -55,9 +55,10 @@ const smallNvidia=gpus=>(gpus??[]).some(g=>{
  if(vendor!=='nvidia'&&!(vendor===''&&/nvidia|geforce|\brtx\b|\bgtx\b|quadro|tesla/i.test(String(g.name??''))))return false;
  return g.vram_gb>0&&g.vram_gb<=13;
 });
-export function speedSwitchApplies(id,{deepseek=false,backend=null,gpus=[],arch=null}={}){
+export function speedSwitchApplies(id,{deepseek=false,backend=null,gpus=[],arch=null,vision=false}={}){
  if(id==='deepseek_speedups')return !!deepseek;
- if(deepseek)return false;                                              // the Qwen engine's switches
+ if(deepseek)return false;
+ if(id==='picture_reader')return !!vision;                              // a Qwen model that reads pictures (its run config has a "vision" section)                                              // the Qwen engine's switches
  if(id==='faster_long_prompts')return !arch&&(backend==='cuda'||backend==='hip');
  if(id==='faster_12gb_nvidia')return !arch&&backend==='cuda'&&smallNvidia(gpus);   // the engine's routing needs the Flash-Next shape (512 experts, top-10) and a CUDA build
  if(id==='faster_radeon_9000')return backend==='hip'&&(gpus??[]).some(g=>(!g.vendor||g.vendor==='amd')&&(GFX12.test(String(g.arch??''))||(!g.arch&&RADEON_9000.test(String(g.name??'')))));
@@ -75,7 +76,7 @@ export function setSpeedSwitch(env,id,on){
 /** What the settings answer carries: each switch that applies, with its words, its default, the entries it writes outside the default, and whether the feature is on. */
 export function speedSwitchRows(env,context){return SPEED_SWITCHES.filter(s=>speedSwitchApplies(s.id,context)).map(s=>({...s,on:speedSwitchIsOn(env,s.id)}));}
 /** Settings the app itself applies when it starts a model (they are not read from the engine's source, so the engine's text never says it supports them). */
-export const APP_OWNED_FIELDS=['mtp','batchMtp','drafting','ds_experts'];
+export const APP_OWNED_FIELDS=['mtp','batchMtp','drafting'];
 /** The families that have a Drafting choice and the model names the DFlash2 drafter was made for (strata_control/drafting.py SUPPORTED_FAMILIES, _SUPPORTED_NAME): Qwen3.8-Flash-Next, Gyro and Unsloth's quantizations of the same weights; not Swift, Coder or NVFP4. */
 export const DRAFTING_FAMILIES=GENERATED_DRAFTING_FAMILIES;
 const DFLASH2_MODEL=new RegExp(DFLASH2_MODEL_PATTERN,'i');

@@ -1,4 +1,4 @@
-# DeepSeek-V4.1-Flash
+# DeepSeek V4.1-Flash
 
 DeepSeek-V4.1-Flash is a large mixture-of-experts model: 40 layers, 384 experts in each (6 are used for every word), and a 203 GB
 n-gram table next to them. Strata runs it with its own engine, `strata-dsv41` (`src/dsv41`, ported from Project Maya's

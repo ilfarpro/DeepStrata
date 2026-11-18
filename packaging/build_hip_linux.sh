@@ -23,7 +23,8 @@
 set -u
 V=${VARIANT:?VARIANT=rx9070|rx7900|rx6000|halo|igpu|<name> with ARCHS=}
 SRC=${SRC:-$(cd "$(dirname "$0")/.." && pwd)}
-LLAMA=${LLAMA:?LLAMA=<llama.cpp checkout at the pinned commit>}
+LLAMA=${LLAMA:-}      # an override: a llama.cpp checkout to take ggml from (kept for two releases); empty: the vendored third_party/strata-ggml
+GGML=(); [ -z "$LLAMA" ] || GGML=("-DSTRATA_GGML_DIR=$LLAMA")
 HP=${HP:?HP=<ROCm devel root>}
 CORE=${CORE:-$HP}
 LIBW=${LIBW:-$HP}

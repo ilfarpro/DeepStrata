@@ -4,14 +4,7 @@ This page is for people with a Ryzen AI Max "Strix Halo" PC (Radeon 8060S / 8050
 shared by the CPU and the GPU). Strata runs there through the same HIP backend as the Radeon cards in [AMD_HIP.md](AMD_HIP.md).
 **Status: experimental.**
 
-**DeepSeek V4.1-Flash runs here on Windows** (since 0.2.7): its own engine package is built for gfx1151 and the official ISTA-DAS
-1.75 / 2.00 / 2.25 bpw sets run through it. Measured on the 128 GB box (64 GB BIOS carve-out plus 64 GB seen by Windows) with 2.00 bpw and the default Faster mode, on the
-2026-10-25 build (before the DeepSeek defaults of 0.2.7): answers 15-17 tokens/s on code, 10-11 on chat; a 4K prompt 87 tokens/s, an 8K prompt 125 and a 32K prompt 177.
-On the 0.2.7 build the same box reads a 4K prompt at 214-233 tokens/s; the table below says which number comes from which build. The graphics chip and the CPU share the RAM, so the
-engine counts it once and reads the rest of the experts from the SSD. [DeepSeek on Strix Halo](#deepseek-v41-flash) has the details,
-the driver it needs and the limits.
-
-> **On this page:** [Quick start](#quick-start) · [DeepSeek](#deepseek-v41-flash) · [What the engine does differently](#what-the-engine-does-differently) ·
+> **On this page:** [Quick start](#quick-start) · [What the engine does differently](#what-the-engine-does-differently) ·
 > [1. Toolchain](#1-the-toolchain-no-root-needed) · [2. Engine](#2-the-engine) · [3. Tuning table](#3-the-prompt-table-and-running) ·
 > [4. Defaults](#4-what-is-on-by-default-on-gfx1151) · [5. Opt-in](#5-what-is-not-on-by-default-it-changes-bits) ·
 > [5b. Desktop and RAM](#5b-the-desktop-the-ram-and-a-discrete-card-beside-the-strix-halo-linux) · [6. Measured](#6-measured) ·
@@ -28,7 +21,7 @@ Use the [current release](https://github.com/ilfarpro/DeepStrata/releases/latest
 
 Packaged engines carry the matching hipBLASLt tuning table for gfx1151 and select it on their own. Setup recognizes `gfx1151` and
 PCI ID `1002:1586`; other integrated Radeon chips have separate support limits. Unified memory is counted once. Setup does not
-change BIOS or kernel settings. The manual Linux toolchain below is for reproduction and builds, not a prerequisite for the app.
+change BIOS or kernel settings. The manual Linux toolchain below is for reproduction and builds, not a prerequisite for the app. WSL is not supported: the AMD engines hang there.
 
 DeepSeek V4.1-Flash comes with its own engine package on Windows and needs nothing extra: pick the model and the app or `deepstrata launch`
 downloads it ([DeepSeek on Strix Halo](#deepseek-v41-flash)).
@@ -152,7 +145,8 @@ cmake -S . -B build-halo -G Ninja -DCMAKE_BUILD_TYPE=Release \
 cmake --build build-halo --target strata -j 8        # about 25 minutes the first time
 ```
 
-The build warns that `gfx1151` is "unvalidated". `STRATA_PREFILL_MMQ=ON` builds ggml's MMQ kernels the prompt experts need. To test:
+The build warns that `gfx1151` is "unvalidated". The engine is built without llama.cpp's MMQ kernels: the prompt experts run on
+Strata's own kernels where they cover a layer and on the FP16 path elsewhere. Add `-DSTRATA_MMQ=ON` to build the MMQ kernels too. To test:
 `cmake --build build-halo -j 8` builds the tests and `ctest --test-dir build-halo` runs them. `hip_prefill_hcd_exact_parity` and
 `hip_prefill_hipblaslt_gemm` need the table (next section) and skip without it.
 
@@ -212,7 +206,7 @@ export STRATA_PREFILL_STREAM_MIN=128   # prompt reads of 128-1,023 tokens on the
 
 `STRATA_PF_GEMM`, `STRATA_HC_UPMIX`, `STRATA_PA_FAST`, `STRATA_HIP_WMMA` and `STRATA_SELECT_WMMA` together are one opt-in on an
 integrated Radeon: `STRATA_IGPU_PROMPT_SET=1` ([AMD_HIP.md](AMD_HIP.md), "Integrated GPUs"), measured on a Radeon 780M only, where
-it is the default. `STRATA_PF_FUSED`, `STRATA_PF_SWITCH_MIN_T` and `STRATA_PREFILL_STREAM_MIN` stay opt-in as well.
+it is the default. `STRATA_PF_SWITCH_MIN_T` and `STRATA_PREFILL_STREAM_MIN` stay opt-in as well. `STRATA_PF_FUSED` is on by itself on an integrated Radeon under Linux (measured on the 780M only; the Strix Halo takes it by the same rule and was not run there); `STRATA_PF_FUSED=0` keeps MMQ.
 
 **On Windows the Strix Halo is the exception** (engine 0.1.52 and later): `gfx1151` takes the matrix-core set by itself -
 `STRATA_HIP_WMMA`, `STRATA_PF_GEMM`, `STRATA_PA_FAST`, `STRATA_HC_UPMIX` and `STRATA_PF_FUSED`, without `STRATA_SELECT_WMMA`
@@ -224,7 +218,7 @@ measured there.
 
 | Switch | What it does |
 | --- | --- |
-| `STRATA_PREFILL_STREAM_MIN=N` | `STRATA_PF_FUSED=1` reaches only chunks of N tokens or more (1,024 by default, the floor measured on a discrete card). With every expert in unified memory nothing streams and MMQ is the slow part, so a smaller N (128) speeds up an agent's turn (a tool result of about 1,000 tokens on a cached conversation: 3.1 to 6.0 s at 1,024 against 0.9 to 2.5 s at 128). |
+| `STRATA_PREFILL_STREAM_MIN=N` | `STRATA_PF_FUSED=1` reaches only chunks of N tokens or more (1,024 by default, the floor measured on a discrete card). On Windows a UD-Q4_K_XL set reads pieces below 1,024 tokens on the fused kernels' staged entry by itself (pieces of 96 to 1,000 tokens read 3.8 to 5.2 times sooner than on the old path; `STRATA_PF_STAGED_FO=0` gives the long-prompt path from 64 tokens instead, 3.6 to 4.5 times sooner); other sets keep 1,024, and a smaller N is opt-in. |
 | `STRATA_PF_FUSED_KQ=1` | A UD-Q4_K_XL or other K-quant pack takes the fused experts only with this as well. |
 | `STRATA_PF_F16=1` (gfx11 only) | Runs the covered prompt experts on the F16 matrix cores instead of the int8 ones. It rounds differently from the int8 kernels. |
 | `STRATA_REFILL_PARTS=1` (exact; HIP and CUDA, a GGUF read in place) | Refills the expert-cache slots a prompt borrowed straight from the GGUF mapping instead of through an assembled 4 MB copy per expert. Only gfx1151 has measured it. |

@@ -94,7 +94,7 @@ deepstrata launch --show-key
 | `--context SIZE` | `32k`, `64k`, `128k`, `256k` or a number of tokens. |
 | `--kv FORMAT` | Conversation memory format: `int8` (default), `q4_0` (half the memory), `k8v4`, `fp16`. |
 | `--vision off\|on\|gpu\|cpu` | Picture reading. Default: on when the model and the engine can. |
-| `--parallel N` | Requests answered at the same time, 1 to 8. Default: fit to your card; DeepSeek: one at a time. |
+| `--parallel N` | Requests answered at the same time, 1 to 8. Default: fit to your card. |
 | `--mtp on\|off` | The draft layer. `off` saves about 1 GB of graphics memory and is slower. Default: on. |
 | `--drafting auto\|mtp\|dflash2\|off` | Which drafter guesses ahead. `dflash2` is for Qwen3.8-Flash-Next only and downloads its drafter once (0.34 GB for the models that have a tuned drafter, 0.52 GB on Intel Arc, else 1.2 GB). If it cannot run, MTP is used and the start says why. |
 | `--gpu LIST`, `--gpu-roles LIST` | Which cards to use, and a role per card. |

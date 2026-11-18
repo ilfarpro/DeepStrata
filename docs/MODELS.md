@@ -1,10 +1,10 @@
 ﻿# Which model? Sizes, versions and what fits
 
-This page helps you choose a model and check that your computer can run it. It covers DeepSeek V4.1-Flash,
+This page helps you choose a model and check that your computer can run it. It covers
 Qwen3.8-Flash-Next (and its variants) and Qwen3.6-35B-A3B. For installing, see [INSTALL.md](INSTALL.md).
 
 > **On this page:** [Quick start](#quick-start) · [Pick by memory](#pick-by-memory) ·
-> [DeepSeek V4.1-Flash](#deepseek-v41-flash) · [Qwen3.8-Flash-Next](#qwen38-flash-next) ·
+> [Qwen3.8-Flash-Next](#qwen38-flash-next) ·
 > [Qwen3.6-35B-A3B](#qwen36-35b-a3b) · [Adding or switching models](#adding-or-switching-models) ·
 > [History](#history--older-measurements)
 
@@ -22,7 +22,7 @@ Qwen3.8-Flash-Next (and its variants) and Qwen3.6-35B-A3B. For installing, see [
 **Provider order:** ISTA-DASLab, then Unsloth, then Gyro, then others, using the first compatible pack that fits the
 model and your hardware. ISTA-DASLab is the default recommendation. Gyro saves memory and is slower. Swift 1.5, NVFP4
 and OrcaRouter are other options. An explicit choice by the user always wins. The order applies within a model family:
-Qwen3.6 has Unsloth packs only, and DeepSeek has the ISTA-DAS sets. The order is a recommendation. It says nothing about which
+Qwen3.6 has Unsloth packs only. The order is a recommendation. It says nothing about which
 provider wins a given quality or speed comparison.
 
 Setup may preselect something else: a Swift or Gyro size at a low memory tier, or Unsloth on Strix Halo. Read the plan
@@ -46,7 +46,6 @@ They are estimates; a given context may still not fit.
 - **Less memory, general use:** compare Unsloth, then [Gyro](#gyro-s-and-gyro-m-agentionai), which uses the least memory and is slower.
 - **More memory:** [Unsloth's 4 to 8 bit files](#unsloths-files-ud-iq4_xs-to-q8_0) need 72 to 136 GB for all experts in RAM.
 - **A smaller model:** [Qwen3.6-35B-A3B](#qwen36-35b-a3b), 32 to 52 GB of RAM.
-- **A very large model:** [DeepSeek V4.1-Flash](#deepseek-v41-flash), 12 GB graphics card, 46 to 64 GB of RAM and 257 GB of disk.
 
 If RAM is short, setup can read experts from the SSD instead ([below](#will-it-fit)). That works and is much slower.
 

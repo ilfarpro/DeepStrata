@@ -32,7 +32,7 @@ CLEAR = ("STRATA_SETTINGS_FILE", "STRATA_CONNECTION_DIR", "CUDA_VISIBLE_DEVICES"
 
 def context_for(machine: Machine, model_set: ModelSet) -> int:
     if model_set.multi_file:
-        return 131072
+        return 131072                                      # the DeepSeek pack starts at 128k on every machine
     if machine.key == "nv_12gb_streaming":
         return 65536
     if machine.key == "mac_small":

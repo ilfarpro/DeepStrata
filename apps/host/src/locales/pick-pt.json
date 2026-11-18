@@ -1,7 +1,6 @@
 {
  "vp01": "Download de {0}",
  "vp02": "Precisa de {0} de memória",
- "vp03": "Precisa de {0} de memória e cerca de {1} GB de disco",
  "vp04": "Cabe",
  "vp05": "Cabe com streaming do SSD",
  "vp06": "Não cabe",
@@ -15,5 +14,6 @@
  "vp14": "Ocupa cerca de",
  "vp15": "Nada. Cabe na memória.",
  "vp16": "Lendo do SSD agora: {0}",
- "vp17": "Esta versão ocuparia cerca de {0} de memória gráfica e {1} de RAM."
+ "vp17": "Esta versão ocuparia cerca de {0} de memória gráfica e {1} de RAM.",
+ "vp03": "Precisa de {0} de memória e cerca de {1} GB de disco"
 }

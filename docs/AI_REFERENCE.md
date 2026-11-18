@@ -23,7 +23,7 @@ holds the technical context behind the short [README](../README.md). Use [AI_SET
 
 ## Model families
 
-Treat these as the three top-level families. Coder, Swift, Gyro, NVFP4 and OrcaRouter are Flash-Next variants,
+Treat these as the two top-level families. Coder, Swift, Gyro, NVFP4 and OrcaRouter are Flash-Next variants,
 not additional top-level families.
 
 | Family | Availability evidence | Catalog and limits |
@@ -32,7 +32,7 @@ not additional top-level families.
 | Qwen3.8-Flash-Next | Catalog entries in [setup.py](../setup.py), model guides and backend documentation | [MODELS.md](MODELS.md), [QUANTS.md](QUANTS.md), [GYRO.md](GYRO.md), [NVFP4.md](NVFP4.md), [ORCA.md](ORCA.md) |
 | Qwen3.6-35B-A3B | `qwen36` in `OWN_PATH_FAMILIES` in [setup.py](../setup.py) | [QWEN36.md](QWEN36.md): NVIDIA and AMD; not the Intel or Mac engine |
 
-Do not reuse Qwen quant names, model sizes or performance figures for DeepSeek. A field this page does not state is
+A field this page does not state is
 **unknown**, not zero and not unsupported. DeepSeek Harness is a coding tool; its presence does not establish support
 for a particular DeepSeek model.
 
@@ -48,7 +48,7 @@ For recommendations, documentation and agent-assisted setup, use this order:
 The maintainer works with ISTA-DASLab; this is an explicit project preference, not a measured quality ranking.
 Keep the user's chosen model family and explicit provider choice. Check availability, backend compatibility,
 memory, disk space and intended use before selecting a pack. If no ISTA-DASLab pack is documented for a family,
-do not invent one: Qwen3.6 has Unsloth packs, and DeepSeek has the ISTA-DAS sets.
+do not invent one: Qwen3.6 has Unsloth packs.
 
 This order is a recommendation, not the installer's default logic. A no-argument installer may preselect Swift or Gyro
 on some memory tiers. Read its plan and select the intended family explicitly.

@@ -77,7 +77,7 @@ def fresh_setup(name="setup_under_test"):
 
 
 def tables(mod) -> str:
-    return json.dumps({k: getattr(mod, k) for k in ("MODELS", "FAMILIES", "OWN_PATH_FAMILIES", "MULTI_FILE_FAMILIES", "REPO_PINS", "HF_REVISIONS")},
+    return json.dumps({k: getattr(mod, k) for k in ("MODELS", "FAMILIES", "OWN_PATH_FAMILIES", "REPO_PINS", "HF_REVISIONS")},
                       sort_keys=True, default=str) + repr(sorted(mod.REV_PINS)) + repr(getattr(mod, "FEED_MODELS", None))
 
 

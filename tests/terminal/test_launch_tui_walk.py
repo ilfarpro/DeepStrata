@@ -207,7 +207,7 @@ class Walk(unittest.TestCase):
                 with self.subTest(key=key, step=step):
                     async def case(app, pilot, ctx):
                         if step != "start":
-                            await self.to_model(app, pilot, "ds200")
+                            await self.to_model(app, pilot, "qwen")
                             if step in app.flow():
                                 app.goto(step)
                                 await settle(pilot, 3)
@@ -220,7 +220,7 @@ class Walk(unittest.TestCase):
     # ---- 5. Resize while on each screen
     def test_resize_on_every_screen(self):
         async def case(app, pilot, ctx):
-            await self.to_model(app, pilot, "ds225")
+            await self.to_model(app, pilot, "qwen")
             for step in app.flow():
                 app.goto(step)
                 await settle(pilot, 3)
@@ -283,7 +283,7 @@ class ErrorPaths(unittest.TestCase):
         p.start()
         self.addCleanup(p.stop)
 
-    def run_flow(self, runner, hw=HW_12, pick="ds200", settle_s=1.0):
+    def run_flow(self, runner, hw=HW_12, pick="qwen", settle_s=1.0):
         ctx = make_ctx(hw)
         app = LaunchApp(ctx)
 

@@ -46,17 +46,14 @@ Comments are for this document only; actual feed files must be strict JSON.
     "sha256": "...",                        // of the archive
     "manifest_sha256": "...",               // of the package's engine-component.json (it holds every file's hash)
     "installed_bytes": 840893419, "notes": ""}]},
-  "dsv41": {"packages": []}                 // optional: the separate DeepSeek engine packages, same entry shape as "engine"
+  "dsv41": {"packages": []}                 // optional: kept frozen for Strata 0.2.13 and earlier; this Strata does not read it
   "drafters": {"packages": [{               // optional: DFlash2 drafter files Strata hosts (one pinned file each, not an archive)
     "name": "qwen3.8-flash-next-dflash2.strata1.q4_0-selq4.pack", "version": "1", "url": "qwen3.8-flash-next-dflash2.strata1.q4_0-selq4.pack",
     "size": 339694592, "sha256": "4df2e5ab...", "backends": ["metal"], "base": "incoai/Qwen3.8-Flash-Next-DFlash2@a22a1744", "licence": "Apache-2.0"}]}
 }
 ```
 
-The DeepSeek V4.1-Flash engine `strata-dsv41` reaches a PC in one of two ways. The engine package carries it beside `strata`
-(`package_engine.py --require-dsv41`), or it is a separate package in the feed's `dsv41` member, packed with
-`pack-engine --prefix strata-dsv41`. The separate package installs in `<data>/engine-dsv41/` beside the engine, never inside it
-(`strata_control/dsv41_engine.py`), and is fetched when DeepSeek is chosen. `STRATA_DSV41_EXE` points setup at a build of your own.
+The `dsv41` member is kept frozen for Strata 0.2.13 and earlier, carried by `feed_tool build-feed --carry-dsv41`.
 
 **A Qwen4 model of another shape (`shape_engines`, optional).** An engine is compiled for one model geometry (`-DSTRATA_GEOMETRY=...`, `cmake/strata_geometry.cmake`) and refuses a GGUF of another one at load. A new-shape Qwen4 therefore ships with its own engine as a
 separate component, picked by the model, and never in place of the Strata engine, so Flash-Next and every other model keep the engine they have (`strata_control/shape_engine.py`):
@@ -150,7 +147,7 @@ Saved tuning presets: when the engine identity changed (version, build id, manif
     strata update [--check] [--no-engine] [--no-control] [--feed URL|DIR] [--wait S] [--force] [--model-config RUN.json]
     strata components update            # the same
     strata components rollback          # back to the previous engine (an engine switch; nothing is downloaded)
-    strata components engines [--output json]   # every installed engine (Qwen and DeepSeek families), sizes, which one is in use: what Settings > Engine shows
+    strata components engines [--output json]   # every installed engine (Qwen and the model-shape engines), sizes, which one is in use: what Settings > Engine shows
     strata components use <version|folder|newest>   # switch to an installed engine; `newest` goes back to following updates (no pin)
     strata components remove <version|folder>       # delete an installed engine; never the one in use or one a running program uses
     strata components engine            # shows "update available (...)" from the last check, no network

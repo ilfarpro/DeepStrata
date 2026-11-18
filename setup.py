@@ -240,7 +240,6 @@ def ms_meta(repo: str, path: str):
 
 HF = hf("ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF")
 LLAMA_CPP_COMMIT = "3cf03257f219afbe7334045ff7c6a06ac68c627d"
-LLAMA_CPP_ZIP = f"https://github.com/ggml-org/llama.cpp/archive/{LLAMA_CPP_COMMIT}.zip"
 
 # The ready-made engine: <PREBUILT_URL><asset>, a zip with strata(.exe), strata-vision(.exe) and BUILD.json, built
 # by tools/make_release.py.  Set this to the GitHub release download folder when publishing, e.g.
@@ -1329,8 +1328,10 @@ def fetch_mtp(mtp: Path, env: dict, tries: int = 3):
         r = run(cmd, env=env, check=False)
         rc = 0 if r is None else r.returncode              # (a test double answers None)
         if rc == 0:
-            return
-        if rc == 4:                                        # tools/mtp_fetch.py NO_ANSWER: its [X] lines above name the host and the next step
+            return True
+        if rc == 5:                                        # tools/mtp_fetch.py OFFLINE: its [X] lines above say so; the model is set up and starts without the layer,
+            return False                                   # and the next launch with a connection fetches it (offline users: never a stop)
+        if rc == 4:                                       # tools/mtp_fetch.py NO_ANSWER: its [X] lines above name the host and the next step
             say("\nSetup stopped. Fix the item above and run it again - everything already done is kept and skipped.")
             sys.exit(1)
         if r is not None and on_disk() <= before:          # the network rule: run again only when the last run moved bytes
@@ -1495,14 +1496,29 @@ def ram_gb():
             return int(value) / 2**30
         except (OSError, ValueError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
             return 0.0
+    total = 0.0
     try:
         with open("/proc/meminfo") as stream:
             for line in stream:
                 if line.startswith("MemTotal"):
-                    return int(line.split()[1]) * 1024 / 2**30
+                    total = int(line.split()[1]) * 1024 / 2**30
+                    break
     except (OSError, ValueError):
         pass
-    return 0.0
+    if total <= 0.0:
+        return 0.0
+    # In a container /proc/meminfo is the host's: the container's own limit is the RAM the engine gets.
+    limit = _cgroup_memory_limit()
+    if limit is not None and limit / 2**30 < total:
+        return limit / 2**30
+    return total
+
+
+def _cgroup_memory_limit(self_cgroup="/proc/self/cgroup", root="/sys/fs/cgroup"):
+    """The smallest memory limit (bytes) on this process's cgroup and its ancestors, as the engine's memory guard reads
+    it (strata_control/cgroup_memory.py). None when no level sets a limit or the files cannot be read."""
+    from strata_control import cgroup_memory
+    return cgroup_memory.memory_limit(self_cgroup, root)
 
 
 _MM_KEY = r"SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
@@ -4162,56 +4178,57 @@ def check_shards(shards):
                  f"delete {s.name} and its .done mark and run setup again")
 
 
+#: gguf-py and llama.cpp's HF converter, vendored at the llama.cpp pin (third_party/strata-gguf-py/UPSTREAM.md): the preparation tools import
+#: them, so no llama.cpp download is needed to pack a model. The Terminal and Control packages carry this folder (packaging/package_terminal.py).
+VENDORED_GGUF_PY = ROOT / "third_party" / "strata-gguf-py"
+#: the llama.cpp sources strata-vision builds (llama, mtmd, the whole ggml), vendored at the same pin (third_party/strata-llama/UPSTREAM.md); phase 3 deletes it
+VENDORED_LLAMA = ROOT / "third_party" / "strata-llama"
+
+
+def gguf_py_dir() -> Path:
+    """The folder that holds llama.cpp's `gguf` package: STRATA_GGUF_PY=<folder> (an override, kept for two releases), else the vendored copy.
+    The preparation tools read and write GGUF with their own tools/strata_gguf.py and no longer need it; only llama.cpp's HF converter
+    (NVFP4-local) imports it, and tools/_paths.py finds the vendored copy for that."""
+    own = os.environ.get("STRATA_GGUF_PY")
+    if own and (Path(own) / "gguf").is_dir():
+        return Path(own)
+    return VENDORED_GGUF_PY
+
+
+def gguf_py_env() -> dict:
+    """The environment the preparation tools get for the GGUF library: STRATA_GGUF_PY only when the user named a gguf-py folder (then the tools
+    use llama.cpp's gguf-py instead of tools/strata_gguf.py); empty by default, so the tools use their own."""
+    own = os.environ.get("STRATA_GGUF_PY")
+    return {"STRATA_GGUF_PY": str(gguf_py_dir())} if own and (Path(own) / "gguf").is_dir() else {}
+
+
+def llama_override():
+    """A llama.cpp checkout named by STRATA_GGML_DIR (an override of the vendored ggml, kept for two releases), else None: the engine then builds
+    from third_party/strata-ggml and nothing is downloaded."""
+    own = os.environ.get("STRATA_GGML_DIR")
+    return Path(own) if own and (Path(own) / "ggml" / "CMakeLists.txt").exists() else None
+
+
+def ggml_defs(llama) -> list:
+    """The CMake definition that points an engine build at a llama.cpp checkout: only for the override; the vendored tree is the default."""
+    return [f"-DSTRATA_GGML_DIR={llama}"] if llama else []
+
+
+def vision_llama(llama) -> Path:
+    """The llama.cpp tree strata-vision builds from: the override (STRATA_GGML_DIR), else the vendored third_party/strata-llama."""
+    return Path(llama) if llama else VENDORED_LLAMA
+
+
 def llama_cpp_if_here():
-    """The llama.cpp source folder, fetched only when a model has to be prepared (run() fetches it then): a PC with every file and no internet
-    starts a model that is already prepared without reaching github.com."""
-    llama = home() / "third_party" / "llama.cpp"
-    if (llama / "ggml" / "CMakeLists.txt").exists() and (llama / "gguf-py").is_dir():
+    """The llama.cpp override tree (None by default). The preparation tools have their own GGUF code, so nothing is fetched to prepare a model."""
+    if (gguf_py_dir() / "gguf").is_dir():
         ok(f"llama.cpp {LLAMA_CPP_COMMIT[:7]} (gguf-py for the preparation tools)")
-    else:
-        say("  llama.cpp source: only needed to prepare a model; it is downloaded then, if that is needed")
-    return llama
+    return llama_override()
 
 
 def get_llama_cpp():
-    """llama.cpp at the pinned commit (ggml for the build, gguf-py for the tools, mtmd for images), as a zip: no git."""
-    llama = home() / "third_party" / "llama.cpp"
-    if (llama / "ggml" / "CMakeLists.txt").exists() and (llama / "gguf-py").is_dir():
-        return llama
-    z = home() / "third_party" / f"llama.cpp-{LLAMA_CPP_COMMIT[:7]}.zip"
-    download(LLAMA_CPP_ZIP, z, "llama.cpp source")
-    tmp = home() / "third_party" / "_unpack"
-    shutil.rmtree(tmp, ignore_errors=True)
-    try:
-        with zipfile.ZipFile(z) as f:
-            # llama.cpp's own web UI (tools/ui) is not used, and its deep paths passed Windows' 260-character limit in a
-            # folder like Downloads\Strata-main\Strata-main (#206)
-            f.extractall(tmp, [m for m in f.namelist() if "/tools/ui/" not in m])
-    except zipfile.BadZipFile:
-        # #1797: do not let the .done mark make every later run reuse a damaged source archive.
-        try:
-            drop_archive(z)
-        except OSError as e:
-            warn(f"cannot remove damaged {z.name} ({e}): delete it and its .done mark before running setup again")
-        raise
-    top = next(tmp.iterdir())
-    shutil.rmtree(llama, ignore_errors=True)
-    # PR #63: on Windows a rename can fail with PermissionError while an antivirus scanner still holds a file of the
-    # fresh unpack; shutil.move falls back to copy-and-delete, and a few retries let the scanner finish.  The target
-    # is `llama` itself - moving into its parent would keep the zip's `llama.cpp-<sha>` folder name.
-    for attempt in range(5):
-        try:
-            shutil.move(str(top), str(llama))
-            break
-        except PermissionError:
-            if attempt == 4:
-                raise
-            shutil.rmtree(llama, ignore_errors=True)   # a partial copy from the failed attempt
-            time.sleep(2)
-    shutil.rmtree(tmp, ignore_errors=True)
-    z.unlink(missing_ok=True)
-    z.with_name(z.name + ".done").unlink(missing_ok=True)
-    return llama
+    """Kept for callers that still name it: the llama.cpp override tree (STRATA_GGML_DIR) or None. Nothing is downloaded any more."""
+    return llama_override()
 
 
 def req_name(line: str) -> str:
@@ -5542,10 +5559,11 @@ def build_engine_hip(gpu, llama, vision="none") -> Path:
     cmake_build(ROOT, ROOT / "build-hip", "strata",
                 ["-DSTRATA_ENABLE_HIP=ON", "-DSTRATA_ENABLE_CUDA=OFF", "-DSTRATA_BUILD_TESTS=OFF",
                  "-DSTRATA_PREFILL_MMQ=ON", "-DSTRATA_Q6K_EXPERTS=ON", "-DSTRATA_MMQ_KQUANTS=ON", "-DCMAKE_HIP_ARCHITECTURES=" + ";".join(archs),
+                 "-DSTRATA_MMQ=OFF",   # without llama.cpp's MMQ, also in a build folder configured before (its cache says ON)
                  f"-DCMAKE_HIP_COMPILER={root / 'llvm' / 'bin' / 'clang++'}", f"-DCMAKE_HIP_COMPILER_ROCM_ROOT={root}",
                  "-DCMAKE_PREFIX_PATH=" + ";".join([str(root), *libs]),
                  f"-DCMAKE_HIP_FLAGS=--rocm-path={root} --rocm-device-lib-path={bitcode}",
-                 f"-DSTRATA_GGML_DIR={llama}", *isa_floor_defs(floor, ROOT / "build-hip", meta)], None, "")
+                 *ggml_defs(llama), *isa_floor_defs(floor, ROOT / "build-hip", meta)], None, "")
     if stale_binary(ROOT / "build-hip" / EXE):            # #2054: no stamp for a binary of another version
         fail(f"the engine build finished without a new engine ({EXE} is version "
              f"{binary_engine_version(ROOT / 'build-hip' / EXE)}, this source is {source_version()}): "
@@ -5615,7 +5633,7 @@ def build_vision_hip(eng: Path, stamp: Path, meta: dict, llama, vsrc, archs: lis
     say("  Compiling the picture reader for your AMD GPU (a few minutes, once) ...")
     try:
         cmake_build(ROOT / "tools" / "vision", ROOT / "build-vision-hip", "strata-vision",
-                    [f"-DLLAMA_DIR={llama}", "-DSTRATA_VISION_HIP=ON", "-DSTRATA_VISION_HIP_ARCHS=" + ";".join(archs),
+                    [f"-DLLAMA_DIR={vision_llama(llama)}", "-DSTRATA_VISION_HIP=ON", "-DSTRATA_VISION_HIP_ARCHS=" + ";".join(archs),
                      "-DSTRATA_PORTABLE=OFF", f"-DCMAKE_HIP_COMPILER={root / 'llvm' / 'bin' / 'clang++'}",
                      f"-DCMAKE_HIP_COMPILER_ROCM_ROOT={root}", "-DCMAKE_PREFIX_PATH=" + ";".join([str(root), *libs]),
                      f"-DCMAKE_HIP_FLAGS=--rocm-path={root} --rocm-device-lib-path={bitcode}"], None, "")
@@ -5635,7 +5653,7 @@ def build_vision_cpu(eng: Path, stamp: Path, meta: dict, llama, vsrc) -> Path:
     if not ((eng / VEXE).exists() and meta.get("vision_src") == vsrc):
         say("  Compiling the image encoder (for the CPU) ...")
         cmake_build(ROOT / "tools" / "vision", ROOT / "build-vision", "strata-vision",
-                    [f"-DLLAMA_DIR={llama}", "-DSTRATA_VISION_CUDA=OFF", "-DSTRATA_PORTABLE=OFF"],
+                    [f"-DLLAMA_DIR={vision_llama(llama)}", "-DSTRATA_VISION_CUDA=OFF", "-DSTRATA_PORTABLE=OFF"],
                     find_vcvars() if WIN else None,
                     "build-vision-cpu.bat" if WIN else "")   # #881: MSVC's environment on Windows, as the CUDA path has
         shutil.copy2(ROOT / "build-vision" / "bin" / VEXE, eng / VEXE)
@@ -5722,14 +5740,38 @@ def apply_native_runner(src: Path) -> None:
     mod.apply(src)
 
 
-def build_image_engine(backend: str, gpu: dict) -> tuple[Path, list[str]]:
-    """Compile sd-cli for `backend` into engine-image/ (again only when the pins or the backend changed) -> (its path,
-    the library folders it runs with)."""
+def apply_noise_generator(src: Path) -> None:
+    """OWN-5 step 1: tools/image/sdcpp_noise's noise generator into the stable-diffusion.cpp source (idempotent; any
+    backend; sd-cli uses it only with --model-args strata_noise=1)."""
+    import importlib.util
+    QI = _qimage()
+    spec = importlib.util.spec_from_file_location("strata_sdcpp_noise_apply", QI.NOISE_DIR / "apply.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.apply(src)
+
+
+def apply_vae_decoder(src: Path) -> None:
+    """OWN-5 step 2: Strata's VAE decoder (src/image/vae via tools/image/sdcpp_vae) into the stable-diffusion.cpp
+    source (idempotent; CUDA / HIP builds; sd-cli uses it only with --model-args strata_vae=1)."""
+    import importlib.util
+    QI = _qimage()
+    spec = importlib.util.spec_from_file_location("strata_sdcpp_vae_apply", QI.VAE_DIR / "apply.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.apply(src)
+
+
+def build_image_engine(backend: str, gpu: dict, noise: bool = False, vae: bool = False) -> tuple[Path, list[str]]:
+    """Compile sd-cli for `backend` into engine-image/ (again only when the pins or the backend changed, or, with
+    `noise`, the noise generator's sources) -> (its path, the library folders it runs with).  `noise`: Strata's noise
+    generator is patched in (images "noise": "strata"); off, the build and its stamp are what they always were."""
     QI = _qimage()
     IMAGE_ENGINE.mkdir(exist_ok=True)
     exe, stamp = IMAGE_ENGINE / QI.SD_EXE, IMAGE_ENGINE / "BUILD.json"
     arch = gpu.get("arch") if backend in ("cuda", "hip") else None
-    want = QI.build_stamp(backend, arch)
+    vae = vae and backend in QI.VAE_BACKENDS
+    want = QI.build_stamp(backend, arch, noise, vae)
     meta = json.loads(stamp.read_text(encoding="utf-8")) if stamp.exists() else {}
     lib_dirs = [d for d in meta.get("lib_dirs") or [] if Path(d).is_dir()]
     if exe.exists() and {k: meta.get(k) for k in want} == want:
@@ -5738,6 +5780,10 @@ def build_image_engine(backend: str, gpu: dict) -> tuple[Path, list[str]]:
     src = get_sd_cpp()
     if backend in QI.NATIVE_BACKENDS:                 # Strata's DiT runner (inert unless the config asks for it)
         apply_native_runner(src)
+    if noise:                                          # Strata's noise generator (inert unless the config asks for it)
+        apply_noise_generator(src)
+    if vae:                                            # Strata's VAE decoder (inert unless the config asks for it)
+        apply_vae_decoder(src)
     vcvars, lib_dirs = None, []
     if backend == "cuda":
         nvcc, cuda_v = find_nvcc()
@@ -5813,14 +5859,21 @@ def setup_images(a, gpu: dict, hip: bool, models_dir: Path) -> dict | None:
     models_dir.mkdir(parents=True, exist_ok=True)
     if free_gb(models_dir) < need + 5:
         warn(f"less than {need + 5:.0f} GB free for the image model: the download may run out of disk space")
-    exe, lib_dirs = build_image_engine(backend, gpu or {})
+    noise = getattr(a, "image_noise", None) == "on"
+    vae = getattr(a, "image_vae", None) == "on"
+    if vae and backend not in QI.VAE_BACKENDS:         # the owner's wording, 11-11
+        warn(f"Strata's own picture decoder runs with CUDA or ROCm only; image generation on {backend} keeps "
+             "stable-diffusion.cpp's decoder")
+        vae = False
+    exe, lib_dirs = build_image_engine(backend, gpu or {}, noise, vae)
     for name in (quant, "vae", "llm"):
         repo, path, size, sha = QI.FILES[name]
         dst = QI.local_path(models_dir, name)
         download(QI.file_url(name, hf_endpoint()), dst, f"image model: {Path(path).name}")
         verify_sha256(dst, size, sha)
     cfg = QI.image_config(backend, quant, exe, models_dir, uma=QI.is_apu(gpu), lib_dirs=lib_dirs,
-                          policy=a.image_gpu_policy or "auto", native=getattr(a, "image_native", None) == "on")
+                          policy=a.image_gpu_policy or "auto", native=getattr(a, "image_native", None) == "on",
+                          noise=noise, vae=vae)
     ok(f"image generation: {quant} on {backend}, GPU policy {cfg['gpu_policy']}")
     return cfg
 
@@ -6277,7 +6330,7 @@ def update_installed_engine(url_base, toolkit=None) -> None:
                     raise RuntimeError("no supported AMD GPU found")
                 # every architecture it was built for (a layer split across two families keeps both)
                 build_engine_hip({**g, "archs": [x for x in arch_names(meta.get("archs")) if x in AMD_ARCHS] or [g["arch"]]},
-                                 get_llama_cpp(), meta.get("vision") or "none")
+                                 llama_override(), meta.get("vision") or "none")
             except (Exception, SystemExit) as e:
                 warn(f"could not compile the updated engine{'' if isinstance(e, SystemExit) else f' ({e})'}: "
                      "starting the installed one")
@@ -6307,7 +6360,7 @@ def update_installed_engine(url_base, toolkit=None) -> None:
             gpu = {**gpu, "archs": sorted({int(gpu["arch"]), *arch_numbers(meta.get("archs"))})}
             if int(toolkit) == 12:                     # the cards it was compiled for (the main GPU may be newer)
                 gpu["archs"] = sorted(arch_numbers(meta.get("archs"))) or gpu["archs"]
-            build_engine(gpu, vision, False, get_llama_cpp(), toolkit=toolkit)
+            build_engine(gpu, vision, False, llama_override(), toolkit=toolkit)
         except (Exception, SystemExit) as e:
             warn(f"could not compile the updated engine{'' if isinstance(e, SystemExit) else f' ({e})'}: starting the installed one")
         return
@@ -6585,8 +6638,8 @@ def cmake_build(src, bdir, target, defs, vcvars, bat_name):
             run(build)
 
 
-ENGINE_SOURCES = ("CMakeLists.txt", "cmake", "src", "include", "third_party/ggml")
-VISION_SOURCES = ("tools/vision",)
+ENGINE_SOURCES = ("CMakeLists.txt", "cmake", "src", "include", "third_party/ggml", "third_party/strata-ggml")
+VISION_SOURCES = ("tools/vision", "third_party/strata-llama")
 
 
 def source_hash(parts) -> str:
@@ -6704,8 +6757,11 @@ def build_engine(gpu, vision, yes, llama, toolkit=None) -> Path:
             if local and (eng / EXE).exists() else "  Compiling the Strata engine for your GPU (10-20 minutes, once) ...")
         cmake_build(ROOT, bdir, "strata",
                     ["-DSTRATA_ENABLE_CUDA=ON", "-DSTRATA_BUILD_TESTS=OFF", "-DSTRATA_Q6K_EXPERTS=ON", "-DSTRATA_MMQ_KQUANTS=ON",
+                     # without llama.cpp's MMQ, also in a build folder configured before (its cache says ON); ARM64 (DGX Spark):
+                     # not measured without MMQ, kept as in 0.2.13
+                     "-DSTRATA_MMQ=" + ("ON" if is_arm64() else "OFF"),
                      f"-DCMAKE_CUDA_ARCHITECTURES={cuda_archs}",
-                     f"-DCMAKE_CUDA_COMPILER={nvcc}", *toolkit_root_defs(nvcc), f"-DSTRATA_GGML_DIR={llama}",
+                     f"-DCMAKE_CUDA_COMPILER={nvcc}", *toolkit_root_defs(nvcc), *ggml_defs(llama),
                      *host_compiler_defs(True), *engine_defs(archs, toolkit),
                      *isa_floor_defs(floor, bdir, meta)],
                     vcvars, "build-strata-cuda12.bat" if t12 else "build-strata.bat")
@@ -6720,7 +6776,7 @@ def build_engine(gpu, vision, yes, llama, toolkit=None) -> Path:
             (eng / KQ_LIB).unlink()
     if not vision_ok:
         say("  Compiling the image encoder" + (" with CUDA (10-20 minutes, once) ..." if vision == "gpu" else " ..."))
-        defs = [f"-DLLAMA_DIR={llama}", f"-DSTRATA_VISION_CUDA={'ON' if vision == 'gpu' else 'OFF'}",
+        defs = [f"-DLLAMA_DIR={vision_llama(llama)}", f"-DSTRATA_VISION_CUDA={'ON' if vision == 'gpu' else 'OFF'}",
                 "-DSTRATA_PORTABLE=OFF", *host_compiler_defs(vision == "gpu")]   # native, like the engine
         if vision == "gpu":
             defs += [f"-DCMAKE_CUDA_ARCHITECTURES={cuda_archs}", f"-DCMAKE_CUDA_COMPILER={nvcc}",
@@ -6746,7 +6802,7 @@ def build_engine(gpu, vision, yes, llama, toolkit=None) -> Path:
 DATA_ITEMS = ("models", "packs", "mtp")
 
 
-LOW_RAM_HEADROOM_GB = 10   # RAM beside the experts: the OS, the engine's other buffers, the server
+LOW_RAM_HEADROOM_GB = 10   # RAM beside the experts (GiB, as ram_gb() counts): the OS, the engine's other buffers, the server
 RESIDENT_ENGINE = (0, 1, 30)   # the first engine with --resident-experts (the low-RAM mode's resident variant)
 RESIDENT_SPLIT_ENGINE = (0, 1, 40)   # #642: the first engine that runs it on a layer split
 
@@ -6761,7 +6817,13 @@ def resident_split() -> bool:
 def low_ram_needed(model, ram) -> bool:
     """The model's experts do not fit this PC's RAM with room left for the rest: they are then mapped from the pack's
     experts.bin instead of copied into RAM (the low-RAM mode)."""
-    return ram < MODELS[model]["arena_gb"] + LOW_RAM_HEADROOM_GB
+    return ram_short_of_arena(ram, MODELS[model]["arena_gb"])
+
+
+def ram_short_of_arena(ram_gib, arena_gb, headroom_gib=LOW_RAM_HEADROOM_GB) -> bool:
+    """True when `ram_gib` (GiB, as ram_gb() returns it) is less than an expert arena of `arena_gb` (GB of 10^9
+    bytes, as MODELS gives it) plus the headroom (GiB): both sides counted in GiB."""
+    return ram_gib < arena_gb * 1e9 / 2**30 + headroom_gib
 
 
 #: The draft layer (MTP) takes about 1 GB of graphics memory: its 786 MiB of files plus the draft head's ~218 MiB
@@ -7572,11 +7634,11 @@ def choices_from_config(cfg_path: Path) -> dict:
 def calibration_targets(have: list, model: str | None, family: str | None) -> list:
     """#2036: the installed configs `--calibrate --model X` (and/or --family) means; every config with neither."""
     if not (model or family):
-        return [c for c in have if choices_from_config(c)["family"] not in (*OWN_PATH_FAMILIES, *MULTI_FILE_FAMILIES)]
+        return [c for c in have if choices_from_config(c)["family"] not in OWN_PATH_FAMILIES]
     out = []
     for c in have:
         ch = choices_from_config(c)
-        if ch["family"] in OWN_PATH_FAMILIES or ch["family"] in MULTI_FILE_FAMILIES:   # the tuning measures Flash-Next's engine settings
+        if ch["family"] in OWN_PATH_FAMILIES:            # the tuning measures Flash-Next's engine settings
             continue
         if (not model or ch["model"] == model) and (not family or ch["family"] == family):
             out.append(c)
@@ -8195,7 +8257,7 @@ OLD_DRAFT_VOCABS = {"369151522226a5edaa5f12cfd1e2ae7db8f4fbdbd222f3dcf327dced959
 
 
 DRAFT_VOCABS = {"cjk": "draft_vocab.bin", "en": "draft_vocab_en.bin", "cyrillic": "draft_vocab_cyrillic.bin",
-                "fr": "draft_vocab_fr.bin"}
+                "fr": "draft_vocab_fr.bin", "latin": "draft_vocab_latin.bin"}
 
 
 def saved_draft_vocab(cfg_path: Path) -> str | None:
@@ -8233,7 +8295,7 @@ def vision_tokens(asked: int | None, vision: str, earlier: Path | None) -> int:
     return asked
 
 
-DRAFT_VOCAB_MIB = {"cjk": 348, "cyrillic": 193, "fr": 151, "en": 133}   # the draft head's VRAM per subset (IQ3_S: the largest)
+DRAFT_VOCAB_MIB = {"cjk": 348, "cyrillic": 193, "fr": 151, "en": 133, "latin": 203}   # the draft head's VRAM per subset (IQ3_S: the largest)
 SMALL_DRAFT_VRAM_GB = 14   # #474: below this the default subset's head can be what does not fit
 
 
@@ -8402,10 +8464,15 @@ def arg_after(args, flag):
 
 
 def bare_auto_is_32768(gpu, args, env) -> bool:
-    """Round 0212 (owner 11-03): the engine gives a bare `--prefill auto` a 32768-token ceiling on one NVIDIA card of compute capability 8.0 or up
-    (generate.cpp, nv_chunk.hpp); STRATA_NV_CHUNK=0 or STRATA_DEFAULTS=026 (the config's env or this process's) keep 8192, and a layer split reads 8192-token chunks."""
+    """Round 0212 (owner 11-03): the engine gives a bare `--prefill auto` a 32768-token ceiling on one NVIDIA card of compute capability 8.0 or up, and on
+    7.0 (Volta; include/strata/core/nv_chunk.hpp `nv_chunk_card_ok`, called from generate.cpp); Turing (7.5) and Pascal (6.x) keep 8192.  STRATA_NV_CHUNK=0
+    or STRATA_DEFAULTS=026 (the config's env or this process's) keep 8192, and a layer split reads 8192-token chunks.  `gpu` is the one card the config
+    runs on (the engine sees only the cards CUDA_VISIBLE_DEVICES names, so for a mixed PC the lowest of those decides, which is this card)."""
     arch = str((gpu or {}).get("arch", ""))
-    if not arch.isdigit() or len(arch) < 2 or int(arch[:-1]) < 8:
+    if not arch.isdigit() or len(arch) < 2:
+        return False
+    major, minor = int(arch[:-1]), int(arch[-1])     # "70" -> 7.0, "86" -> 8.6, "120" -> 12.0
+    if not (major >= 8 or (major == 7 and minor == 0)):
         return False
     if any(a in (args or []) for a in ("--gpus", "--layer-split")):
         return False
@@ -8497,7 +8564,8 @@ def refresh_draft_vocab(rt: Path, choice: str = "cjk") -> None:
     """The draft layer's token subset in the MTP folder: `cjk` (data/draft_vocab.bin, since 0.1.27, #137), `en`
     (data/draft_vocab_en.bin, the English/code subset before it: ~110 MiB less VRAM, English answers 1-2% faster) or
     `cyrillic` (data/draft_vocab_cyrillic.bin: English/code and the whole Cyrillic script, for Ukrainian, Russian,
-    Bulgarian, Serbian... answers) or `fr` (data/draft_vocab_fr.bin: English/code and the tokens of French text, #597).
+    Bulgarian, Serbian... answers) or `fr` (data/draft_vocab_fr.bin: English/code and the tokens of French text, #597) or `latin` (data/draft_vocab_latin.bin: English/code and
+    the tokens of German, Spanish, French and Polish text).
     Copied when missing or when a shipped subset other than the chosen one is there; a subset made by hand is kept."""
     new, dst = ROOT / "data" / DRAFT_VOCABS.get(choice, "draft_vocab.bin"), rt / "draft_vocab.bin"
     if not new.exists() or not rt.is_dir():
@@ -8510,7 +8578,8 @@ def refresh_draft_vocab(rt: Path, choice: str = "cjk") -> None:
             return
         ok("draft layer: the token subset " + {"cjk": "with Chinese, Japanese and Korean",
                                                "cyrillic": "with the Cyrillic script",
-                                               "fr": "for French"}.get(choice,
+                                               "fr": "for French",
+                                               "latin": "with the Latin-script languages"}.get(choice,
                                                                                           "for English and code (less VRAM)"))
     shutil.copyfile(new, dst)
 
@@ -8565,7 +8634,7 @@ def ensure_engine_for(cards, cfg_path: Path, cfg: dict, yes: bool) -> dict:
     main = gpu_info(cards[0]["index"])
     archs = sorted(set(arch_numbers(meta.get("archs"))) | {int(g["arch"]) for g in cards})
     vision = meta.get("vision") or ("gpu" if (eng / VEXE).exists() else "none")
-    build_engine({**main, "archs": archs}, vision, yes, get_llama_cpp(), toolkit=tk)
+    build_engine({**main, "archs": archs}, vision, yes, llama_override(), toolkit=tk)
     dirs = json.loads(info.read_text(encoding="utf-8")).get("cuda_dirs") or []
     cfg["lib_dirs"] = dirs + [d for d in cfg.get("lib_dirs") or [] if d not in dirs]
     write_config(cfg_path, cfg)
@@ -8580,7 +8649,7 @@ def get_cuda12_engine(url_base, gpu, vision, yes, build=False) -> Path:
         pip_cuda_libs(12)
         if vision != "none" and not (eng / VEXE).exists():
             eng = None
-    return eng if eng is not None else build_engine(gpu, vision, yes, get_llama_cpp(), toolkit=12)
+    return eng if eng is not None else build_engine(gpu, vision, yes, llama_override(), toolkit=12)
 
 
 def engine_lib_dirs(eng: Path, toolkit=13) -> list:
@@ -8705,7 +8774,7 @@ def sycl_setup(argv) -> int:
 def intel_control_setup(a) -> int:
     """`--backend sycl` in the app's CONTROL mode (tools/strata_mcp.py passes it for an Intel Arc PC): what the Terminal does for an Arc
     (strata_cli/launch/runner.py adopt_prepared_files): the pack from the model's GGUF files (`--prepare-pack`'s step), then the run config
-    (strata_cli/launch/adopt.py), the engine named as the component. Nothing is downloaded but gguf-py's small helper, nothing is compiled; Intel
+    (strata_cli/launch/adopt.py), the engine named as the component. Nothing is downloaded, nothing is compiled; Intel
     cards do not download models, so the files must be on the computer (--gguf-dir, or <data folder>/models/<tag>). The older `--backend sycl`
     (a source build with oneAPI, sycl/setup_intel.py) is sycl_setup(), for a checkout; the app's bundle has no sycl/ folder."""
     from strata_cli.launch import adopt
@@ -8835,7 +8904,7 @@ def shape_engine_step(a, gpu, vision):
     separate component next to the Strata engine (shape_engine_fetch); the run config names it ("component:strata-q4-lite") and every start looks it up.
     Returns what engine_step returns."""
     shape = SHAPE_ENGINE["shape"]
-    llama = llama_cpp_if_here() if CONTROL else get_llama_cpp()
+    llama = llama_cpp_if_here()
     found = shape_engine_fetch(a)
     if found is None:
         return llama, home() / "engine", {"version": "99.0.0", "source": "local", "component": "missing"}, [], gpu, "none"
@@ -8855,7 +8924,7 @@ def engine_step(a, gpu, hip, amd, cuda_tk, vision):
         return shape_engine_step(a, gpu, vision)
     if CONTROL:
         return control_engine_step(gpu, vision)
-    llama = get_llama_cpp()
+    llama = llama_override()
     ok(f"llama.cpp {LLAMA_CPP_COMMIT[:7]} (gguf-py, ggml, mtmd)")
     if hip and WIN:                                    # AMD on Windows: the ready-made HIP engine (no compiler)
         eng = None if a.build else get_prebuilt_hip(a.prebuilt, gpu)
@@ -9169,7 +9238,10 @@ def install_own_path(a, family, gpu, hip, amd, cuda_tk, multi, port, ram, adopte
     elif vision != "none" and not (eng / VEXE).exists():
         warn("this engine has no image encoder: images off (run setup again with --build to compile it)")
         vision = "none"
-    if fam["arch"] not in engine_families(eng):
+    if CONTROL and meta.get("component") == "missing":
+        pass                                           # the app: no engine yet (control_engine_step said so); the run config names the component,
+                                                       # and the engine's families are checked when the model loads
+    elif fam["arch"] not in engine_families(eng):
         if fam.get("feed") and FEED_UNAVAILABLE.get(family, {}).get("allowed"):      # the owner's rule for a feed model (feed_models.UNAVAILABLE_POLICY): warn, go on
             warn(f"{fam['title']} is {FEED_UNAVAILABLE[family]['reason']}")
         else:
@@ -9206,7 +9278,7 @@ def install_own_path(a, family, gpu, hip, amd, cuda_tk, multi, port, ram, adopte
     pack = data / "packs" / tag.lower()            # only the tokenizer: the engine reads the GGUF itself
     if not (pack / "tokenizer" / "vocab.json").exists():
         run([sys.executable, str(ROOT / "tools" / "strata_tokenizer.py"), "--gguf", str(gguf), "--out", str(pack)],
-            env=dict(os.environ, STRATA_GGUF_PY=str(llama / "gguf-py")))
+            env=dict(os.environ, **gguf_py_env()))
     ok(f"tokenizer: {pack / 'tokenizer'}")
 
     step(7, "writing the start script")
@@ -10241,9 +10313,9 @@ def prepare_pack_only(a) -> int:
         fail(*problem)
     pack = Path(a.prepare_pack)
     step(1, "preparing the model for this graphics card")
-    llama = get_llama_cpp()
+    llama = llama_override()
     ok(f"llama.cpp {LLAMA_CPP_COMMIT[:7]} (gguf-py)")
-    env = dict(os.environ, STRATA_GGUF_PY=str(llama / "gguf-py"))
+    env = dict(os.environ, **gguf_py_env())
     if not (pack / "native_experts.txt").exists() or not (pack / "tokenizer" / "vocab.json").exists():
         run([sys.executable, str(ROOT / "tools" / "iq_pack.py"), "--gguf", str(files[0]), "--out", str(pack),
              *fam.get("pack_args", [])], env=env)
@@ -10463,7 +10535,7 @@ def mac_control_setup(a) -> int:
 
     step(6, "preparing the model for Strata")
     pack = find_in(roots, f"packs/{tag.lower()}") or data / "packs" / tag.lower()
-    env = dict(os.environ, STRATA_GGUF_PY=str(llama / "gguf-py"))
+    env = dict(os.environ, **gguf_py_env())
     shards = [files[0], files[0]] if family == "gyro" else files      # Gyro: one file, the model and its n-gram table
     pack_todo = not (pack / "native_experts.txt").exists() or not (pack / "tokenizer" / "vocab.json").exists()
     prep_lock = mac_prepare_lock(native) if repacked and (pack_todo or not (native.exists() and done(native))) else None
@@ -10480,13 +10552,14 @@ def mac_control_setup(a) -> int:
             prep_lock.unlink(missing_ok=True)
     ok(f"model prepared: {pack}")
     use_mtp = MF.stream_mtp(stream, ram)
-    if use_mtp and MF.MAC_MODELS[model].get("no_mtp"):      # the model list says there is no draft layer: none is fetched (the Flash-Next head is not this model's)
+    no_layer = bool(MF.MAC_MODELS.get(model, {}).get("no_mtp"))
+    if no_layer:                                       # the model list says there is no draft layer: none is fetched (the Flash-Next head is not this model's)
         say("  The model list says this model has no draft layer (MTP), so none is fetched or used.")
         use_mtp = False
     mtp = (find_in(roots, "mtp/mtp-q2_0.gguf") or data / "mtp" / "mtp-q2_0.gguf").parent
     rt = mtp / "rt"
     if stream and not use_mtp:
-        ok("the experts stream from the SSD: no MTP draft layer (one token per step is faster there)")
+        ok("the experts stream from the SSD" + ("" if no_layer else ": no MTP draft layer (one token per step is faster there)"))
     elif stream:
         ok(f"the experts stream from the SSD; the MTP draft layer stays on, with --spec {MF.STREAM_SPEC}")
     if use_mtp and a.mtp == "off" and not (mtp / "mtp-q2_0.gguf").exists():
@@ -10623,6 +10696,10 @@ def main() -> int:
     ap.add_argument("--image-backend", choices=["cuda", "hip", "vulkan", "cpu"],
                     help=argparse.SUPPRESS)
     ap.add_argument("--image-native", choices=["on", "off"],
+                    help=argparse.SUPPRESS)
+    ap.add_argument("--image-noise", choices=["on", "off"],
+                    help=argparse.SUPPRESS)
+    ap.add_argument("--image-vae", choices=["on", "off"],
                     help=argparse.SUPPRESS)
     ap.add_argument("--image-gpu-policy", choices=["auto", "keep", "shrink", "unload"],
                     help=argparse.SUPPRESS)
@@ -10837,8 +10914,7 @@ def main() -> int:
                     a.gpus = a.gpus or ",".join(str(g) for g in ch["gpu"])
                     a.layer_split = a.layer_split or ch.get("layer_split")
                 else:
-                    if earlier_card_kept(prev):
-                        a.gpu = a.gpu if a.gpu is not None else ch.get("gpu")
+                    a.gpu = a.gpu if a.gpu is not None else ch.get("gpu")
                 a.yes = True
     global GPU_PICK, OLD_GPUS
     # starting an installed model: --gpus 0,2 (or all) saves those cards for it and starts on them (it used to start
@@ -10952,7 +11028,6 @@ def main() -> int:
                         "your user in the render and video groups)")
         if not usable:
             fail("no AMD GPU Strata can use", f"the AMD backend runs on {AMD_CARDS}")
-        a._cards_named = bool(a.gpu is not None or a.gpus)     # before setup's own pick is written into a.gpu below
         if a.gpus:                                     # a layer split across these cards, the first one the main
             chosen = amd_parse_gpus(a.gpus, amd)
             gpu = chosen[0]
@@ -11126,10 +11201,10 @@ def main() -> int:
             say(f"  {i}) {d['title']:20s} {d['by']} - {d['about']}" + ("   [experimental]" if d.get("experimental") else "")
                 + family_menu_note(f, hip, gpu, avx2, avx512)
                 + (f"   (recommended for Strix Halo: {STRIX_HALO_MODEL})" if f == rec_fam and rec_fam != fams[0] else ""))
-        rest = [*(f for f in OWN_PATH_FAMILIES if not OWN_PATH_FAMILIES[f].get("feed")), *MULTI_FILE_FAMILIES,
+        rest = [*(f for f in OWN_PATH_FAMILIES if not OWN_PATH_FAMILIES[f].get("feed")),
                 *(f for f in OWN_PATH_FAMILIES if OWN_PATH_FAMILIES[f].get("feed")), *feed_late]
         for j, f in enumerate(rest, len(fams) + 1):    # families with an engine path of their own
-            d = {**FAMILIES, **OWN_PATH_FAMILIES, **MULTI_FILE_FAMILIES}[f]
+            d = {**FAMILIES, **OWN_PATH_FAMILIES}[f]
             say(f"  {j}) {d['title']:20s} {d['by']} - {d['about']}   [new]" + (f"   ({FEED_UNAVAILABLE[f]['reason']})" if f in FEED_UNAVAILABLE else ""))
         for u in FEED_UNAVAILABLE.values():            # a feed model this engine does not run: said, never offered (unless the owner's rule allows it, above)
             if not u.get("allowed"):
@@ -11551,7 +11626,7 @@ def main() -> int:
     # ---- 6. the pack and the MTP draft layer
     step(6, "preparing the model for Strata")
     pack = find_in(roots, f"packs/{tag.lower()}") or data / "packs" / tag.lower()
-    env = dict(os.environ, STRATA_GGUF_PY=str(llama / "gguf-py"))
+    env = dict(os.environ, **gguf_py_env())
     prepared = bool(ready and MODELS[model].get("prepare"))
     if prepared and not prepared_done(model, models_dir):
         say("  NVIDIA's checkpoint is turned into a Strata pack on this PC (once; 20-40 minutes, reads the 102 GB, writes about")

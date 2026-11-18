@@ -3,7 +3,7 @@
 DeepSeek-V4.1's tokenizer has no single token for Qwen's <|im_end|> / <|endoftext|>: it splits them into '<', '|', 'im', '_end',
 '|', '>' and 'end', 'of', 'text'.  A server that took the ids of those pieces as its stop ids (a config without "arch") ended the
 reply in front of the first "im" it wrote: Nerazim = N, er, az, im.  These tests keep three things true, for the OpenAI and the
-Anthropic route, streamed and not, with and without the family named:
+Anthropic route, streamed and not:
 
   * the reply that has no stop string comes out whole (every word that ends in a piece of a stop string or of an end marker);
   * a stop string cuts the reply exactly there, whatever the chunking;
@@ -44,7 +44,7 @@ def nerazim_tokenizer() -> ST.Tokenizer:
     merges = ["e r", "a z", "i m", "_ e", "_e n", "_en d", "e n", "en d", "o f", "t e", "te x", "tex t"]
     tokens = [s for s, _ in SPECIALS] + [b2u[b] for b in range(256)] + extra
     types = [t for _, t in SPECIALS] + [1] * (256 + len(extra))
-    return ST.Tokenizer(tokens, merges, types, "deepseek3", {"bos": 0, "eos": EOS})
+    return ST.Tokenizer(tokens, merges, types, "qwen35", {"bos": 0, "eos": EOS})
 
 
 class Fixture(unittest.TestCase):
@@ -181,10 +181,7 @@ class Routes(Fixture):
             return engine
         engine = self.servers[named] = DsEngine(self.tok, script)
         engine.script = self.tok.encode(script) + [EOS]
-        svc = Service(engine, self.tok, ChatTemplate(TEMPLATE), model_name="deepseek-v4.1-flash")
-        if named:
-            svc.model_arch = "deepseek41"
-            svc.set_family("deepseek41")
+        svc = Service(engine, self.tok, ChatTemplate(TEMPLATE), model_name="m")
         httpd = serve(svc, port=0)
         self.addCleanup(httpd.server_close)
         self.addCleanup(httpd.shutdown)
@@ -236,7 +233,7 @@ class Routes(Fixture):
         self.bases = {}
 
     def every_route(self):
-        for named in (False, True):
+        for named in (False,):
             for route in ("openai", "anthropic"):
                 for stream in (False, True):
                     yield named, route, stream

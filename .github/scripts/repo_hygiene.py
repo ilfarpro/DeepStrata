@@ -159,6 +159,8 @@ def main() -> int:
         path = new or old
         if status == 'D' or not path.is_file():
             continue
+        if path.parts[0] == 'third_party':          # vendored code arrives as its own upstream writes it: this
+            continue                                # repository copies it and does not police its text
         before = old_text(args.base, status, old)
 
         # a text file the change touched: the damage checks below read it as bytes, once

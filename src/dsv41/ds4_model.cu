@@ -13638,6 +13638,8 @@ struct Model::Impl {
                 double wf_ms[4][8] = {};
                 long wf_n[4] = {};
                 double wf_max[4] = {};
+                int cur_dev = 0;
+                cudaGetDevice(&cur_dev);   // (the loop below visits the marks' devices: this thread's own comes back)
                 {
                     std::lock_guard<std::mutex> lk(prof_mu);
                     for (const WfMark& m : wf_marks) {
@@ -13654,6 +13656,7 @@ struct Model::Impl {
                     }
                     wf_marks.clear();
                 }
+                cudaSetDevice(cur_dev);
                 static const char* wk_[4] = {"weights ready (GPU stream wait)", "hand-off get (peer wait+copy)",
                                              "hand-off put (copy out)", "hand-off ack wait"};
                 for (int q = 0; q < 4; ++q) {

@@ -4811,6 +4811,17 @@ struct Model::Impl {
             ++c.it_inplace;   // (issue #3: DMA'd from where it lies, no staging copy for it)
             return;
         }
+        // (issue #3: the same, for a copy pinned by need (STRATA_DS4_PIN_BY_NEED + STRATA_DS4_PIN_GB, zc_pin) - a
+        // partial pin, so the prompt stream reads those experts in place while the rest still pass the staging.  Only
+        // a copy's layout is in-place here (copy_mode), and only a whole member's (nm == 1))
+        if (in_ram && store_blob == nullptr && copy_mode && l.nm == 1 && zc_ok(l, e)) {
+            const uint8_t* p = ram_part[(size_t) l.ram[(size_t) e]][0];
+            for (int r = 0; r < 3; ++r)
+                it.src[r] = p + cp_lay[(size_t) l.il][(size_t) r] + mx_read_off(l, mi, r);
+            ++c.it_ram;
+            ++c.it_inplace;
+            return;
+        }
         if (in_ram)   // (copied into staging by io, then DMA'd; copy_mode: from its NH parts, flow_pump)
             it.ram = store_blob != nullptr ? store_blob
                      : copy_mode ? ram_part[(size_t) l.ram[(size_t) e]][0] : ram_slots[(size_t) l.ram[(size_t) e]];

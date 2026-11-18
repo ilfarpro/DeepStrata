@@ -36,12 +36,12 @@ Comments are for this document only; actual feed files must be strict JSON.
   "schema_version": 1, "feed": "strata-updates", "channel": "stable",
   "sequence": 12,                           // goes up with every feed; an older one than the last accepted is refused
   "generated_at": "2026-10-20T10:00:00Z", "expires_at": "2027-10-20T10:00:00Z",   // expires_at may be null
-  "control": {"version": "0.1.61", "packages": [{"platform": "linux-x86_64", "format": "tar.gz", "url": "control/...tar.gz",
+  "control": {"version": "0.1.62", "packages": [{"platform": "linux-x86_64", "format": "tar.gz", "url": "control/...tar.gz",
                                                   "size": 0, "sha256": "...", "installed_bytes": 0, "entry": "strata.py"}]},
   "engine": {"packages": [{
-    "version": "0.1.61", "platform": "linux-x86_64", "backend": "cuda", "variant": "cuda13",
+    "version": "0.1.62", "platform": "linux-x86_64", "backend": "cuda", "variant": "cuda13",
     "archs": ["sm_75", "sm_86", "sm_89", "sm_120", "compute_120"], "min_driver": {"nvidia": "580.65"}, "min_runtime": null,
-    "build_id": "be885026f96a-cuda13.0", "format": "tar.gz", "url": "engine/strata-engine-0.1.61-linux-x86_64-cuda-cuda13.tar.gz",
+    "build_id": "be885026f96a-cuda13.0", "format": "tar.gz", "url": "engine/strata-engine-0.1.62-linux-x86_64-cuda-cuda13.tar.gz",
     "size": 505568970,                      // bytes of the archive
     "sha256": "...",                        // of the archive
     "manifest_sha256": "...",               // of the package's engine-component.json (it holds every file's hash)
@@ -60,7 +60,7 @@ separate component, picked by the model, and never in place of the Strata engine
 
 ```jsonc
 "shape_engines": {"packages": [{            // the same entry as "engine" (pack-engine writes it), plus the shape = the geometry's name the engine was compiled for
-  "shape": "q4_lite", "version": "0.1.61", "platform": "linux-x86_64", "backend": "cuda", "variant": "cuda13", "archs": ["sm_120"], "min_driver": {"nvidia": "580.65"},
+  "shape": "q4_lite", "version": "0.1.62", "platform": "linux-x86_64", "backend": "cuda", "variant": "cuda13", "archs": ["sm_120"], "min_driver": {"nvidia": "580.65"},
   "min_runtime": "0.1.58", "build_id": "...", "format": "tar.gz", "url": "strata-q4-lite-0.1.58-linux-x86_64-cuda-cuda13.tar.gz", "size": 0, "sha256": "...", "manifest_sha256": "...", "installed_bytes": 0}]},
 "models": {"packages": [{"id": "qwen4-lite", "family": "qwen4exp_q4_lite", ...}]}     // the family names the shape: qwen4exp_<shape>
 ```
@@ -293,9 +293,9 @@ feed carry the component versions, because the updater compares those.
 
     python packaging/feed_tool.py sign-package <engine package folder> --key <feed-key.json>        # every engine package
     python packaging/feed_tool.py pack-engine  <engine package folder> --out RELEASE/engine --url-prefix=
-    python packaging/feed_tool.py pack-control <control folder> --version 0.1.61 --platform P --out RELEASE/control --url-prefix=   # --format zip for windows-x86_64
+    python packaging/feed_tool.py pack-control <control folder> --version 0.1.62 --platform P --out RELEASE/control --url-prefix=   # --format zip for windows-x86_64
     # --url-prefix= (not --url-prefix "") because PowerShell 5.1 drops an empty argument. The Control version is the VERSION file
-    # (0.1.61), not the page version: a Control package newer than the installed one is installed by `strata update`.
+    # (0.1.62), not the page version: a Control package newer than the installed one is installed by `strata update`.
     # Pack Linux and Mac packages on Linux / the Mac or on Windows with this tool: it sets the execute bit from the file header either way.
     python packaging/feed_tool.py build-feed --out RELEASE --sequence N --key <feed-key.json> --engine RELEASE/engine --control RELEASE/control [--dsv41 RELEASE/dsv41] [--drafters RELEASE/drafters]
     python packaging/feed_tool.py verify-feed RELEASE --pub <feed-key.pub.json>

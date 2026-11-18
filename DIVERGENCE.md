@@ -38,8 +38,9 @@ Rules that keep the merges mechanical:
 - After every sync: update the "Last synced" line below, add or fix an entry
   if the merge changed a divergence zone, and run the tests named there.
 
-**Last synced:** `strata/main` at `13eedf55` (upstream 0.2.13 line), 2026-11-13.
-Our `main` was ahead by 115 commits, upstream by 379 (both counted from `146df3c4`).
+**Last synced:** `strata/main` at `c7757280` (upstream 0.2.15 line), 2026-11-18.
+The sync brought 602 upstream commits (non-merge) since `13eedf55`; our own work upstream does not carries is
+146 commits (non-merge).
 The sync accepted upstream's `history/` archive (the April-October 2026 work it moved there) and dropped our own copy of
 those pages (`apps/host/docs/archive/`): one archive, in the place upstream keeps it.
 Upstream's four CI workflows (`backends`, `check`, `docs`, `snapshot`) are not taken: this fork runs its own set
@@ -59,12 +60,12 @@ The components keep their own numbers, where they live today (pinned by
 `tests/terminal/test_tui2_023_versions.py`):
 
 - the page and the Terminal carry a three-number version (`apps/host/package.json` and `strata_cli.PRODUCT_VERSION`,
-  today 0.2.13): npm takes semver only, and version keys order a bare number — a prerelease suffix does not order
+  today 0.2.15): npm takes semver only, and version keys order a bare number — a prerelease suffix does not order
   (`app_version_key` treats any suffix as merely "below the bare number"), so four numbers there would offer the same
   update forever. A rebuilt page inside one line is rare (the page is upstream code); when it happens the page takes the next
   third number and the release notes say which line it is from. Up to the 0.2.13 sync the same number also lived in
   `apps/desktop/src-tauri/Cargo.toml`, where the desktop app's updater compared it against the feed's `app.version`.
-- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.61 …)`
+- Control and the engines carry the CMake project version (`project(strata VERSION 0.1.62 …)`
   today), and a four-number hotfix of those is what `version_key` reads natively.
 
 Tags: a release is tagged `ds-<version>` (`ds-0.2.13.1`); syncs stay `sync-<version>`. The

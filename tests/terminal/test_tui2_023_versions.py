@@ -21,27 +21,27 @@ def first(path, pattern):
 
 class VersionBump(unittest.TestCase):
     def test_the_terminal_is_0_2_4_2_and_control_is_0_1_49_2_while_the_app_stays_0_2_3(self):
-        # 0.2.13 (upstream line) with engine 0.1.61: the fork's sync with Niko1221/Strata keeps the DeepSeek work
+        # 0.2.15 (upstream line) with engine 0.1.62: the fork's sync with Niko1221/Strata keeps the DeepSeek work
         # (Q5_K fmt 4 in 0.1.59, the mixed MXFP4 down of issue #1 in 0.1.60) beside upstream's engine changes; Terminal and
-        # page are 0.2.13, Control and every engine package 0.1.61 (the CMake project version).
-        self.assertEqual(strata_cli.PRODUCT_VERSION, "0.2.13")
-        self.assertEqual(strata_cli.version(), "0.1.61")                # the CMake project version
-        self.assertEqual(first("CMakeLists.txt", r"^project\(strata VERSION ([0-9.]+) "), "0.1.61")
-        self.assertIn('STRATA_VERSION="0.1.61-metal"', (ROOT / "metal" / "CMakeLists.txt").read_text(encoding="utf-8"))
+        # page are 0.2.15, Control and every engine package 0.1.62 (the CMake project version).
+        self.assertEqual(strata_cli.PRODUCT_VERSION, "0.2.15")
+        self.assertEqual(strata_cli.version(), "0.1.62")                # the CMake project version
+        self.assertEqual(first("CMakeLists.txt", r"^project\(strata VERSION ([0-9.]+) "), "0.1.62")
+        self.assertIn('STRATA_VERSION="0.1.62-metal"', (ROOT / "metal" / "CMakeLists.txt").read_text(encoding="utf-8"))
 
     def test_every_place_the_page_version_lives_says_0_2_3(self):
         host = json.loads((ROOT / "apps/host/package.json").read_text(encoding="utf-8"))
-        self.assertEqual(host["version"], "0.2.13")
+        self.assertEqual(host["version"], "0.2.15")
         locked = json.loads((ROOT / "apps/host/package-lock.json").read_text(encoding="utf-8"))
-        self.assertEqual((locked["version"], locked["packages"][""]["version"]), ("0.2.13", "0.2.13"))
+        self.assertEqual((locked["version"], locked["packages"][""]["version"]), ("0.2.15", "0.2.15"))
 
     def test_the_documents_that_state_the_current_version_agree(self):
-        self.assertIn("Version 0.2.13, engine 0.1.61.", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))
+        self.assertIn("Version 0.2.15, engine 0.1.62.", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))
         # The fork's front page is English-only: it states our own release and engine version, names no
         # installer file our release folder does not carry, and does not offer the removed desktop app.
         text = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertRegex(text, r"DeepStrata 0\.2\.13\.1")   # the release the front page describes (tag ds-0.2.13.1)
-        self.assertRegex(text, r"\b0\.1\.61\b")            # the Control and the engine that release publishes
+        self.assertRegex(text, r"DeepStrata 0\.2\.15\.1")   # the release the front page describes (tag ds-0.2.15.1)
+        self.assertRegex(text, r"\b0\.1\.62\b")            # the Control and the engine that release publishes
         self.assertNotRegex(text, r"Strata-0[.]\d")            # no upstream app installers: we publish none
         self.assertNotIn("desktop app", text)                   # the shell is gone: the page rides in the Terminal
         self.assertNotIn("macos-arm64.dmg", text)               # ... and so are its per-system installers
@@ -49,7 +49,7 @@ class VersionBump(unittest.TestCase):
     def test_version_prints_the_product_and_the_build(self):
         done = subprocess.run([sys.executable, str(ROOT / "strata.py"), "--version"], capture_output=True, text=True, cwd=str(ROOT),
                               env={**os.environ, "STRATA_NO_HANDOVER": "1"})
-        self.assertTrue(done.stdout.startswith("strata 0.2.13 (build 0.1.61;"), done.stdout)
+        self.assertTrue(done.stdout.startswith("strata 0.2.15 (build 0.1.62;"), done.stdout)
 
 
 class UpdateFromTheLastRelease(test_updater.UpdaterCase):

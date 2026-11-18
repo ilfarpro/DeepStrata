@@ -35,20 +35,20 @@ downloaded twice. Every difference and the rules for keeping them through a sync
 
 ## What our release carries today
 
-Our newest release is **DeepStrata 0.2.13.1** — the Terminal and the engines **0.1.61**, the first release on the
-upstream 0.2.13 line (this tree synced with upstream 0.2.13 on 13 November 2026). The version is the upstream line we
-are based on plus our own number, so `0.2.13.1`; the next release, built from this tree, is `0.2.13.2` on upstream 0.2.13
+Our newest release is **DeepStrata 0.2.15.1** — the Terminal and the engines **0.1.62**, the first release on the
+upstream 0.2.15 line (this tree synced with upstream 0.2.15 on 18 November 2026). The version is the upstream line we
+are based on plus our own number, so `0.2.15.1`; the next release, built from this tree, is `0.2.15.2` on upstream 0.2.15
 ([how we number releases](DIVERGENCE.md#release-numbering-and-tags)).
 
-- **The Terminal — `deepstrata`, Control 0.1.61** — for Linux x86-64 and Windows x86-64. The chat page rides inside it;
-  `deepstrata ui` opens it in your browser.
-- **The Qwen engine 0.1.61** (CUDA 13) — for Linux and Windows x86-64 with NVIDIA RTX 20, 30, 40 or 50 and driver
-  580.65 or newer.
-- **The DeepSeek V4.1-Flash engine 0.1.61** (CUDA 13) — the same two systems, on NVIDIA RTX 30, 40 or 50 with driver
-  580.65 or newer.
+- **The Terminal — `deepstrata`, Control 0.1.62** — for Linux x86-64, Windows x86-64 and macOS with Apple silicon.
+  The chat page rides inside it; `deepstrata ui` opens it in your browser.
+- **The Qwen engine 0.1.62** — CUDA 13 on Linux and Windows x86-64 with NVIDIA RTX 20, 30, 40 or 50 and driver
+  580.65 or newer, and Metal on Apple silicon.
+- **The DeepSeek V4.1-Flash engine 0.1.62** (CUDA 13) — the two systems above, on NVIDIA RTX 30, 40 or 50 with driver
+  580.65 or newer — and Metal on Apple silicon.
 - The Windows parts are built on a Windows PC from the same commit and signed here. SmartScreen may ask once; the
   signed update feed checks the sha256 of every file before anything is installed.
-- **Not built yet:** the macOS and ARM64 Linux Terminals, and the AMD, Intel and Mac engines. Our installer runs
+- **Not built yet:** the ARM64 Linux Terminal, and the AMD and Intel engines. Our installer runs
   everywhere it knows and stops with a plain line naming the package this release does not carry — nothing half
   installed. Until our own packages land on those systems, use a [source build](docs/SOURCE_INSTALL.md) or
   [Docker](docs/DOCKER.md).

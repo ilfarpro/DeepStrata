@@ -1,6 +1,6 @@
 # Which model runs on which hardware
 
-This page is built by `tools/capability_table.py` from [docs/data/capabilities.json](data/capabilities.json) and the package names of release v0.2.13 ([docs/data/release.json](data/release.json)). Do not edit it by hand.
+This page is built by `tools/capability_table.py` from [docs/data/capabilities.json](data/capabilities.json) and the package names of release v0.2.15 ([docs/data/release.json](data/release.json)). Do not edit it by hand.
 
 In this fork the *Packaged* column follows the file names of the upstream release: DeepStrata publishes the
 Linux x86-64 Terminal and the CUDA engine today, so a package named here is not necessarily in our own release folder.
@@ -9,7 +9,7 @@ Linux x86-64 Terminal and the CUDA engine today, so a package named here is not 
 - **Supported**: what these docs commit to. *untested* means a package exists and nothing is claimed.
 - **Measured**: where numbers for that combination are published. Empty means none are published; it does not mean the combination fails.
 
-App and Terminal 0.2.13, Control and engines 0.1.61; these packages stay at 0.1.59: Control linux-aarch64, linux-x86_64, macos-arm64, windows-x86_64; DeepSeek engines linux-aarch64-cuda-cuda13, linux-x86_64-cuda-cuda13, linux-x86_64-hip-rx9070, macos-arm64-metal, windows-x86_64-cuda-cuda13, windows-x86_64-hip-rdna3; engines linux-aarch64-cuda-cuda13, linux-x86_64-cuda-cuda12, linux-x86_64-cuda-cuda13, linux-x86_64-hip-halo, linux-x86_64-hip-rx6000, linux-x86_64-hip-rx7900, linux-x86_64-hip-rx9070, linux-x86_64-sycl, macos-arm64-metal, windows-x86_64-cuda-cuda12, windows-x86_64-cuda-cuda13, windows-x86_64-hip-rdna2, windows-x86_64-hip-rdna3, windows-x86_64-hip-rx9070. App, Control and engine versions differ on purpose.
+App and Terminal 0.2.15, Control and engines 0.1.62; these packages stay at 0.1.59: Control linux-aarch64; DeepSeek engines linux-aarch64-cuda-cuda13, linux-x86_64-cuda-cuda13, linux-x86_64-hip-rx9070, macos-arm64-metal, windows-x86_64-cuda-cuda13, windows-x86_64-hip-rdna3; engines linux-aarch64-cuda-cuda13, linux-x86_64-sycl; these packages stay at 0.1.60: engines linux-x86_64-cuda-cuda12, linux-x86_64-cuda-cuda13, linux-x86_64-hip-halo, linux-x86_64-hip-rx6000, linux-x86_64-hip-rx7900, linux-x86_64-hip-rx9070, macos-arm64-metal, windows-x86_64-cuda-cuda12, windows-x86_64-cuda-cuda13, windows-x86_64-hip-rdna2, windows-x86_64-hip-rdna3, windows-x86_64-hip-rx9070; these packages stay at 0.1.61: Control linux-x86_64, macos-arm64, windows-x86_64. App, Control and engine versions differ on purpose.
 
 ## At a glance
 

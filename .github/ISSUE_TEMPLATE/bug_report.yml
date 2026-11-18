@@ -66,7 +66,7 @@ body:
     attributes:
       label: DeepStrata version
       description: "In the Terminal: `deepstrata --version`. From source: `engine` in `GET /v1/status`, or the git commit."
-      placeholder: "DeepStrata 0.2.13.1 · engine 0.1.61"
+      placeholder: "DeepStrata 0.2.15.1 · engine 0.1.62"
     validations:
       required: true
   - type: input

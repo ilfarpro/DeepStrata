@@ -1499,6 +1499,28 @@ int serve(strata::ds4::Model& m, const std::string& eos_list, bool spec, float c
                      t1 > t0 ? 1000.0 * (double) (r.ids.size() - from) / (t1 - t0) : 0.0, produced, t2 - t1,
                      t2 > t1 ? 1000.0 * (double) produced / (t2 - t1) : 0.0,
                      s.experts ? 100.0 * (double) s.cpu_experts / (double) s.experts : 0.0);
+        // (issue #3: DS4_PROF - this turn's decode, stage by stage a token, from the counters since the prompt ended.
+        //  The prompt's own table covers the read tokens, so the two together split a turn into its two halves, and the
+        //  decode's is the one a long conversation spends its wall on)
+        if (std::getenv("DS4_PROF") != nullptr && s.prof_tokens > s_dec.prof_tokens) {
+            const double pt = (double) (s.prof_tokens - s_dec.prof_tokens);
+            double sum = 0;
+            for (int i = 0; i < 6; ++i) sum += s.prof_ms[i] - s_dec.prof_ms[i];
+            std::fprintf(stderr,
+                         "maya ds4 serve: decode (DS4_PROF) %.0f tokens, %.2f ms each = between layers %.2f, attention "
+                         "%.2f, routing + shared expert %.2f, experts gate/up %.2f, waiting for the CPU lane %.2f, down "
+                         "+ post %.2f\n",
+                         pt, sum / pt, (s.prof_ms[0] - s_dec.prof_ms[0]) / pt, (s.prof_ms[1] - s_dec.prof_ms[1]) / pt,
+                         (s.prof_ms[2] - s_dec.prof_ms[2]) / pt, (s.prof_ms[3] - s_dec.prof_ms[3]) / pt,
+                         (s.prof_ms[4] - s_dec.prof_ms[4]) / pt, (s.prof_ms[5] - s_dec.prof_ms[5]) / pt);
+            for (int v = 0; v < 8; ++v) {   // (issue #3: the same stages, each device's - which card a token waits on)
+                double dv = 0;
+                for (int i = 0; i < 6; ++i) dv += s.prof_dev[i][v] - s_dec.prof_dev[i][v];
+                if (dv > 0)
+                    std::fprintf(stderr, "maya ds4 serve: decode (DS4_PROF) CUDA%d %.2f ms a token of the stages\n", v,
+                                 dv / pt);
+            }
+        }
         if (d_off > 0) std::fprintf(stderr, "maya ds4 serve: drafts %lld of %lld kept; %s\n", d_acc, d_off,
                                     per_position(s_dec, s).c_str());
         if (nan_stop) {   // (its state holds the NaNs: the next request starts from nothing)

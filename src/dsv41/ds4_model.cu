@@ -1905,7 +1905,9 @@ struct Model::Impl {
             return;
         }
         std::lock_guard<std::mutex> lk(prof_mu);
-        const bool chunk_sample = prof_chunk;
+        // (a decode window is never a chunk sample, even with DS4_PROF on: its marks are the decode's 6 stages and
+        //  they belong to st.prof_ms, which is what the turn's line reads; only DS4_PROF_SYNC's decode uses the clock)
+        const bool chunk_sample = prof_chunk && !prof_window;
         bool sample_ok = !prof_failed;
         // The prompt's marks go up to stage 10 (kPf* in the chunk walk), the decode's up to 5: the buffer must hold the
         // larger of the two.  A 6-long array here was written past its end by the prompt's stages 6..10 and the stack
@@ -1960,6 +1962,10 @@ struct Model::Impl {
                 for (int i = 0; i < stages; ++i)
                     for (int v = 0; v < (int) (sizeof cprof_dev[0] / sizeof cprof_dev[0][0]); ++v)
                         cprof_dev[i][v] += sample_dev[i][v];
+            else   // (issue #3: a decode token's stages each device's, for the line beside the summed one)
+                for (int i = 0; i < stages; ++i)
+                    for (int v = 0; v < (int) (sizeof st.prof_dev[0] / sizeof st.prof_dev[0][0]); ++v)
+                        st.prof_dev[i][v] += sample_dev[i][v];
             for (const ProfMark& m : prof_marks) prof_pool[(size_t) m.dev].push_back(m.ev);
             prof_marks.clear();
             if (!chunk_sample) ++st.prof_tokens;

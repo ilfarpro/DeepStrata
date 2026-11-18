@@ -442,6 +442,51 @@ std::vector<int32_t> download_i(const Dev& d, size_t n) {
     return h;
 }
 
+// K-quant gate/up pairs (Q4_K / Q5_K: a minimum per 32 values) are not judged against MMQ.  MMQ takes the minimum term from its own
+// activation sums (q8_1 / DS4 per 32 values, stored as half2) and so departs from the int8 model by 3-5e-3 rel RMS behind a Q8_0 down
+// (CUDA, RTX A6000 / PRO 5000 / PRO 6000: Q4_K / Q8_0 3.9-4.8e-3, Q5_K / Q8_0 2.8-3.5e-3; gfx1201 (lane OWN-4A): Q4_K / Q8_0 3.9-4.8e-3),
+// while MMQ and the int8 model are the same distance from FP32 in every shape (within 1%; 1.07-1.10x at the 1-token shape's 10 rows).
+// Rule: the int8 model as for every pair (rel RMS 2e-3, worst row 3e-2) AND FP32 no further than MMQ's own distance times
+// kKqRms (RMS) / kKqWorst (worst row); fused against MMQ is printed as information.  The i-quant pairs keep their rule.
+constexpr double kKqRms = 1.15, kKqWorst = 1.5;
+bool kq_gu(const Pair& p) { return p.gu == GGML_TYPE_Q4_K || p.gu == GGML_TYPE_Q5_K; }
+
+// A build WITHOUT MMQ (mmq::built() false) has no MMQ distance to measure against.  Its rule, for every pair:
+//   (a) the fused path against the int8-rounded model: as above (2e-3 rel RMS, 3e-2 worst row; 5e-3 RMS with STRATA_PF_F16=1);
+//   (b) the int8-rounded model's own distance to FP32 stays under the ceiling of the pair's class (a broken model cannot pass relative to itself);
+//   (c) the fused path's distance to FP32 is at most kOwnRel (RMS) / kOwnRelWorst (worst row) times the model's, plus kOwnAbs.
+// (MMQ and the model are the same distance from FP32 within 1% on every shape; the fused path equals the model to 1.001 x.)  Builds with MMQ keep
+// the rules above and below, unchanged.  The inputs come from the standard library's distributions, so the numbers differ between platforms
+// (libstdc++ on Linux, MSVC on Windows); the ceilings are the larger of the two plus a margin of about 1.5 to 1.75.
+// The model's distance to FP32, rel RMS / worst row, the largest over the shapes of the ctest entries (11-11, P4-SPLIT; RTX PRO 5000 sm_120 and
+// RTX A4000 sm_86 give the same numbers on Linux, RTX 5070 sm_120 on Windows):
+//   i-quant gate/up (base, nt256, f16, q50, q8d entries), Q6_K, Q8_0 / Q8_0:  Linux 1.60e-2 / 2.97e-2, Windows 1.60e-2 / 2.96e-2   -> kCeilDense
+//   Q2_0 / Q2_0, reference part: Linux 1.09e-2 / 4.69e-2, Windows 1.14e-2 / 4.50e-2                                        -> kCeilQ2
+//   Q2_0 / Q2_0, the 96-pair timing sample: Linux 2.71e-2 / 1.09e-1, Windows 2.42e-2 / 2.41e-1                            -> kCeilQ2Sample
+//   Q4_K / Q5_K gate/up (kq entry): Linux 1.49e-2 / 1.70e-1, Windows 3.68e-2 / 2.13e-1 (MMQ itself 3.70e-2 / 2.19e-1)    -> kCeilKq
+//   trellis (tq, tqh entries): Linux 2.20e-2 / 4.02e-2, Windows 2.19e-2 / 4.61e-2                                         -> kCeilTq
+// Against MMQ (kq entry, MMQ build): fused / MMQ at most 1.097 (RMS) and 1.23 (worst row) on Linux, 1.037 and 1.17 on Windows.
+constexpr double kOwnRel = 1.15, kOwnRelWorst = 1.5, kOwnAbs = 1e-3;
+struct Ceiling {
+    double rms, worst;
+};
+constexpr Ceiling kCeilDense{2.5e-2, 5.0e-2}, kCeilQ2{2.0e-2, 8.0e-2}, kCeilQ2Sample{4.5e-2, 3.6e-1}, kCeilKq{6.0e-2, 3.5e-1}, kCeilTq{3.5e-2, 7.5e-2};
+Ceiling model_ceiling(const Pair& p, bool sample) {
+    if (tq_type(p.gu)) return kCeilTq;
+    if (kq_gu(p)) return kCeilKq;
+    if (p.gu == GGML_TYPE_Q2_0 && p.d == GGML_TYPE_Q2_0) return sample ? kCeilQ2Sample : kCeilQ2;
+    return kCeilDense;
+}
+// ev: the int8-rounded model against FP32, ef: the fused path against FP32 (the same rows)
+void own_only_check(const Pair& p, const Err& ev, const Err& ef, bool sample) {
+    const std::string where = sample ? " (timing)" : "";
+    const Ceiling c = model_ceiling(p, sample);
+    if (ev.rms > c.rms || ev.worst > c.worst)
+        throw std::runtime_error(std::string(p.name) + ": the int8-rounded model is further from FP32 than the ceiling of its class (no-MMQ rule)" + where);
+    if (ef.rms > kOwnRel * ev.rms + kOwnAbs || ef.worst > kOwnRelWorst * ev.worst + kOwnAbs)
+        throw std::runtime_error(std::string(p.name) + ": the fused path is further from FP32 than the int8-rounded model (no-MMQ rule)" + where);
+}
+
 // part 1: against the double-precision reference
 void reference_part(const Pair& p, cudaStream_t s, int T = 256, int E = 64, int ZERO = 77) {
     const Geo geo(p);

@@ -296,7 +296,7 @@ Off unless you set them. The last column says where each one is described.
 | `STRATA_WDDM_BUDGET` | number | AMD, Intel Arc | [AMD_HIP.md](AMD_HIP.md) |
 | `STRATA_WS_FAST` | number | NVIDIA and AMD | [OLDER_GPUS.md](OLDER_GPUS.md) |
 
-## Switches that go back to earlier behaviour (80)
+## Switches that go back to earlier behaviour (84)
 
 These behaviours are on by default. Setting the switch returns the earlier behaviour; the notes in the register say which
 version made it the default.
@@ -312,7 +312,7 @@ version made it the default.
 | `STRATA_DEQUANT_WIDE` | number | NVIDIA and AMD | v0.1.44 | [DETAILS.md](DETAILS.md), [OLDER_GPUS.md](OLDER_GPUS.md), [release-notes-0.2.7.md](releases/release-notes-0.2.7.md) |
 | `STRATA_DS4_LOAD_DROP_CACHE` | number | NVIDIA and AMD | - | [maya-sync.md](roadmap/maya-sync.md) |
 | `STRATA_DS4_LOAD_INTERLEAVE` | number | NVIDIA and AMD | - | [maya-sync.md](roadmap/maya-sync.md) |
-| `STRATA_EXPERT_I8` | text | NVIDIA and AMD | - | - |
+| `STRATA_EXPERT_I8` | text | NVIDIA and AMD | v0.2.14 | - |
 | `STRATA_FILE_TIER_IDLE` | number | NVIDIA and AMD | v0.2.12 | [DETAILS.md](DETAILS.md) |
 | `STRATA_GFX1151_CHUNK` | text | AMD | v0.2.3 | [STRIX_HALO.md](STRIX_HALO.md), [STRIX_HALO_WINDOWS.md](STRIX_HALO_WINDOWS.md), [release-notes-0.2.3.md](releases/release-notes-0.2.3.md) |
 | `STRATA_GFX1151_DEFAULTS` | on / off | NVIDIA and AMD | v0.1.40 | [STRIX_HALO.md](STRIX_HALO.md), [STRIX_HALO_WINDOWS.md](STRIX_HALO_WINDOWS.md) |
@@ -326,7 +326,7 @@ version made it the default.
 | `STRATA_IQ_MT_MIN` | on / off | NVIDIA and AMD, CPU | v0.1.30 | [RESEARCH_RUNS.md](RESEARCH_RUNS.md), [BATCHING.md](BATCHING.md), [DETAILS.md](DETAILS.md) |
 | `STRATA_KEEP_MAPPING` | on / off | NVIDIA and AMD | v0.1.41 | - |
 | `STRATA_KV_HOST_DMA` | on / off | NVIDIA and AMD, Intel Arc | v0.1.39 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
-| `STRATA_MEM_CREDIT_INACTIVE` | text | NVIDIA and AMD | - | - |
+| `STRATA_MEM_CREDIT_INACTIVE` | text | NVIDIA and AMD | v0.2.14 | - |
 | `STRATA_METAL_LDB` | on / off | Mac | v0.2.10 | - |
 | `STRATA_METAL_MTP_OVERLAP` | on / off | Mac | v0.2.10 | - |
 | `STRATA_METAL_MTP_Q8` | on / off | Mac | v0.1.44 | [MAC.md](MAC.md) |
@@ -337,22 +337,25 @@ version made it the default.
 | `STRATA_MTP_BATCH_RING` | on / off | NVIDIA and AMD, Intel Arc | v0.1.39 | - |
 | `STRATA_NAN_GUARD` | number | NVIDIA and AMD | v0.1.43 | [DETAILS.md](DETAILS.md) |
 | `STRATA_NO_IQ512` | on / off | CPU | v0.1.0 | - |
-| `STRATA_NUMA_CARD` | text | NVIDIA and AMD | - | - |
+| `STRATA_NUMA_CARD` | text | NVIDIA and AMD | v0.2.14 | - |
 | `STRATA_NUMA_POOL` | on / off | NVIDIA and AMD, CPU | v0.2.2 | [DETAILS.md](DETAILS.md), [release-notes-0.2.2.md](releases/release-notes-0.2.2.md) |
 | `STRATA_NUMA_SPLIT` | text | NVIDIA and AMD, CPU | v0.2.2 | [DETAILS.md](DETAILS.md), [release-notes-0.2.2.md](releases/release-notes-0.2.2.md) |
 | `STRATA_NV_CHUNK` | on / off | NVIDIA | v0.2.11 | [DETAILS.md](DETAILS.md) |
-| `STRATA_PF_FUSED_IQ2X` | text | AMD | - | - |
+| `STRATA_PF_FUSED_IQ2X` | text | AMD | v0.2.14 | - |
 | `STRATA_PF_FUSED_KQ` | text | NVIDIA and AMD, Intel Arc | v0.1.40 | [STRIX_HALO.md](STRIX_HALO.md), [DGX_SPARK_LINUX.md](DGX_SPARK_LINUX.md), [QUANTS.md](QUANTS.md) |
 | `STRATA_PF_FUSED_Q50` | on / off | NVIDIA and AMD | v0.2.12 | - |
-| `STRATA_PF_FUSED_SM75_IQ` | on / off | NVIDIA and AMD | - | - |
-| `STRATA_PF_SMALL_FUSED` | on / off | NVIDIA and AMD | - | - |
+| `STRATA_PF_FUSED_SM75_IQ` | on / off | NVIDIA and AMD | v0.2.14 | - |
+| `STRATA_PF_PLAIN_FLOOR` | text | NVIDIA and AMD | v0.2.14 | - |
+| `STRATA_PF_SHARE_OWN` | text | NVIDIA and AMD | v0.2.14 | - |
+| `STRATA_PF_SMALL_FUSED` | on / off | NVIDIA and AMD | v0.2.14 | - |
+| `STRATA_PF_STAGED_FO` | on / off | NVIDIA and AMD | v0.2.14 | [STRIX_HALO.md](STRIX_HALO.md) |
 | `STRATA_PF_W16_CACHE_MIB` | on / off | NVIDIA and AMD | v0.2.9 | - |
 | `STRATA_PF_XMX` | text | Intel Arc | v0.1.42 | [INTEL.md](INTEL.md), [release-notes-0.2.0.md](releases/release-notes-0.2.0.md) |
 | `STRATA_PIPELINE_ADAPT_ASYNC` | number | NVIDIA and AMD | v0.1.40.2 | - |
 | `STRATA_PLE_AUTO_MMAP` | number | NVIDIA and AMD, Intel Arc | v0.1.43.1 | [DETAILS.md](DETAILS.md) |
-| `STRATA_PREFILL_LOAN_WALK` | on / off | NVIDIA and AMD | - | - |
+| `STRATA_PREFILL_LOAN_WALK` | on / off | NVIDIA and AMD | v0.2.14 | - |
 | `STRATA_PREFILL_STREAM_MIN` | number | NVIDIA and AMD, Intel Arc | v0.1.30 | [STRIX_HALO.md](STRIX_HALO.md), [AMD_HIP.md](AMD_HIP.md) |
-| `STRATA_PREFILL_TAIL_LOAN` | on / off | NVIDIA and AMD | - | - |
+| `STRATA_PREFILL_TAIL_LOAN` | on / off | NVIDIA and AMD | v0.2.14 | - |
 | `STRATA_PROMPT_ATTN_ESIMD` | number | Intel Arc | v0.2.9 | - |
 | `STRATA_PROMPT_ATTN_OLD` | on / off | NVIDIA and AMD, Intel Arc | v0.1.22 | [NVIDIA_V100.md](NVIDIA_V100.md), [OLDER_GPUS.md](OLDER_GPUS.md) |
 | `STRATA_Q2_WARP` | on / off | NVIDIA and AMD | v0.1.45 | [DETAILS.md](DETAILS.md) |
@@ -369,17 +372,18 @@ version made it the default.
 | `STRATA_SM60_TABLE` | number | NVIDIA and AMD | v0.1.43 | [OLDER_GPUS.md](OLDER_GPUS.md) |
 | `STRATA_SPLIT_CHUNK16K` | number | NVIDIA and AMD | v0.1.44 | [MULTI_GPU.md](MULTI_GPU.md) |
 | `STRATA_SPLIT_OWN` | on / off | NVIDIA and AMD, Intel Arc | v0.1.32 | [MULTI_GPU.md](MULTI_GPU.md) |
+| `STRATA_SWITCH_POINT` | on / off | NVIDIA and AMD | v0.2.14 | - |
 | `STRATA_SYCL_BF16_DET` | number | Intel Arc | v0.2.13 | - |
-| `STRATA_SYCL_IQ4_LOOKUP` | number | Intel Arc | - | - |
-| `STRATA_SYCL_IQ4_PAIR_REUSE` | on / off | Intel Arc | - | - |
-| `STRATA_SYCL_IQ4_Q8_SPLIT` | on / off | Intel Arc | - | - |
-| `STRATA_SYCL_Q2_WORD_EXPAND` | on / off | Intel Arc | - | - |
-| `STRATA_SYCL_QSA_CHUNK_DOWN` | on / off | Intel Arc | - | - |
-| `STRATA_SYCL_QSA_VALUE8_K8_VEC` | on / off | Intel Arc | - | - |
+| `STRATA_SYCL_IQ4_LOOKUP` | number | Intel Arc | v0.2.14 | - |
+| `STRATA_SYCL_IQ4_PAIR_REUSE` | on / off | Intel Arc | v0.2.14 | - |
+| `STRATA_SYCL_IQ4_Q8_SPLIT` | on / off | Intel Arc | v0.2.14 | - |
+| `STRATA_SYCL_Q2_WORD_EXPAND` | on / off | Intel Arc | v0.2.14 | - |
+| `STRATA_SYCL_QSA_CHUNK_DOWN` | on / off | Intel Arc | v0.2.14 | - |
+| `STRATA_SYCL_QSA_VALUE8_K8_VEC` | on / off | Intel Arc | v0.2.14 | - |
 | `STRATA_TOPK_SAMPLE` | number | NVIDIA and AMD | v0.1.45 | [DETAILS.md](DETAILS.md) |
 | `STRATA_TOPK_SPLIT` | number | NVIDIA and AMD | v0.1.45 | [DETAILS.md](DETAILS.md) |
 | `STRATA_TOPK_STREAM` | on / off | NVIDIA and AMD, Intel Arc | v0.1.40 | [DETAILS.md](DETAILS.md), [AMD_HIP.md](AMD_HIP.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
 | `STRATA_TQ_STAGE` | on / off | NVIDIA and AMD | v0.2.2 | [GYRO.md](GYRO.md), [release-notes-0.2.2.md](releases/release-notes-0.2.2.md) |
-| `STRATA_UMA_PIN_CAP` | on / off | AMD | - | [BATCHING.md](BATCHING.md) |
+| `STRATA_UMA_PIN_CAP` | on / off | AMD | v0.2.14 | [BATCHING.md](BATCHING.md) |
 | `STRATA_UMA_RESERVE_GIB` | on / off | NVIDIA and AMD | v0.2.2 | [STRIX_HALO.md](STRIX_HALO.md), [release-notes-0.2.2.md](releases/release-notes-0.2.2.md) |
 | `STRATA_XN_F16` | on / off | NVIDIA and AMD | v0.1.45 | [DETAILS.md](DETAILS.md) |

@@ -1393,20 +1393,71 @@ struct Engine {
         k16 = dalloc_t<__half>((size_t) g.n_head_kv * ctx * g.head_dim);
         v16 = dalloc_t<__half>((size_t) g.n_head_kv * ctx * g.head_dim);
         q16 = dalloc_t<__half>(T * g.n_head * g.head_dim);
-        use_mmq = MMQ::built() && std::getenv("STRATA_Q36_NO_MMQ") == nullptr;
+        const bool mmq_avail = MMQ::built() && std::getenv("STRATA_Q36_NO_MMQ") == nullptr;
         auto mmq_ok = [&](const Layer& L) {
             return MMQ::supported(L.L.gu_type) && MMQ::supported(L.L.d_type) && MMQ::fits(L.L.gu_type, 2 * g.n_ff) &&
                    MMQ::fits(L.L.d_type, g.n_embd);
         };
-        for (const Layer& L : m->layers) use_mmq = use_mmq && mmq_ok(L);
-        if (m->has_mtp) use_mmq = use_mmq && mmq_ok(m->mtp);
-        if (use_mmq) {
+        const size_t n_state = m->layers.size() + (m->has_mtp ? 1 : 0);
+        fused_on.assign(n_state, 0);
+        // (HIP: gfx12 only, STRATA_PF_FUSED=1, which this engine sets itself in a build without MMQ: fused_tile::q36_takes_gfx12)
+        // Strata's fused kernels where they cover the layer's pair on this card: the default on the cards the Flash-Next engine's rule takes (sm_86-class and sm_120 cards
+        // with 80+ SMs, the staged launches on 40-79 SMs: fused_tile::q36_takes, the rule of takes_by_default), STRATA_PF_FUSED=1 on every card that covers the pair,
+        // STRATA_PF_FUSED=0 keeps every layer on MMQ; HIP builds, cards under 40 SMs and compute capability below 8 are as before (MMQ)
+        if (g.n_embd == FQ::kQ36Embd && g.n_ff == FQ::kQ36FF)
+            for (size_t i = 0; i < n_state; ++i) {
+                const Layer& L = layer_at((int) i);
+                fused_on[i] = FQ::native_layer_ext(L.L.gu_type, L.L.d_type) ? 1 : 0;
+            }
+        // the route of each layer (q36_layer_route): fused > our int8 kernels (STRATA_EXPERT_I8=1) > MMQ > our int8 kernels > the grouped kernels.  A build without MMQ reads an unset
+        // STRATA_EXPERT_I8 as 1 (the standalone engine does not link prefill.cpp's start-up list, so it tells the kernel library itself).
+        const bool mmq_free = !MMQ::built();
+        if (mmq_free) K::native_expert_i8_set_mmq_free();
+        const int i8_raw = K::i8_switch_parse(std::getenv("STRATA_EXPERT_I8"));
+        i8_on.assign(n_state, 0);
+        i8_few = K::native_expert_i8_few_rows_limit();
+        use_pf = true;
+        bool any_mmq = false;
+        size_t n_fused = 0, n_grouped = 0;
+        for (size_t i = 0; i < n_state; ++i) {
+            const Layer& Li = layer_at((int) i);
+            const bool mmq_takes = !fused_on[i] && mmq_avail && mmq_ok(Li);
+            const K::Q36Route r = K::q36_layer_route(fused_on[i] != 0, i8_raw, mmq_free, mmq_takes, !fused_on[i] && K::native_expert_i8_supported(Li.L));
+            const bool mq = r == K::Q36Route::Mmq;
+            i8_on[i] = r == K::Q36Route::Int8 ? 1 : 0;
+            if (r == K::Q36Route::Grouped) ++n_grouped;
+            any_mmq = any_mmq || mq;
+            n_fused += fused_on[i] ? 1 : 0;
+            n_i8 += i8_on[i];
+        }
+        use_pf = K::q36_prompt_path_ok((int) n_state, (int) n_grouped);
+        if (!use_pf) {   // a layer has no route faster than the grouped kernels: every prompt chunk on the native grouped kernels, as before
+            std::fill(fused_on.begin(), fused_on.end(), 0);
+            std::fill(i8_on.begin(), i8_on.end(), 0);
+            n_fused = 0;
+            n_i8 = 0;
+            any_mmq = false;
+        }
+        use_mmq = use_pf && any_mmq;
+        if (n_i8 > 0) CK(cudaMalloc(&i8x, K::native_q8_1_bytes((int) N, 1) * T));
+        if (use_pf) {
             const int64_t ne = (int64_t) T * Kp;
-            mctx = std::make_unique<MMQ::Context>();
             rcnt = dalloc_t<int32_t>((size_t) g.n_expert);
             rcur = dalloc_t<int32_t>((size_t) g.n_expert);
             rbounds = dalloc_t<int32_t>((size_t) g.n_expert + 1);
             rmax = dalloc_t<int32_t>(1);
+            rinv = dalloc_t<int32_t>((size_t) ne);
+            if (n_fused > 0) {
+                CK(cudaMalloc(&f_scr, PF::group_bytes(ne, (int) g.n_expert)));
+                CK(cudaMalloc(&f_xq, PF::act_bytes((int64_t) T, g.n_embd)));
+                CK(cudaMalloc(&f_ha, PF::act_bytes(ne, g.n_ff)));
+                f_slot = dalloc_t<int32_t>((size_t) ne);
+                f_src = dalloc_t<int32_t>((size_t) ne);
+            }
+        }
+        if (use_mmq) {
+            const int64_t ne = (int64_t) T * Kp;
+            mctx = std::make_unique<MMQ::Context>();
             // The row table (ids) is read past its end by llama.cpp's MMQ: mul_mat_q copies ids_dst[col_low + jt*J + j] for a whole J-column tile before it
             // compares the tile with the expert's rows, and its stream-k fixup does the same for every tile up to roundup(max_rows, J) from an expert's first row,
             // which can be the table's last (mmq.cuh; J goes to 128).  mmq_ids_table_rows adds roundup(max_rows, 128) + 128 entries, max_rows <= T (an expert takes at

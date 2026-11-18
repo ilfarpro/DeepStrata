@@ -217,6 +217,8 @@ If a sync merge reintroduces one, that test fails — resolve toward the module.
 | Models | `Documents\Strata\Models` | **shared, stays** (`MODEL_FOLDER`) |
 | Page port (`strata ui`, host default) | 8791 | 8891 (vite dev proxy and `dev.mjs` follow) |
 | Releases / feed / issues / snapshots | `Niko1221/Strata` | `ilfarpro/DeepStrata` (same artifact names) |
+| `tests/snapshot` harness | its own `world.py` / `driver.py` (written after the fork's) | our own, older implementation; the snapshot suite runs on it, upstream's harness was never merged into it |
+| `tools/capability_table.py` version line | names DeepSeek engines among packages that stopped | DeepSeek is listed as supported wherever the fork ships a package; the fork's test covers that wording |
 | Feed key | upstream's | ours, regenerated; secrets live outside the repo (`~/.deepstrata-signing/`) |
 | Docker image labels | upstream | `DeepStrata`, our URLs |
 | Docker registry / container / volume | `ghcr.io/niko1221/strata`, container `strata`, volume `strata-data` | `ghcr.io/ilfarpro/deepstrata`, container `deepstrata`, volume `deepstrata-data`, in-container command `deepstrata` (the wrapper on PATH) |

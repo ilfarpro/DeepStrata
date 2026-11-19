@@ -1330,5 +1330,123 @@ class FeedChecks(unittest.TestCase):
             self.assertIn("macos-arm64", str(caught.exception))
 
 
+class UploadTransport(unittest.TestCase):
+    """GitHub throttles one asset connection after a gigabyte or so; the tool re-sends on a fresh one."""
+
+    def make_file(self, tmp: str) -> Path:
+        path = Path(tmp) / "asset.tar.gz"
+        path.write_bytes(b"x")
+        return path
+
+    def test_a_stalled_upload_is_retried_until_it_succeeds(self):
+        api = release.GitHub("token", "o/r")
+        seen = []
+
+        def fake_once(release_id, path, size, *, content_type="application/octet-stream"):
+            seen.append(size)
+            if len(seen) < 3:
+                raise release.UploadStalled("the upload fell to 0.0 MiB/s")
+            return {"id": 7}
+
+        api._upload_once = fake_once
+        with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch.object(release.time, "sleep"):
+            data = api.upload_asset(1, self.make_file(tmp))
+        self.assertEqual(data, {"id": 7})
+        self.assertEqual(len(seen), 3)
+
+    def test_upload_gives_up_after_the_attempts_with_one_clear_error(self):
+        api = release.GitHub("token", "o/r")
+        seen = []
+
+        def fake_once(release_id, path, size, *, content_type="application/octet-stream"):
+            seen.append(1)
+            raise OSError("connection reset")
+
+        api._upload_once = fake_once
+        with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch.object(release, "UPLOAD_ATTEMPTS", 2), \
+             unittest.mock.patch.object(release.time, "sleep"):
+            with self.assertRaises(release.ReleaseError) as caught:
+                api.upload_asset(1, self.make_file(tmp))
+        self.assertEqual(len(seen), 2)
+        self.assertIn("failed after 2 attempts", str(caught.exception))
+
+    def test_a_genuine_http_refusal_is_not_retried(self):
+        api = release.GitHub("token", "o/r")
+        seen = []
+
+        def fake_once(release_id, path, size, *, content_type="application/octet-stream"):
+            seen.append(1)
+            raise release.GitHubError(422, "unnamed assets are not allowed")
+
+        api._upload_once = fake_once
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(release.GitHubError):
+                api.upload_asset(1, self.make_file(tmp))
+        self.assertEqual(len(seen), 1)
+
+
+class FetchParts(unittest.TestCase):
+    class FakeAPI:
+        def __init__(self, sizes):
+            self.sizes = sizes
+            self.downloads = []
+
+        def get(self, path):
+            if "runs?head_sha" in path:
+                kind = "windows" if "windows" in path else "mac"
+                return {"workflow_runs": [{"id": 5, "conclusion": "success", "head_branch": "main",
+                                           "artifacts_url": f"https://api.example/artifacts/{kind}"}]}
+            name = "windows-parts" if "windows" in path else "mac-parts"
+            return {"artifacts": [{"name": name, "size_in_bytes": self.sizes[name],
+                                   "archive_download_url": f"https://example/{name}.zip"}]}
+
+        def download_to(self, url, path):
+            self.downloads.append(path.name)
+            data = b"z" * self.sizes[path.name.removesuffix(".zip")]
+            Path(path).write_bytes(data)
+            return len(data)
+
+    def journal_dir(self, tmp: str):
+        directory = Path(tmp) / "RELEASE" / "0.0.0.1"
+        directory.mkdir(parents=True)
+        (directory / "release.json").write_text(
+            json.dumps({"schema_version": 1, "release": "0.0.0.1", "commit": "c" * 40}), encoding="utf-8")
+        return directory
+
+    def test_cached_zips_are_kept_and_missing_ones_downloaded(self):
+        sizes = {"windows-parts": 1, "mac-parts": 1}
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = self.journal_dir(tmp)
+            cached = directory / "incoming-zips"
+            cached.mkdir()
+            (cached / "windows-parts.zip").write_bytes(b"z")
+            (cached / "windows-parts.size").write_text("1", encoding="utf-8")
+            api = self.FakeAPI(sizes)
+            args = SimpleNamespace(release="0.0.0.1", root=tmp, force=False)
+            with unittest.mock.patch.object(release, "find_token", return_value=("tok", "test")), \
+                 unittest.mock.patch.object(release, "GitHub", return_value=api), \
+                 unittest.mock.patch.object(release, "say"):
+                self.assertEqual(release.cmd_fetch_parts(args), 0)
+            self.assertEqual(api.downloads, ["mac-parts.zip"])
+            self.assertTrue((cached / "mac-parts.zip").exists())
+            self.assertEqual((cached / "mac-parts.size").read_text(encoding="utf-8"), "1")
+
+    def test_a_run_still_building_is_reported_not_raised_as_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.journal_dir(tmp)
+            class NoRuns(self.FakeAPI):
+                def get(self, path):
+                    if "runs?head_sha" in path:
+                        return {"workflow_runs": []}
+                    return super().get(path)
+            args = SimpleNamespace(release="0.0.0.1", root=tmp, force=False)
+            with unittest.mock.patch.object(release, "find_token", return_value=("tok", "test")), \
+                 unittest.mock.patch.object(release, "GitHub", return_value=NoRuns(sizes={})), \
+                 unittest.mock.patch.object(release, "say"):
+                with self.assertRaises(release.ReleaseError) as caught:
+                    release.cmd_fetch_parts(args)
+        self.assertIn("neither parts artifact", str(caught.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

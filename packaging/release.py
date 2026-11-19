@@ -11,6 +11,12 @@ update feed, checks it the way a user's PC would, and only then creates the GitH
     python packaging/release.py verify
     python packaging/release.py publish
 
+`fetch-parts` (a helper for a release with Windows or Mac parts) downloads the
+windows-parts / mac-parts artifacts of the journal's commit from GitHub Actions
+and unpacks them under the release folder for `build --windows-parts ...`:
+
+    python packaging/release.py fetch-parts
+
 `plan` writes RELEASE/<version>/release.json and stops on anything that would make a bad
 release: a dirty tree, a branch that is not main, a merge that has not happened, a tag that
 already exists, a key that is not the one shipped, or failing tests. Every later step checks
@@ -77,6 +83,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -160,6 +167,19 @@ class GitHubError(ReleaseError):
     def __init__(self, status: int, message: str):
         self.status = status
         super().__init__(f"GitHub refused the request (HTTP {status}): {message}")
+
+
+class UploadStalled(ReleaseError):
+    """the connection is open but the bytes stopped moving; a fresh one is fast again."""
+
+
+#: GitHub throttles an asset connection that has already pushed about a gigabyte: publishing
+#: 0.2.15.1 a 30 MiB/s upload slid under 0.1 MiB/s and stayed there for an hour, while a new
+#: connection started at 30 MiB/s again. An asset is atomic - a torn-off upload simply leaves
+#: nothing behind - so a stalled send is torn down and the asset sent again on a fresh socket.
+UPLOAD_STALL_SECONDS = 120
+UPLOAD_MIN_RATE = 1 << 19          # bytes/s; anything slower for the window counts as stalled
+UPLOAD_ATTEMPTS = 5
 
 
 # ------------------------------------------------------------------------------------------------ small helpers
@@ -423,7 +443,13 @@ class GitHub:
     # -- HTTP
     def _request(self, method: str, path: str, body: dict | None = None, *, allow_404: bool = False,
                  url: str | None = None) -> tuple[int, bytes] | None:
-        full = url or f"https://api.github.com{path}"
+        # API answers carry absolute URLs (artifacts_url, next pages); they are used as they are.
+        if url:
+            full = url
+        elif path.startswith(("http://", "https://")):
+            full = path
+        else:
+            full = f"https://api.github.com{path}"
         data = json.dumps(body).encode("utf-8") if body is not None else None
         headers = {"Accept": "application/vnd.github+json",
                    "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "DeepStrata-release"}
@@ -528,15 +554,59 @@ class GitHub:
         except urllib.error.URLError as exc:
             raise ReleaseError(f"could not download {url}: {exc.reason}") from None
 
+    def download_to(self, url: str, path: Path) -> int:
+        """download into a file; a parts artifact is gigabytes and not every box has that much spare RAM."""
+        headers = {"User-Agent": "DeepStrata-release"}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        request = urllib.request.Request(url, headers=headers)
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        partial = path.with_name(path.name + ".part")
+        total = 0
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as answer, partial.open("wb") as out:
+                while True:
+                    block = answer.read(1 << 20)
+                    if not block:
+                        break
+                    out.write(block)
+                    total += len(block)
+        except urllib.error.HTTPError as exc:
+            partial.unlink(missing_ok=True)
+            raise GitHubError(exc.code, f"could not download {url}") from None
+        except (urllib.error.URLError, OSError) as exc:
+            partial.unlink(missing_ok=True)
+            raise ReleaseError(f"could not download {url}: {exc}") from None
+        partial.replace(path)
+        return total
+
     # -- upload
     def upload_asset(self, release_id: int, path: Path, *, content_type: str = "application/octet-stream") -> dict:
+        """Send one asset, re-sending it on a fresh connection when the first one stalls (see UPLOAD_STALL_SECONDS)."""
         path = Path(path)
-        query = urllib.parse.urlencode({"name": path.name})
-        url = f"https://uploads.github.com/repos/{self.repo}/releases/{release_id}/assets?{query}"
-        parsed = urllib.parse.urlsplit(url)
         size = path.stat().st_size
         if size > 2 * 1024 ** 3:
             raise ReleaseError(f"{path.name} is {size} bytes; GitHub's asset limit is 2 GiB")
+        last: Exception | None = None
+        for attempt in range(1, UPLOAD_ATTEMPTS + 1):
+            try:
+                data = self._upload_once(release_id, path, size, content_type=content_type)
+                say(f"  uploaded {path.name} ({size / (1 << 20):.1f} MiB)")
+                return data
+            except (UploadStalled, OSError, http.client.HTTPException) as exc:
+                last = exc
+                if attempt < UPLOAD_ATTEMPTS:
+                    say(f"  {path.name}: {exc} - retrying on a fresh connection "
+                        f"(attempt {attempt + 1} of {UPLOAD_ATTEMPTS})")
+                    time.sleep(5 * attempt)
+        raise ReleaseError(f"uploading {path.name} failed after {UPLOAD_ATTEMPTS} attempts: {last}")
+
+    def _upload_once(self, release_id: int, path: Path, size: int, *,
+                     content_type: str = "application/octet-stream") -> dict:
+        query = urllib.parse.urlencode({"name": path.name})
+        url = f"https://uploads.github.com/repos/{self.repo}/releases/{release_id}/assets?{query}"
+        parsed = urllib.parse.urlsplit(url)
         connection = http.client.HTTPSConnection(parsed.hostname, parsed.port, timeout=1800,
                                                  context=ssl.create_default_context())
         target = parsed.path + "?" + parsed.query
@@ -549,20 +619,30 @@ class GitHub:
         connection.endheaders()
         sent, shown = 0, 0
         started = time.monotonic()
-        with path.open("rb") as stream:
-            while True:
-                block = stream.read(1 << 20)
-                if not block:
-                    break
-                connection.send(block)
-                sent += len(block)
-                if size >= (64 << 20) and (sent - shown >= (64 << 20) or sent == size):
-                    shown = sent
-                    say(f"  uploaded {sent / (1 << 20):.0f}/{size / (1 << 20):.0f} MiB "
-                        f"({sent * 8 / max(time.monotonic() - started, 0.1) / (1 << 20):.1f} MiB/s)")
-        answer = connection.getresponse()
-        raw = answer.read()
-        connection.close()
+        window_started, window_bytes = started, 0
+        try:
+            with path.open("rb") as stream:
+                while True:
+                    block = stream.read(1 << 20)
+                    if not block:
+                        break
+                    connection.send(block)      # blocks while the socket buffer is full: slow send == slow link
+                    sent += len(block)
+                    window_bytes += len(block)
+                    now = time.monotonic()
+                    if sent < size and now - window_started >= UPLOAD_STALL_SECONDS:
+                        rate = window_bytes / max(now - window_started, 1e-9)
+                        if rate < UPLOAD_MIN_RATE:
+                            raise UploadStalled(f"the upload fell to {rate * 8 / (1 << 20):.1f} MiB/s")
+                        window_started, window_bytes = now, 0
+                    if size >= (64 << 20) and (sent - shown >= (64 << 20) or sent == size):
+                        shown = sent
+                        say(f"  uploaded {sent / (1 << 20):.0f}/{size / (1 << 20):.0f} MiB "
+                            f"({sent * 8 / max(time.monotonic() - started, 0.1) / (1 << 20):.1f} MiB/s)")
+            answer = connection.getresponse()
+            raw = answer.read()
+        finally:
+            connection.close()
         if answer.status not in (200, 201, 202):
             message = raw.decode("utf-8", errors="replace")
             try:
@@ -570,9 +650,7 @@ class GitHub:
             except (ValueError, AttributeError):
                 pass
             raise GitHubError(answer.status, str(message)[:400])
-        data = json.loads(raw or b"{}")
-        say(f"  uploaded {path.name} ({size / (1 << 20):.1f} MiB)")
-        return data
+        return json.loads(raw or b"{}")
 
 
 # ------------------------------------------------------------------------------------------------ notes
@@ -2074,6 +2152,7 @@ def cmd_publish(args) -> int:
     html_url = release["html_url"]
     current = {item["name"]: item for item in api.assets(release_id)}
     uploaded, skipped = [], []
+    pending = []
     for name in sorted(assets):
         info = assets[name]
         path = feed / name
@@ -2087,9 +2166,37 @@ def cmd_publish(args) -> int:
                 raise ReleaseError(f"the release already has {name} with different content; "
                                    "run publish --resume --replace to replace it")
             api.delete_asset(old["id"])
-        say(f"uploading {name} ({info['bytes'] / (1 << 20):.1f} MiB)")
-        api.upload_asset(release_id, path, content_type=info["content_type"])
-        uploaded.append(name)
+        pending.append(name)
+    if pending:
+        # GitHub throttles per connection, so the assets travel on a few sockets at once; a stalled
+        # one is torn down by upload_asset itself. STRATA_RELEASE_UPLOADS=1 restores the old queue.
+        try:
+            workers = int(os.environ.get("STRATA_RELEASE_UPLOADS", "3"))
+        except ValueError:
+            workers = 3
+        workers = max(1, min(len(pending), workers))
+        if workers == 1 or len(pending) == 1:
+            for name in pending:
+                say(f"uploading {name} ({assets[name]['bytes'] / (1 << 20):.1f} MiB)")
+                api.upload_asset(release_id, feed / name, content_type=assets[name]["content_type"])
+                uploaded.append(name)
+        else:
+            say(f"uploading {len(pending)} assets on {workers} connections at once")
+            failures = []
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = {pool.submit(api.upload_asset, release_id, feed / name,
+                                       content_type=assets[name]["content_type"]): name for name in pending}
+                for future in as_completed(futures):
+                    name = futures[future]
+                    try:
+                        future.result()
+                    except Exception as exc:                  # noqa: BLE001 - reported per asset, raised together
+                        failures.append(f"{name}: {exc}")
+                    else:
+                        uploaded.append(name)
+            if failures:
+                raise ReleaseError("these assets did not upload; rerun with --resume:\n  " + "\n  ".join(failures))
+        uploaded = [name for name in sorted(assets) if name in uploaded]
 
     final = {item["name"]: item for item in api.assets(release_id)}
     missing = [name for name in assets if name not in final]
@@ -2129,6 +2236,61 @@ def cmd_publish(args) -> int:
     if install.get("ok"):
         say(f"  install.sh from latest: ok ({install['version_output'][0] if install.get('version_output') else ''})")
     say(f"report: {directory / 'publish.json'}")
+    return 0
+
+
+# ------------------------------------------------------------------------------------------------ parts from Actions
+
+#: the Windows and Mac parts are built by these workflows and arrive as these artifact zips;
+#: `build --windows-parts / --mac-parts` accepts the zips directly, nothing has to be unpacked.
+PARTS_WORKFLOWS = (("windows-parts.yml", "windows-parts"), ("mac-parts.yml", "mac-parts"))
+
+
+def cmd_fetch_parts(args) -> int:
+    """download the windows-parts / mac-parts artifacts of the journal's commit, cached by exact size."""
+    version, directory = release_directory(args, Path(args.root))
+    journal = load_journal(directory)
+    commit = journal.get("commit") or ""
+    if not commit:
+        raise ReleaseError("the journal has no pinned commit; run plan first")
+    token, source = find_token()
+    if not token:
+        raise ReleaseError("no GitHub token: set GH_TOKEN, or log in with gh (the token is read from ~/.config/gh/hosts.yml)")
+    api = GitHub(token, REPO)
+    say(f"fetching the parts of {version} at {commit[:12]} (token from {source})")
+    out = directory / "incoming-zips"
+    found = []
+    for workflow, artifact in PARTS_WORKFLOWS:
+        runs = api.get(f"/repos/{REPO}/actions/workflows/{workflow}/runs?head_sha={commit}&per_page=10")
+        run = next((r for r in runs.get("workflow_runs", [])
+                    if r.get("conclusion") == "success" and r.get("head_branch") == "main"), None)
+        if run is None:
+            say(f"  {artifact}: no successful {workflow} run on this commit; "
+                f"dispatch it with commit={commit} first")
+            continue
+        artifacts = api.get(run["artifacts_url"])
+        entry = next((a for a in artifacts.get("artifacts", []) if a["name"] == artifact), None)
+        if entry is None:
+            raise ReleaseError(f"the successful {workflow} run {run['id']} has no {artifact} artifact")
+        zip_path = out / f"{artifact}.zip"
+        marker = out / f"{artifact}.size"
+        if not args.force and zip_path.exists() and marker.exists() \
+                and marker.read_text(encoding="utf-8").strip() == str(entry["size_in_bytes"]):
+            say(f"  {artifact}: cached {zip_path.name} ({entry['size_in_bytes']} bytes)")
+        else:
+            say(f"  {artifact}: downloading {entry['size_in_bytes'] / (1 << 20):.0f} MiB "
+                f"from run {run['id']}")
+            got = api.download_to(entry["archive_download_url"], zip_path)
+            if got != entry["size_in_bytes"]:
+                raise ReleaseError(f"{artifact}.zip is {got} bytes, the artifact says {entry['size_in_bytes']}")
+            marker.write_text(str(got), encoding="utf-8")
+        found.append((artifact, zip_path))
+    if not found:
+        raise ReleaseError("neither parts artifact is available for this commit yet")
+    for artifact, zip_path in found:
+        say(f"  {artifact}: {zip_path}")
+    say("next: packaging/release.py build --release " + version +
+        "".join(f" --{artifact} {zip_path}" for artifact, zip_path in found))
     return 0
 
 
@@ -2233,6 +2395,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     status = sub.add_parser("status", parents=[common], help="show the journal and the next step")
     status.set_defaults(func=cmd_status)
+
+    fetch = sub.add_parser("fetch-parts", parents=[common],
+                           help="download the windows-parts / mac-parts artifact zips of the pinned commit")
+    fetch.add_argument("--force", action="store_true", help="download again even when the cached zip matches")
+    fetch.set_defaults(func=cmd_fetch_parts)
 
     nxt = sub.add_parser("next", parents=[common], help="print the next version, tag and component version")
     nxt.set_defaults(func=cmd_next)

@@ -449,6 +449,7 @@ if ($Wanted -contains "qwen") {
         "-DSTRATA_PORTABLE=ON",
         "-DSTRATA_Q6K_EXPERTS=ON",
         "-DSTRATA_MMQ_KQUANTS=ON",
+        "-DSTRATA_MMQ=ON",
         "-DCMAKE_CUDA_ARCHITECTURES=75-real;86-real;89-real;120-real;120-virtual",
         "-DCMAKE_CUDA_COMPILER=$(Join-Path $cudaRoot 'bin\nvcc.exe')",
         "-DCUDAToolkit_ROOT=$cudaRoot",
